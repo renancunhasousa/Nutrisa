@@ -165,17 +165,19 @@ export default function App() {
   const [anthropometricMethod, setAnthropometricMethod] = useState(DEMO_EXTRACTED_DATA.anthropometricMethod);
   const [customValues, setCustomValues] = useState({});
 
-  // Convert File to Base64
+  // Convert File to Base64 (Extrai base64 puro para a API do Gemini)
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => {
-        let encoded = reader.result.toString().replace(/^data:(.*,)?/, '');
-        if ((encoded.length % 4) !== 0) {
-          encoded += '='.repeat((4 - (encoded.length % 4)) % 4);
+        try {
+          const resultStr = reader.result.toString();
+          const base64Clean = resultStr.includes(',') ? resultStr.split(',')[1] : resultStr;
+          resolve(base64Clean);
+        } catch (err) {
+          reject(err);
         }
-        resolve(encoded);
       };
       reader.onerror = error => reject(error);
     });
@@ -280,8 +282,8 @@ Retorne APENAS o JSON no seguinte formato:
 
       if (adipometryB64) {
         contentsParts.push({
-          inlineData: {
-            mimeType: adipometryFile.type || "application/pdf",
+          inline_data: {
+            mime_type: adipometryFile.type || "application/pdf",
             data: adipometryB64
           }
         });
@@ -289,8 +291,8 @@ Retorne APENAS o JSON no seguinte formato:
 
       if (bioimpedanceB64) {
         contentsParts.push({
-          inlineData: {
-            mimeType: bioimpedanceFile.type || "application/pdf",
+          inline_data: {
+            mime_type: bioimpedanceFile.type || "application/pdf",
             data: bioimpedanceB64
           }
         });
@@ -309,16 +311,19 @@ Retorne APENAS o JSON no seguinte formato:
 
       let response;
       try {
-        const apiUrlPrimary = `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`;
+        const apiUrlPrimary = `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey?.trim()}`;
         response = await fetch(apiUrlPrimary, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        if (!response.ok) throw new Error(`Model ${primaryModel} response status: ${response.status}`);
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`Model ${primaryModel} erro (${response.status}): ${errBody}`);
+        }
       } catch (err) {
         console.warn(`Tentando fallback com ${fallbackModel}...`, err);
-        const apiUrlFallback = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey}`;
+        const apiUrlFallback = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey?.trim()}`;
         response = await fetch(apiUrlFallback, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -327,7 +332,9 @@ Retorne APENAS o JSON no seguinte formato:
       }
 
       if (!response || !response.ok) {
-        throw new Error(`Erro ao conectar com a API do Gemini.`);
+        const errorText = response ? await response.text() : "Sem resposta do servidor";
+        console.error("Erro detalhado da API Gemini:", errorText);
+        throw new Error(`Erro ao conectar com a API do Gemini: ${errorText}`);
       }
 
       const result = await response.json();
