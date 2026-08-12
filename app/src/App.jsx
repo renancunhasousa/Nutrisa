@@ -125,13 +125,13 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState(() => {
     try {
       const saved = localStorage.getItem('nutrisa_selected_model');
-      if (saved && saved.includes('1.5')) {
-        localStorage.setItem('nutrisa_selected_model', 'gemini-2.5-flash');
-        return 'gemini-2.5-flash';
+      if (saved && (saved.includes('2.5') || saved.includes('1.5'))) {
+        localStorage.setItem('nutrisa_selected_model', 'gemini-2.0-flash');
+        return 'gemini-2.0-flash';
       }
-      return saved || import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
+      return saved || import.meta.env.VITE_GEMINI_MODEL || "gemini-2.0-flash";
     } catch (e) {
-      return import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
+      return import.meta.env.VITE_GEMINI_MODEL || "gemini-2.0-flash";
     }
   });
 
@@ -298,7 +298,7 @@ Retorne APENAS o JSON no seguinte formato:
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const primaryModel = selectedModel;
-      const fallbackModel = "gemini-2.5-flash-lite";
+      const fallbackModel = "gemini-2.0-flash-lite";
 
       const payload = {
         contents: [{ role: "user", parts: contentsParts }],
@@ -595,12 +595,10 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
                 >
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Padrão do Sistema - Excelente Equilíbrio)</option>
-                  <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Leve e Rápido)</option>
-                  <option value="gemini-2.5-pro">Gemini 2.5 Pro (Máxima Precisão)</option>
-                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente)</option>
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Alta Velocidade e Precisão)</option>
-                  <option value="gemini-3.1-pro">Gemini 3.1 Pro (Raciocínio Clínico Avançado)</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado - Excelente Equilíbrio e Velocidade)</option>
+                  <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Leve e Rápido)</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio Clínico Avançado)</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra Estável)</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
                   O modelo selecionado é responsável por extrair dados das tabelas de Adipometria/BIA e gerar o parecer discursivo personalizado.

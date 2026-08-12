@@ -168,9 +168,9 @@ export default function Anamnese({ activeModel }) {
       showNotification("Chave API não configurada no ambiente (.env).", "error");
       throw new Error("Chave não configurada.");
     }
-    let modelToUse = activeModel || localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
-    if (modelToUse.includes('1.5')) {
-      modelToUse = 'gemini-2.5-flash';
+    let modelToUse = activeModel || localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-2.0-flash";
+    if (modelToUse.includes('2.5')) {
+      modelToUse = 'gemini-2.0-flash';
     }
     const payload = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
