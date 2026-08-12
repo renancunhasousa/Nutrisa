@@ -163,7 +163,7 @@ export default function Anamnese({ activeModel }) {
 
   // --- INTEGRAÇÃO GEMINI ---
   const callGemini = async (prompt, isJson = false) => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const apiKey = (localStorage.getItem('nutrisa_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || "").trim();
     if (!apiKey) {
       showNotification("Chave API não configurada no ambiente (.env).", "error");
       throw new Error("Chave não configurada.");

@@ -135,6 +135,22 @@ export default function App() {
     }
   });
 
+  const [customApiKey, setCustomApiKey] = useState(() => {
+    try {
+      return localStorage.getItem('nutrisa_gemini_api_key') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const handleSaveApiKey = (key) => {
+    const cleanKey = key.trim();
+    setCustomApiKey(cleanKey);
+    try {
+      localStorage.setItem('nutrisa_gemini_api_key', cleanKey);
+    } catch (e) {}
+  };
+
   // Save profile and model changes to localStorage
   useEffect(() => {
     try {
@@ -298,7 +314,7 @@ Retorne APENAS o JSON no seguinte formato:
         });
       }
 
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = customApiKey?.trim() || localStorage.getItem('nutrisa_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY;
       const primaryModel = selectedModel;
       const fallbackModel = primaryModel === "gemini-2.0-flash" ? "gemini-2.0-flash-lite" : "gemini-2.0-flash";
 
@@ -594,27 +610,42 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-800/60 px-2 py-0.5 rounded">Conexão Ativa via Gemini API</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div className="md:col-span-2 space-y-2">
-                <label className="block text-amber-200 font-bold">Modelo Ativo de Leitura e Interpretação</label>
-                <select
-                  value={selectedModel}
-                  onChange={e => setSelectedModel(e.target.value)}
-                  className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
-                >
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado - Excelente Equilíbrio e Estabilidade)</option>
-                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente - Requer Chave Habilitada)</option>
-                  <option value="gemini-3.5-pro">Gemini 3.5 Pro (Raciocínio Avançado e Alta Precisão)</option>
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Alta Velocidade e Precisão)</option>
-                  <option value="gemini-3.1-pro">Gemini 3.1 Pro (Raciocínio Clínico Avançado)</option>
-                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Leve e Rápido)</option>
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Custo-Benefício e Baixa Latência)</option>
-                  <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Leve e Rápido)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio Clínico Estendido)</option>
-                </select>
-                <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                  O modelo selecionado é responsável por extrair dados das tabelas de Adipometria/BIA e gerar o parecer discursivo personalizado.
-                </p>
+              <div className="md:col-span-2 space-y-3">
+                <div>
+                  <label className="block text-amber-200 font-bold mb-1">Chave de API do Gemini (API Key)</label>
+                  <input
+                    type="password"
+                    placeholder="Cole sua chave oficial AIzaSy..."
+                    value={customApiKey}
+                    onChange={e => handleSaveApiKey(e.target.value)}
+                    className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2 text-white font-mono text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Obtenha sua chave gratuita em <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-amber-400 underline font-bold">aistudio.google.com</a>. Começa com <code>AIzaSy...</code>.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-amber-200 font-bold mb-1">Modelo Ativo de Leitura e Interpretação</label>
+                  <select
+                    value={selectedModel}
+                    onChange={e => setSelectedModel(e.target.value)}
+                    className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
+                  >
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado - Excelente Equilíbrio e Estabilidade)</option>
+                    <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente - Requer Chave Habilitada)</option>
+                    <option value="gemini-3.5-pro">Gemini 3.5 Pro (Raciocínio Avançado e Alta Precisão)</option>
+                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Alta Velocidade e Precisão)</option>
+                    <option value="gemini-3.1-pro">Gemini 3.1 Pro (Raciocínio Clínico Avançado)</option>
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Leve e Rápido)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (Custo-Benefício e Baixa Latência)</option>
+                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Leve e Rápido)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio Clínico Estendido)</option>
+                  </select>
+                  <p className="text-[10.5px] text-slate-400 leading-relaxed mt-1">
+                    O modelo selecionado é responsável por extrair dados das tabelas de Adipometria/BIA e gerar o parecer discursivo personalizado.
+                  </p>
+                </div>
               </div>
 
               <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1.5">
