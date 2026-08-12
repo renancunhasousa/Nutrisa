@@ -122,14 +122,21 @@ export default function App() {
     }
   });
   const [activeModal, setActiveModal] = useState(null); // null | 'profile' | 'ai'
-  const [selectedModel, setSelectedModel] = useState(() => {
+  // Limpeza de chaves obsoletas do localStorage
+  const sanitizeInitialModel = () => {
     try {
       const saved = localStorage.getItem('nutrisa_selected_model');
+      if (saved && (saved.includes('2.5') || saved.includes('2.0') || saved.includes('1.5'))) {
+        localStorage.removeItem('nutrisa_selected_model');
+        return "gemini-3.5-flash";
+      }
       return saved || import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash";
     } catch (e) {
       return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash";
     }
-  });
+  };
+
+  const [selectedModel, setSelectedModel] = useState(sanitizeInitialModel);
 
   // Save profile and model changes to localStorage
   useEffect(() => {
@@ -337,7 +344,27 @@ Retorne APENAS o JSON no seguinte formato:
       const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (rawText) {
-        const parsed = JSON.parse(rawText);
+        // Função utilitária para extrair e parsear JSON com segurança mesmo se contiver markdown
+        const cleanAndParseJson = (text) => {
+          if (!text) throw new Error("A IA retornou uma resposta vazia.");
+          let cleaned = text.trim();
+          if (cleaned.startsWith("```")) {
+            cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+          }
+          try {
+            return JSON.parse(cleaned);
+          } catch (e) {
+            const firstBrace = cleaned.indexOf("{");
+            const lastBrace = cleaned.lastIndexOf("}");
+            if (firstBrace !== -1 && lastBrace > firstBrace) {
+              const jsonCandidate = cleaned.substring(firstBrace, lastBrace + 1);
+              return JSON.parse(jsonCandidate);
+            }
+            throw e;
+          }
+        };
+
+        const parsed = cleanAndParseJson(rawText);
         // Pre-select logic: if adipometry has value prefer adipometry for % fat, else bia
         const processedMetrics = parsed.metrics.map(m => ({
           ...m,
