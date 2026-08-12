@@ -220,12 +220,12 @@ Pág 1: 6 Blocos Principais de Resumo (%G, Massa Magra, TMB, Idade Metabólica, 
 Pág 2: Dobras Cutâneas, Circunferências, Análise Segmentar por Membro (extraia diretamente do laudo de BIA a Massa Magra e Gordura em kg e % do Ideal para os 5 segmentos: Braço Direito, Braço Esquerdo, Tronco, Perna Direita e Perna Esquerda) e o "Parecer Nutricional Integrado".
 Pág 3: Histórico Comparativo de Avaliações Físicas (com variação Δ) e Gráfico Evolutivo de Composição Corporal.
 
-Portanto, gere o campo "aiAnalysisText" como um 'Diagnóstico e Parecer Nutricional Integrado' com cerca de 850 a 1000 caracteres, profissional, encorajador, focado na saúde metabólica, retenção/ganho de massa magra e alerta de gordura visceral/corporal, escrito diretamente para o paciente ler.
+Portanto, gere o campo "aiAnalysisText" como um 'Diagnóstico e Parecer Nutricional Integrado' com cerca de 850 a 1000 caracteres, profissional, encorajador, focado na saúde metabólica, escrita direta para o paciente. IMPORTANTE: Escreva este campo como um texto contínuo de um único parágrafo, sem aspas duplas internas ou com quebras de linha devidamente escapadas como \\n.
 
 Se algum parâmetro não for encontrado em um dos laudos, atribua null.
 Infira o equipamento de Bioimpedância utilizado (ex: InBody 270, AvaBio 380) e o Método Antropométrico (ex: Jackson & Pollock 7 dobras).
 
-Retorne APENAS o JSON no seguinte formato:
+Retorne APENAS o JSON válido no seguinte formato:
 {
   "patient": {
     "name": "Nome do Paciente",
@@ -344,27 +344,68 @@ Retorne APENAS o JSON no seguinte formato:
       const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (rawText) {
-        // Função utilitária para extrair e parsear JSON com segurança mesmo se contiver markdown
-        const cleanAndParseJson = (text) => {
+        // Parser ultrarrobusto com reparo automático de JSON gerado por IA
+        const repairAndParseJson = (text) => {
           if (!text) throw new Error("A IA retornou uma resposta vazia.");
           let cleaned = text.trim();
+
+          // 1. Remove delimitadores markdown
           if (cleaned.startsWith("```")) {
             cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
           }
+
+          // Extrai o bloco entre a primeira '{' e a última '}'
+          const firstBrace = cleaned.indexOf("{");
+          const lastBrace = cleaned.lastIndexOf("}");
+          if (firstBrace !== -1 && lastBrace > firstBrace) {
+            cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+          }
+
+          // Tentativa 1: Parse direto
           try {
             return JSON.parse(cleaned);
-          } catch (e) {
-            const firstBrace = cleaned.indexOf("{");
-            const lastBrace = cleaned.lastIndexOf("}");
-            if (firstBrace !== -1 && lastBrace > firstBrace) {
-              const jsonCandidate = cleaned.substring(firstBrace, lastBrace + 1);
-              return JSON.parse(jsonCandidate);
+          } catch (e1) {
+            console.warn("Parse direto falhou. Aplicando higienização de quebras de linha e vírgulas...", e1);
+          }
+
+          // Tentativa 2: Reparar quebras de linha literais dentro de strings e trailing commas
+          let aggressiveSanitized = "";
+          let inString = false;
+          let isEscaped = false;
+
+          for (let i = 0; i < cleaned.length; i++) {
+            const char = cleaned[i];
+            if (char === '"' && !isEscaped) {
+              inString = !inString;
             }
-            throw e;
+
+            if (inString && (char === '\n' || char === '\r')) {
+              aggressiveSanitized += '\\n';
+            } else if (inString && char === '\t') {
+              aggressiveSanitized += '\\t';
+            } else {
+              aggressiveSanitized += char;
+            }
+
+            if (char === '\\' && !isEscaped) {
+              isEscaped = true;
+            } else {
+              isEscaped = false;
+            }
+          }
+
+          // Remove vírgulas sobressalentes antes de fechar chaves ou colchetes
+          aggressiveSanitized = aggressiveSanitized.replace(/,\s*([\}\]])/g, "$1");
+
+          try {
+            return JSON.parse(aggressiveSanitized);
+          } catch (e2) {
+            console.error("Conteúdo bruto recebido que falhou no parse:", text);
+            throw new Error("Não foi possível parsear a resposta da IA. Formato JSON inválido.");
           }
         };
 
-        const parsed = cleanAndParseJson(rawText);
+        const parsed = repairAndParseJson(rawText);
         // Pre-select logic: if adipometry has value prefer adipometry for % fat, else bia
         const processedMetrics = parsed.metrics.map(m => ({
           ...m,
