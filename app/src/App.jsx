@@ -36,6 +36,7 @@ import {
   Pie, 
   Legend 
 } from 'recharts';
+import Anamnese from './Anamnese';
 
 const DEFAULT_NUTRITIONIST = {
   name: "Dra. Isabela Muñoz Mendonça",
@@ -110,6 +111,7 @@ const DEMO_EXTRACTED_DATA = {
 };
 
 export default function App() {
+  const [appMode, setAppMode] = useState('laudo'); // 'laudo' | 'anamnese'
   const [currentStep, setCurrentStep] = useState(1); // 1: Upload, 2: Comparativo/Chaves, 3: Laudo Final
   const [nutritionist, setNutritionist] = useState(() => {
     try {
@@ -122,7 +124,12 @@ export default function App() {
   const [activeModal, setActiveModal] = useState(null); // null | 'profile' | 'ai'
   const [selectedModel, setSelectedModel] = useState(() => {
     try {
-      return localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
+      const saved = localStorage.getItem('nutrisa_selected_model');
+      if (saved && saved.includes('1.5')) {
+        localStorage.setItem('nutrisa_selected_model', 'gemini-2.5-flash');
+        return 'gemini-2.5-flash';
+      }
+      return saved || import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
     } catch (e) {
       return import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
     }
@@ -291,7 +298,7 @@ Retorne APENAS o JSON no seguinte formato:
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const primaryModel = selectedModel;
-      const fallbackModel = "gemini-1.5-flash";
+      const fallbackModel = "gemini-2.5-flash-lite";
 
       const payload = {
         contents: [{ role: "user", parts: contentsParts }],
@@ -439,26 +446,29 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
             </div>
           </div>
 
-          {/* Stepper Progress */}
-          <div className="flex items-center space-x-1 sm:space-x-3 text-xs font-medium">
-            <div className={`flex items-center px-3 py-1.5 rounded-full ${currentStep === 1 ? 'bg-emerald-600 text-white shadow' : 'text-emerald-200 hover:bg-emerald-800'}`}>
-              <span className="w-5 h-5 flex items-center justify-center rounded-full bg-emerald-800 text-white mr-2 text-xs">1</span>
-              <span>Upload PDFs</span>
-            </div>
-            <ChevronRight className="w-4 h-4 text-emerald-500" />
-            <div className={`flex items-center px-3 py-1.5 rounded-full ${currentStep === 2 ? 'bg-emerald-600 text-white shadow' : 'text-emerald-200 hover:bg-emerald-800'}`}>
-              <span className="w-5 h-5 flex items-center justify-center rounded-full bg-emerald-800 text-white mr-2 text-xs">2</span>
-              <span>Seleção de Dados</span>
-            </div>
-            <ChevronRight className="w-4 h-4 text-emerald-500" />
-            <div className={`flex items-center px-3 py-1.5 rounded-full ${currentStep === 3 ? 'bg-emerald-600 text-white shadow' : 'text-emerald-200 hover:bg-emerald-800'}`}>
-              <span className="w-5 h-5 flex items-center justify-center rounded-full bg-emerald-800 text-white mr-2 text-xs">3</span>
-              <span>Laudo Unificado</span>
-            </div>
+          {/* Status Indicator */}
+          <div className="hidden sm:flex items-center text-emerald-200 text-xs font-medium uppercase tracking-widest">
+            {appMode === 'laudo' ? 'Análise de Composição Corporal' : 'Assistente Clínico IA'}
           </div>
 
           {/* Header Action Buttons: Separated Profile & AI Config */}
           <div className="flex items-center space-x-2">
+            <div className="hidden md:flex items-center bg-emerald-950 p-1 rounded-lg border border-emerald-800 mr-2 shadow-inner">
+              <button
+                onClick={() => setAppMode('laudo')}
+                className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center ${appMode === 'laudo' ? 'bg-emerald-600 text-white shadow' : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-800'}`}
+              >
+                <Activity className="w-3.5 h-3.5 mr-1.5" />
+                Laudo Físico
+              </button>
+              <button
+                onClick={() => setAppMode('anamnese')}
+                className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center ${appMode === 'anamnese' ? 'bg-emerald-600 text-white shadow' : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-800'}`}
+              >
+                <FileText className="w-3.5 h-3.5 mr-1.5" />
+                Anamnese
+              </button>
+            </div>
             <button 
               onClick={() => setActiveModal(activeModal === 'profile' ? null : 'profile')}
               className={`flex items-center text-xs px-3 py-1.5 rounded-md transition shadow-sm border ${
@@ -585,10 +595,12 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
                 >
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado - Ultrarrápido e Inteligente)</option>
-                  <option value="gemini-2.5-pro">Gemini 2.5 Pro (Máxima Precisão para Gráficos Complexos de BIA)</option>
-                  <option value="gemini-1.5-flash">Gemini 1.5 Flash (Modo Veloz)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio Clínico Avançado)</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Padrão do Sistema - Excelente Equilíbrio)</option>
+                  <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Leve e Rápido)</option>
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro (Máxima Precisão)</option>
+                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente)</option>
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Alta Velocidade e Precisão)</option>
+                  <option value="gemini-3.1-pro">Gemini 3.1 Pro (Raciocínio Clínico Avançado)</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
                   O modelo selecionado é responsável por extrair dados das tabelas de Adipometria/BIA e gerar o parecer discursivo personalizado.
@@ -620,11 +632,38 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
       )}
 
       {/* Main Content Area */}
+      {appMode === 'anamnese' ? (
+        <main className="flex-1 w-full mx-auto p-4 md:p-6 print:p-0">
+          <Anamnese activeModel={selectedModel} />
+        </main>
+      ) : (
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 print:p-0">
+
+        {/* LAUDO TABS */}
+        <div className="flex gap-2 mb-6 border-b border-slate-200 overflow-x-auto print:hidden">
+          <button 
+            onClick={() => setCurrentStep(1)} 
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wide rounded-t-lg transition-all whitespace-nowrap ${currentStep === 1 ? 'bg-white text-emerald-700 border-x border-t border-slate-200 shadow-sm' : 'text-slate-400 hover:text-emerald-600'}`}
+          >
+            1. Upload PDFs
+          </button>
+          <button 
+            onClick={() => currentStep >= 2 && setCurrentStep(2)} 
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wide rounded-t-lg transition-all whitespace-nowrap ${currentStep === 2 ? 'bg-white text-emerald-700 border-x border-t border-slate-200 shadow-sm' : 'text-slate-400 hover:text-emerald-600'} ${currentStep < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            2. Seleção de Dados
+          </button>
+          <button 
+            onClick={() => currentStep >= 2 && setCurrentStep(3)} 
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wide rounded-t-lg transition-all whitespace-nowrap ${currentStep === 3 ? 'bg-white text-emerald-700 border-x border-t border-slate-200 shadow-sm' : 'text-slate-400 hover:text-emerald-600'} ${currentStep < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            3. Laudo Unificado
+          </button>
+        </div>
 
         {/* STEP 1: UPLOAD SCREEN */}
         {currentStep === 1 && (
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="space-y-6">
             <div className="text-center space-y-3 pt-2 pb-2">
               <span className="inline-block px-3.5 py-1 bg-emerald-100/80 text-emerald-800 text-xs font-semibold rounded-full uppercase tracking-wider border border-emerald-200/50">
                 Interpretador Inteligente de Laudos
@@ -2293,6 +2332,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
         )}
 
       </main>
+      )}
     </div>
   );
 }
