@@ -597,10 +597,13 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                 >
                   <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado - Excelente Equilíbrio e Estabilidade)</option>
                   <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente - Requer Chave Habilitada)</option>
+                  <option value="gemini-3.5-pro">Gemini 3.5 Pro (Raciocínio Avançado e Alta Precisão)</option>
                   <option value="gemini-3.5-flash">Gemini 3.5 Flash (Alta Velocidade e Precisão)</option>
+                  <option value="gemini-3.1-pro">Gemini 3.1 Pro (Raciocínio Clínico Avançado)</option>
+                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Leve e Rápido)</option>
                   <option value="gemini-2.5-flash">Gemini 2.5 Flash (Custo-Benefício e Baixa Latência)</option>
                   <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Leve e Rápido)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio Clínico Avançado)</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio Clínico Estendido)</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
                   O modelo selecionado é responsável por extrair dados das tabelas de Adipometria/BIA e gerar o parecer discursivo personalizado.
