@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  
+  body {
+    background-color: white !important;
+  }
+
+  .a4-print-page {
+    height: 297mm !important;
+    max-height: 297mm !important;
+    box-sizing: border-box !important;
+    padding: 12mm 15mm 12mm 15mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    page-break-after: always;
+    page-break-inside: avoid;
+    overflow: hidden !important;
+  }
+  
+  .a4-print-footer {
+    margin-top: auto !important;
+    width: 100%;
+    flex-shrink: 0;
+    padding-top: 8px;
+  }
+}
