@@ -298,7 +298,7 @@ Retorne APENAS o JSON no seguinte formato:
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const primaryModel = selectedModel;
-      const fallbackModel = "gemini-2.0-flash-lite";
+      const fallbackModel = primaryModel === "gemini-2.0-flash" ? "gemini-2.0-flash-lite" : "gemini-2.0-flash";
 
       const payload = {
         contents: [{ role: "user", parts: contentsParts }],
@@ -595,10 +595,12 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
                 >
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado - Excelente Equilíbrio e Velocidade)</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado - Excelente Equilíbrio e Estabilidade)</option>
+                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente - Requer Chave Habilitada)</option>
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Alta Velocidade e Precisão)</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Custo-Benefício e Baixa Latência)</option>
                   <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Leve e Rápido)</option>
                   <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio Clínico Avançado)</option>
-                  <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra Estável)</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
                   O modelo selecionado é responsável por extrair dados das tabelas de Adipometria/BIA e gerar o parecer discursivo personalizado.

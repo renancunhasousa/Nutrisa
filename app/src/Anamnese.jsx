@@ -169,9 +169,6 @@ export default function Anamnese({ activeModel }) {
       throw new Error("Chave não configurada.");
     }
     let modelToUse = activeModel || localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-2.0-flash";
-    if (modelToUse.includes('2.5')) {
-      modelToUse = 'gemini-2.0-flash';
-    }
     const payload = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
@@ -181,11 +178,23 @@ export default function Anamnese({ activeModel }) {
     if (isJson) payload.generationConfig.responseMimeType = "application/json";
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`, {
+      let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
+      // Fallback Inteligente: Se o modelo primário retornar erro (ex: 400 por incompatibilidade com a chave API), usa gemini-2.0-flash
+      if (!response.ok && modelToUse !== 'gemini-2.0-flash') {
+        console.warn(`Modelo ${modelToUse} retornou status ${response.status}. Acionando fallback automático para gemini-2.0-flash...`);
+        modelToUse = 'gemini-2.0-flash';
+        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
       if (!response.ok) {
         throw new Error(`Erro ${response.status}`);
       }
