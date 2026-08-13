@@ -371,23 +371,38 @@ DIRETRIZES ESTRITAS:
   }, [template, activeTab]);
 
   // Executa comandos de formatação ricos no editor
-  const handleEditorCommand = (command, arg = null) => {
+  const handleEditorCommand = (command, arg = null, e = null) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!editorRef.current) return;
     editorRef.current.focus();
     document.execCommand(command, false, arg);
     syncEditorToTemplate();
   };
 
-  // Inserir Tópico / Bullet list no cursor do editor
-  const handleInsertBullet = () => {
+  // Inserir Tópico / Bullet list no cursor do editor preservando a seleção
+  const handleInsertBullet = (e = null) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!editorRef.current) return;
     editorRef.current.focus();
+
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
-      document.execCommand('insertUnorderedList', false, null);
-    } else {
-      document.execCommand('insertText', false, '• ');
+      const range = selection.getRangeAt(0);
+      if (editorRef.current.contains(range.commonAncestorContainer)) {
+        const bulletNode = document.createTextNode("• ");
+        range.deleteContents();
+        range.insertNode(bulletNode);
+        range.setStartAfter(bulletNode);
+        range.setEndAfter(bulletNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        syncEditorToTemplate();
+        return;
+      }
     }
+
+    // Se o cursor não estava dentro da div, insere no final
+    editorRef.current.innerText += (editorRef.current.innerText ? '\n' : '') + '• ';
     syncEditorToTemplate();
   };
 
@@ -588,8 +603,8 @@ Reavaliação em 30 dias.`
                   
                   <button 
                     type="button" 
-                    onClick={() => handleEditorCommand('bold')} 
-                    className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 transition-all shadow-sm flex items-center gap-1"
+                    onMouseDown={(e) => handleEditorCommand('bold', null, e)} 
+                    className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
                     title="Negrito Visual (Ctrl+B)"
                   >
                     <strong>B</strong> Negrito
@@ -597,8 +612,8 @@ Reavaliação em 30 dias.`
 
                   <button 
                     type="button" 
-                    onClick={() => handleEditorCommand('italic')} 
-                    className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs italic font-medium text-slate-700 transition-all shadow-sm flex items-center gap-1"
+                    onMouseDown={(e) => handleEditorCommand('italic', null, e)} 
+                    className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs italic font-medium text-slate-700 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
                     title="Itálico Visual (Ctrl+I)"
                   >
                     <em>I</em> Itálico
@@ -606,8 +621,8 @@ Reavaliação em 30 dias.`
 
                   <button 
                     type="button" 
-                    onClick={handleInsertBullet} 
-                    className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-all shadow-sm flex items-center gap-1"
+                    onMouseDown={handleInsertBullet} 
+                    className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
                     title="Inserir Lista com Marcadores"
                   >
                     • Tópicos
