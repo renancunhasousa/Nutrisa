@@ -342,6 +342,8 @@ DIRETRIZES ESTRITAS:
 
     // Converte os spans de variáveis de volta para {{ NOME }}
     html = html.replace(/<span[^>]*data-var="([^"]+)"[^>]*>[\s\S]*?<\/span>/gi, '{{ $1 }}');
+    // Converte elementos de listas <li> para • item
+    html = html.replace(/<li[^>]*>(.*?)<\/li>/gi, '\n• $1');
     // Converte <strong> e <b> para **texto**
     html = html.replace(/<(?:strong|b)[^>]*>(.*?)<\/(?:strong|b)>/gi, '**$1**');
     // Converte <em> e <i> para *texto*
@@ -373,6 +375,19 @@ DIRETRIZES ESTRITAS:
     if (!editorRef.current) return;
     editorRef.current.focus();
     document.execCommand(command, false, arg);
+    syncEditorToTemplate();
+  };
+
+  // Inserir Tópico / Bullet list no cursor do editor
+  const handleInsertBullet = () => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      document.execCommand('insertUnorderedList', false, null);
+    } else {
+      document.execCommand('insertText', false, '• ');
+    }
     syncEditorToTemplate();
   };
 
@@ -591,7 +606,7 @@ Reavaliação em 30 dias.`
 
                   <button 
                     type="button" 
-                    onClick={() => handleEditorCommand('insertUnorderedList')} 
+                    onClick={handleInsertBullet} 
                     className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-all shadow-sm flex items-center gap-1"
                     title="Inserir Lista com Marcadores"
                   >
@@ -607,10 +622,6 @@ Reavaliação em 30 dias.`
                     ⚡ Variável
                   </button>
                 </div>
-
-                <span className="text-[11px] text-slate-500 font-medium px-2 hidden lg:inline">
-                  ✨ Formatação visual ativa! Os <strong>negritos</strong> colam formatados no <strong>WebDiet</strong>.
-                </span>
               </div>
 
               {/* Editor Rico Interativo (contentEditable) */}
