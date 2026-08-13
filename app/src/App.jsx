@@ -670,14 +670,14 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
                 >
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Recomendado - Excelente Velocidade e Precisão)</option>
-                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente)</option>
+                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente e Completo)</option>
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Recomendado - Alta Velocidade e Precisão)</option>
+                  <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Super Rápido e Eficiente)</option>
                   <option value="gemini-3.5-pro">Gemini 3.5 Pro (Raciocínio Avançado e Alta Precisão)</option>
                   <option value="gemini-3.1-pro">Gemini 3.1 Pro (Raciocínio Clínico Avançado)</option>
-                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Leve e Rápido)</option>
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Custo-Benefício e Baixa Latência)</option>
-                  <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Leve e Rápido)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio Clínico Estendido)</option>
+                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Leve e Ultrarrápido)</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Equilibrado)</option>
+                  <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Baixa Latência)</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
                   O modelo selecionado é responsável por extrair dados das tabelas de Adipometria/BIA e gerar o parecer discursivo personalizado.
