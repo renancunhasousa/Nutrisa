@@ -122,15 +122,24 @@ export default function App() {
     }
   });
   const [activeModal, setActiveModal] = useState(null); // null | 'profile' | 'ai'
-  // Limpeza de chaves obsoletas do localStorage
+  // Persistência segura do modelo selecionado pelo usuário no localStorage
   const sanitizeInitialModel = () => {
     try {
       const saved = localStorage.getItem('nutrisa_selected_model');
-      if (saved && (saved.includes('2.5') || saved.includes('2.0') || saved.includes('1.5'))) {
-        localStorage.removeItem('nutrisa_selected_model');
-        return "gemini-3.5-flash";
+      const validModels = [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.5-pro",
+        "gemini-3.1-pro",
+        "gemini-3.1-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite"
+      ];
+      if (saved && validModels.includes(saved)) {
+        return saved;
       }
-      return saved || import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash";
+      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash";
     } catch (e) {
       return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash";
     }
