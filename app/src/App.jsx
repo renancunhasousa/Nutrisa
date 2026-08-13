@@ -301,7 +301,11 @@ Retorne APENAS o JSON válido no seguinte formato:
         });
       }
 
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
+      if (!apiKey || apiKey.includes("Sua_Chave")) {
+        alert("Atenção: A chave API do Gemini (VITE_GEMINI_API_KEY) não está configurada no painel da Vercel!\n\nAcesse Vercel -> Seu Projeto -> Settings -> Environment Variables, adicione VITE_GEMINI_API_KEY com sua chave do Google AI Studio e faça um Novo Deploy.");
+        throw new Error("Chave VITE_GEMINI_API_KEY ausente ou inválida no ambiente Vercel.");
+      }
       const primaryModel = selectedModel;
       const fallbackModel = primaryModel === "gemini-3.5-flash" ? "gemini-3.6-flash" : "gemini-3.5-flash";
 
