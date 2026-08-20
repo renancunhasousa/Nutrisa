@@ -22,7 +22,8 @@ import {
   Download,
   ShieldCheck,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -127,21 +128,19 @@ export default function App() {
     try {
       const saved = localStorage.getItem('nutrisa_selected_model');
       const validModels = [
-        "gemini-3.6-flash",
-        "gemini-3.5-flash",
+        "gemini-3.7-flash",
         "gemini-3.5-flash-lite",
-        "gemini-3.5-pro",
-        "gemini-3.1-pro",
-        "gemini-3.1-flash-lite",
         "gemini-2.5-flash",
-        "gemini-2.5-flash-lite"
+        "gemini-2.5-flash-lite",
+        "gemini-3.5-pro",
+        "gemini-3.5-flash"
       ];
       if (saved && validModels.includes(saved)) {
         return saved;
       }
-      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash";
+      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.7-flash";
     } catch (e) {
-      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash";
+      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.7-flash";
     }
   };
 
@@ -170,6 +169,75 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState("");
+  const [appNotification, setAppNotification] = useState(null); // { message, type: 'info' | 'warning' | 'error' }
+
+  const showAppNotification = (message, type = 'info', duration = 6000) => {
+    setAppNotification({ message, type });
+    if (duration > 0) {
+      setTimeout(() => setAppNotification(null), duration);
+    }
+  };
+
+  // Ordem de Fallback em Camadas (Cascata Multi-Nível)
+  const getModelFallbackChain = (initialModel) => {
+    const defaultChain = [
+      "gemini-3.7-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite"
+    ];
+    // Garante que o modelo inicial seja o primeiro e sem duplicatas
+    return [initialModel, ...defaultChain.filter(m => m !== initialModel)];
+  };
+
+  // Helper com cascata para chamadas Gemini na aplicação
+  const executeGeminiWithFallback = async (payload, onModelChangeText = "Processando com modelo alternativo...") => {
+    const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
+    if (!apiKey || apiKey.includes("Sua_Chave")) {
+      alert("Atenção: A chave API do Gemini (VITE_GEMINI_API_KEY) não está configurada no painel da Vercel!\n\nAcesse Vercel -> Seu Projeto -> Settings -> Environment Variables, adicione VITE_GEMINI_API_KEY com sua chave do Google AI Studio e faça um Novo Deploy.");
+      throw new Error("Chave VITE_GEMINI_API_KEY ausente ou inválida.");
+    }
+
+    const modelsToTry = getModelFallbackChain(selectedModel);
+    let lastError = null;
+
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const model = modelsToTry[i];
+      try {
+        if (i > 0) {
+          console.warn(`[Fallback Ativo] Tentando modelo alternativo ${model} (tentativa ${i + 1}/${modelsToTry.length})...`);
+          showAppNotification(
+            `Cota ou instabilidade no modelo anterior. Alternando automaticamente para ${model}...`,
+            'warning',
+            5000
+          );
+        }
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errBody = await response.text();
+          const isQuota = response.status === 429 || errBody.includes("RESOURCE_EXHAUSTED") || errBody.includes("quota");
+          console.warn(`Modelo ${model} retornou status ${response.status} ${isQuota ? '(Cota Excedida / 429)' : ''}: ${errBody}`);
+          lastError = new Error(`Model ${model} falhou (${response.status}): ${errBody}`);
+          continue; // Tenta o próximo da cascata
+        }
+
+        const result = await response.json();
+        return { result, usedModel: model };
+      } catch (err) {
+        lastError = err;
+        console.warn(`Falha de rede ou execução no modelo ${model}:`, err);
+      }
+    }
+
+    throw lastError || new Error("Todos os modelos da cascata do Gemini falharam.");
+  };
 
   // Extracted and calculated data state
   const [extractedData, setExtractedData] = useState(DEMO_EXTRACTED_DATA);
@@ -310,14 +378,6 @@ Retorne APENAS o JSON válido no seguinte formato:
         });
       }
 
-      const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
-      if (!apiKey || apiKey.includes("Sua_Chave")) {
-        alert("Atenção: A chave API do Gemini (VITE_GEMINI_API_KEY) não está configurada no painel da Vercel!\n\nAcesse Vercel -> Seu Projeto -> Settings -> Environment Variables, adicione VITE_GEMINI_API_KEY com sua chave do Google AI Studio e faça um Novo Deploy.");
-        throw new Error("Chave VITE_GEMINI_API_KEY ausente ou inválida no ambiente Vercel.");
-      }
-      const primaryModel = selectedModel;
-      const fallbackModel = primaryModel === "gemini-3.5-flash" ? "gemini-3.6-flash" : "gemini-3.5-flash";
-
       const payload = {
         contents: [{ role: "user", parts: contentsParts }],
         generationConfig: {
@@ -325,35 +385,11 @@ Retorne APENAS o JSON válido no seguinte formato:
         }
       };
 
-      let response;
-      try {
-        const apiUrlPrimary = `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey?.trim()}`;
-        response = await fetch(apiUrlPrimary, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
-          const errBody = await response.text();
-          throw new Error(`Model ${primaryModel} erro (${response.status}): ${errBody}`);
-        }
-      } catch (err) {
-        console.warn(`Tentando fallback com ${fallbackModel}...`, err);
-        const apiUrlFallback = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey?.trim()}`;
-        response = await fetch(apiUrlFallback, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+      const { result, usedModel } = await executeGeminiWithFallback(payload);
+      if (usedModel !== selectedModel) {
+        console.log(`Extração concluída com sucesso usando o modelo de fallback: ${usedModel}`);
       }
 
-      if (!response || !response.ok) {
-        const errorText = response ? await response.text() : "Sem resposta do servidor";
-        console.error("Erro detalhado da API Gemini:", errorText);
-        throw new Error(`Erro ao conectar com a API do Gemini: ${errorText}`);
-      }
-
-      const result = await response.json();
       const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (rawText) {
@@ -463,7 +499,6 @@ O parecer deve cobrir:
 Mantenha um tom profissional, técnico porém empático e encorajador. Respeite o limite máximo de 1000 caracteres para encaixe perfeito no layout impresso A4.
 NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos. Retorne APENAS o texto contínuo.`;
 
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const payload = {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { 
@@ -472,14 +507,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
         }
       };
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!response.ok) throw new Error("Erro de comunicação com a IA");
-      const result = await response.json();
+      const { result } = await executeGeminiWithFallback(payload);
       const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
       setExtractedData(prev => ({ ...prev, aiAnalysisText: text.trim() }));
     } catch (err) {
@@ -679,17 +707,15 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
                 >
-                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Mais Recente e Completo)</option>
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Recomendado - Alta Velocidade e Precisão)</option>
-                  <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Super Rápido e Eficiente)</option>
-                  <option value="gemini-3.5-pro">Gemini 3.5 Pro (Raciocínio Avançado e Alta Precisão)</option>
-                  <option value="gemini-3.1-pro">Gemini 3.1 Pro (Raciocínio Clínico Avançado)</option>
-                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Leve e Ultrarrápido)</option>
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Equilibrado)</option>
-                  <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Baixa Latência)</option>
+                  <option value="gemini-3.7-flash">Gemini 3.7 Flash (Recomendado - Mais Inteligente e Preciso)</option>
+                  <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Super Rápido e Econômico)</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Geração 2.5 - Cota e Fila Separadas)</option>
+                  <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Leve e Baixa Latência)</option>
+                  <option value="gemini-3.5-pro">Gemini 3.5 Pro (Raciocínio Clínico Avançado)</option>
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                  O modelo selecionado é responsável por extrair dados das tabelas de Adipometria/BIA e gerar o parecer discursivo personalizado.
+                  🛡️ <strong>Cascata Inteligente Ativa:</strong> Se o modelo principal exceder a cota diária (Erro 429), a aplicação alternará automaticamente na sequência (<em>3.7 Flash → 3.5 Flash-Lite → 2.5 Flash → 2.5 Flash-Lite</em>) para nunca interromper seu atendimento.
                 </p>
               </div>
 
@@ -714,6 +740,22 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Global Fallback & Notification Banner */}
+      {appNotification && (
+        <div className="bg-amber-500 text-slate-950 px-4 py-2.5 shadow-md flex items-center justify-between text-xs font-semibold animate-fade-in print:hidden border-b border-amber-600">
+          <div className="max-w-7xl mx-auto w-full flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4 text-slate-950 flex-shrink-0 animate-bounce" />
+            <span>{appNotification.message}</span>
+          </div>
+          <button 
+            onClick={() => setAppNotification(null)}
+            className="text-slate-900 hover:text-black font-bold text-sm px-2"
+          >
+            ✕
+          </button>
         </div>
       )}
 

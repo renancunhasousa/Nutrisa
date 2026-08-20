@@ -161,14 +161,24 @@ export default function Anamnese({ activeModel }) {
     localStorage.setItem('nutrisa_anamnese_templates', JSON.stringify(savedTemplates));
   }, [savedTemplates]);
 
-  // --- INTEGRAÇÃO GEMINI ---
+  // --- INTEGRAÇÃO GEMINI COM CASCATA DE FALLBACK MULTI-NÍVEL ---
   const callGemini = async (prompt, isJson = false) => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       showNotification("Chave API não configurada no ambiente (.env).", "error");
       throw new Error("Chave não configurada.");
     }
-    let modelToUse = activeModel || localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash";
+    const initialModel = activeModel || localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-3.7-flash";
+    
+    // Cascata de modelos em camadas
+    const fallbackChain = [
+      "gemini-3.7-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite"
+    ];
+    const modelsToTry = [initialModel, ...fallbackChain.filter(m => m !== initialModel)];
+
     const payload = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
@@ -177,33 +187,39 @@ export default function Anamnese({ activeModel }) {
     };
     if (isJson) payload.generationConfig.responseMimeType = "application/json";
 
-    try {
-      let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+    let lastError = null;
 
-      // Fallback Inteligente: Se o modelo primario falhar, tenta gemini-3.5-flash
-      if (!response.ok && modelToUse !== 'gemini-3.5-flash') {
-        console.warn(`Modelo ${modelToUse} retornou status ${response.status}. Acionando fallback automático para gemini-3.5-flash...`);
-        modelToUse = 'gemini-3.5-flash';
-        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`, {
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const model = modelsToTry[i];
+      try {
+        if (i > 0) {
+          console.warn(`[Anamnese Fallback] Alternando automaticamente para ${model} (tentativa ${i + 1}/${modelsToTry.length})...`);
+          showNotification(`Cota ou instabilidade no modelo anterior. Alternando para ${model}...`, "info");
+        }
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-      }
 
-      if (!response.ok) {
-        throw new Error(`Erro ${response.status}`);
+        if (!response.ok) {
+          const errBody = await response.text();
+          console.warn(`Modelo ${model} retornou status ${response.status}: ${errBody}`);
+          lastError = new Error(`Erro ${response.status} no modelo ${model}`);
+          continue; // Tenta o próximo modelo
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+      } catch (error) {
+        lastError = error;
+        console.warn(`Erro com modelo ${model}:`, error);
       }
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      console.error("Erro Gemini:", error);
-      throw error;
     }
+
+    showNotification("Todos os modelos da cascata falharam. Verifique sua conexão ou cota.", "error");
+    throw lastError || new Error("Falha na geração via IA.");
   };
 
   // --- LÓGICA DE GERAÇÃO ---
