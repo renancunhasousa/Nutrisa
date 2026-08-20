@@ -23,7 +23,8 @@ import {
   ShieldCheck,
   RefreshCw,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  MessageSquare
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -38,6 +39,7 @@ import {
   Legend 
 } from 'recharts';
 import Anamnese from './Anamnese';
+import DashboardWhatsApp from './DashboardWhatsApp';
 
 const DEFAULT_NUTRITIONIST = {
   name: "Dra. Isabela Muñoz Mendonça",
@@ -547,66 +549,92 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
       
       {/* Top Navbar - Hidden on Print */}
       <header className="bg-emerald-900 text-white shadow-md print:hidden">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-2.5 flex justify-between items-center gap-3">
+          
+          {/* Logo & Nutritionist Info */}
           <div className="flex items-center space-x-3">
-            <div className="w-11 h-11 bg-white/10 p-1.5 rounded-xl border border-emerald-700/60 flex items-center justify-center shadow-inner overflow-hidden">
+            <div className="w-10 h-10 bg-white/10 p-1.5 rounded-xl border border-emerald-700/60 flex items-center justify-center shadow-inner overflow-hidden shrink-0">
               <img src={logo} alt="NutrIsa Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="font-bold text-lg leading-tight">{nutritionist.name}</h1>
-              <p className="text-xs text-emerald-200">{nutritionist.title} • {nutritionist.crn}</p>
+              <h1 className="font-bold text-base md:text-lg leading-tight">{nutritionist.name}</h1>
+              <p className="text-xs text-emerald-200 hidden sm:block">{nutritionist.title} • {nutritionist.crn}</p>
             </div>
           </div>
 
-          {/* Status Indicator */}
-          <div className="hidden sm:flex items-center text-emerald-200 text-xs font-medium uppercase tracking-widest">
-            {appMode === 'laudo' ? 'Análise de Composição Corporal' : 'Assistente Clínico IA'}
-          </div>
-
-          {/* Header Action Buttons: Separated Profile & AI Config */}
-          <div className="flex items-center space-x-2">
-            <div className="hidden md:flex items-center bg-emerald-950 p-1 rounded-lg border border-emerald-800 mr-2 shadow-inner">
-              <button
-                onClick={() => setAppMode('laudo')}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center ${appMode === 'laudo' ? 'bg-emerald-600 text-white shadow' : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-800'}`}
-              >
-                <Activity className="w-3.5 h-3.5 mr-1.5" />
-                Laudo Físico
-              </button>
-              <button
-                onClick={() => setAppMode('anamnese')}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center ${appMode === 'anamnese' ? 'bg-emerald-600 text-white shadow' : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-800'}`}
-              >
-                <FileText className="w-3.5 h-3.5 mr-1.5" />
-                Anamnese
-              </button>
-            </div>
-            <button 
-              onClick={() => setActiveModal(activeModal === 'profile' ? null : 'profile')}
-              className={`flex items-center text-xs px-3 py-1.5 rounded-md transition shadow-sm border ${
-                activeModal === 'profile' 
-                  ? 'bg-emerald-600 text-white border-emerald-400 ring-2 ring-emerald-400 font-bold' 
-                  : 'bg-emerald-800 hover:bg-emerald-700 text-emerald-100 border-emerald-700'
+          {/* Center Tabs Navigation */}
+          <div className="flex items-center bg-emerald-950/80 p-1 rounded-xl border border-emerald-800 shadow-inner">
+            <button
+              onClick={() => setAppMode('laudo')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                appMode === 'laudo' 
+                  ? 'bg-emerald-600 text-white shadow' 
+                  : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/60'
               }`}
             >
-              <User className="w-3.5 h-3.5 mr-1.5" />
-              Perfil Profissional
+              <Activity className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Laudo Físico</span>
+            </button>
+            <button
+              onClick={() => setAppMode('anamnese')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                appMode === 'anamnese' 
+                  ? 'bg-emerald-600 text-white shadow' 
+                  : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/60'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Anamnese</span>
+            </button>
+            <button
+              onClick={() => setAppMode('dashboard')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                appMode === 'dashboard' 
+                  ? 'bg-emerald-600 text-white shadow' 
+                  : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/60'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">WhatsApp & SLA</span>
+            </button>
+          </div>
+
+          {/* Right Action Buttons: Hover-Expand Icon Buttons */}
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setActiveModal(activeModal === 'profile' ? null : 'profile')}
+              title="Perfil Profissional"
+              className={`group flex items-center h-8.5 rounded-xl px-2.5 transition-all duration-300 shadow-sm border overflow-hidden ${
+                activeModal === 'profile' 
+                  ? 'bg-emerald-600 text-white border-emerald-400 ring-2 ring-emerald-400 font-bold' 
+                  : 'bg-emerald-800/90 hover:bg-emerald-700 text-emerald-100 border-emerald-700'
+              }`}
+            >
+              <User className="w-4 h-4 shrink-0 text-emerald-200" />
+              <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 text-xs font-medium pl-0 group-hover:pl-2">
+                Perfil Profissional
+              </span>
             </button>
 
             <button 
               onClick={() => setActiveModal(activeModal === 'ai' ? null : 'ai')}
-              className={`flex items-center text-xs px-3 py-1.5 rounded-md transition shadow-sm border ${
+              title="Configuração da IA"
+              className={`group flex items-center h-8.5 rounded-xl px-2.5 transition-all duration-300 shadow-sm border overflow-hidden ${
                 activeModal === 'ai' 
                   ? 'bg-amber-600 text-white border-amber-300 ring-2 ring-amber-400 font-bold' 
                   : 'bg-amber-900/80 hover:bg-amber-800 text-amber-100 border-amber-700/80'
               }`}
             >
-              <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-300" />
-              Configuração da IA
+              <Zap className="w-4 h-4 shrink-0 text-amber-300" />
+              <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 text-xs font-medium pl-0 group-hover:pl-2">
+                Configuração da IA
+              </span>
             </button>
           </div>
+
         </div>
       </header>
+
 
       {/* PANEL 1: PROFILE & PRINTING DENTISTRY MODAL */}
       {activeModal === 'profile' && (
@@ -760,7 +788,11 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
       )}
 
       {/* Main Content Area */}
-      {appMode === 'anamnese' ? (
+      {appMode === 'dashboard' ? (
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 print:p-0">
+          <DashboardWhatsApp />
+        </main>
+      ) : appMode === 'anamnese' ? (
         <main className="flex-1 w-full mx-auto p-4 md:p-6 print:p-0">
           <Anamnese activeModel={selectedModel} />
         </main>
