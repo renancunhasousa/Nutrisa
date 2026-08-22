@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import logo from './assets/logo.png';
+import logo from './assets/logo_new.png';
 import { 
   FileUp, 
   Sparkles, 
@@ -24,7 +24,12 @@ import {
   RefreshCw,
   TrendingUp,
   AlertTriangle,
-  MessageSquare
+  MessageSquare,
+  Bell,
+  Search,
+  LogOut,
+  Crown,
+  CloudUpload
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -545,91 +550,130 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans print:bg-white print:p-0">
+    <div className="min-h-screen bg-gradient-to-br from-[#f0fbf9] via-[#ffffff] to-[#faf8f2] text-slate-800 flex flex-col font-sans relative overflow-x-hidden print:bg-white print:p-0">
       
-      {/* Top Navbar - Hidden on Print */}
-      <header className="bg-emerald-900 text-white shadow-md print:hidden">
-        <div className="max-w-7xl mx-auto px-4 py-2.5 flex justify-between items-center gap-3">
+      {/* Background Luxury Ambient Glows (Tiffany, Dourado Suave & Branco) */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 print:hidden">
+        {/* Orbe Tiffany Superior Esquerdo */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-teal-200/25 rounded-full blur-3xl"></div>
+        {/* Orbe Dourado Suave Superior Direito */}
+        <div className="absolute top-10 -right-20 w-80 h-80 bg-amber-200/20 rounded-full blur-3xl"></div>
+        {/* Orbe Tiffany/Esmeralda Médio Central */}
+        <div className="absolute top-1/2 left-1/3 w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl"></div>
+        {/* Orbe Dourado/Champagne Inferior Direito */}
+        <div className="absolute -bottom-20 right-10 w-96 h-96 bg-yellow-100/30 rounded-full blur-3xl"></div>
+      </div>
+      
+      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
+      <header className="bg-white/80 backdrop-blur-xl border-b border-teal-900/5 sticky top-0 z-40 print:hidden transition-all shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-6">
           
-          {/* Logo & Nutritionist Info */}
+          {/* 1. Left Section: Bigger Brand Logo + Navigation Tabs */}
+          <div className="flex items-center space-x-6">
+            
+            {/* Brand Logo */}
+            <div className="flex items-center shrink-0 py-1">
+              <img 
+                src={logo} 
+                alt="NutrIsa" 
+                className="h-14 md:h-16 w-auto object-contain transition-all hover:scale-105 drop-shadow-2xs" 
+              />
+            </div>
+
+            {/* Navigation Tabs aligned to the left */}
+            <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/70 shadow-2xs">
+              <button
+                onClick={() => setAppMode('laudo')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  appMode === 'laudo' 
+                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>Laudo Físico</span>
+              </button>
+              <button
+                onClick={() => setAppMode('anamnese')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  appMode === 'anamnese' 
+                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Anamnese</span>
+              </button>
+              <button
+                onClick={() => setAppMode('dashboard')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  appMode === 'dashboard' 
+                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>WhatsApp</span>
+              </button>
+            </div>
+
+          </div>
+
+          {/* 2. Right Section: Quick Action Buttons & Simple User Profile */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/10 p-1.5 rounded-xl border border-emerald-700/60 flex items-center justify-center shadow-inner overflow-hidden shrink-0">
-              <img src={logo} alt="NutrIsa Logo" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <h1 className="font-bold text-base md:text-lg leading-tight">{nutritionist.name}</h1>
-              <p className="text-xs text-emerald-200 hidden sm:block">{nutritionist.title} • {nutritionist.crn}</p>
-            </div>
-          </div>
-
-          {/* Center Tabs Navigation */}
-          <div className="flex items-center bg-emerald-950/80 p-1 rounded-xl border border-emerald-800 shadow-inner">
-            <button
-              onClick={() => setAppMode('laudo')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                appMode === 'laudo' 
-                  ? 'bg-emerald-600 text-white shadow' 
-                  : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/60'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Laudo Físico</span>
-            </button>
-            <button
-              onClick={() => setAppMode('anamnese')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                appMode === 'anamnese' 
-                  ? 'bg-emerald-600 text-white shadow' 
-                  : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/60'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Anamnese</span>
-            </button>
-            <button
-              onClick={() => setAppMode('dashboard')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                appMode === 'dashboard' 
-                  ? 'bg-emerald-600 text-white shadow' 
-                  : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/60'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">WhatsApp & SLA</span>
-            </button>
-          </div>
-
-          {/* Right Action Buttons: Hover-Expand Icon Buttons */}
-          <div className="flex items-center space-x-2">
+            
+            {/* Botão de Notificações */}
             <button 
-              onClick={() => setActiveModal(activeModal === 'profile' ? null : 'profile')}
-              title="Perfil Profissional"
-              className={`group flex items-center h-8.5 rounded-xl px-2.5 transition-all duration-300 shadow-sm border overflow-hidden ${
-                activeModal === 'profile' 
-                  ? 'bg-emerald-600 text-white border-emerald-400 ring-2 ring-emerald-400 font-bold' 
-                  : 'bg-emerald-800/90 hover:bg-emerald-700 text-emerald-100 border-emerald-700'
-              }`}
+              title="Notificações do Sistema"
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all relative"
             >
-              <User className="w-4 h-4 shrink-0 text-emerald-200" />
-              <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 text-xs font-medium pl-0 group-hover:pl-2">
-                Perfil Profissional
-              </span>
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-white"></span>
             </button>
 
+            {/* Configuração de IA */}
             <button 
               onClick={() => setActiveModal(activeModal === 'ai' ? null : 'ai')}
-              title="Configuração da IA"
-              className={`group flex items-center h-8.5 rounded-xl px-2.5 transition-all duration-300 shadow-sm border overflow-hidden ${
-                activeModal === 'ai' 
-                  ? 'bg-amber-600 text-white border-amber-300 ring-2 ring-amber-400 font-bold' 
-                  : 'bg-amber-900/80 hover:bg-amber-800 text-amber-100 border-amber-700/80'
+              title="Configurações de Inteligência Artificial"
+              className={`p-2 rounded-xl transition-all border ${
+                activeModal === 'ai'
+                  ? 'bg-amber-50 text-amber-700 border-amber-300 ring-2 ring-amber-300/40'
+                  : 'text-slate-500 hover:text-amber-700 hover:bg-amber-50/80 border-transparent hover:border-amber-200'
               }`}
             >
-              <Zap className="w-4 h-4 shrink-0 text-amber-300" />
-              <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 text-xs font-medium pl-0 group-hover:pl-2">
-                Configuração da IA
-              </span>
+              <Sparkles className="w-4 h-4" />
             </button>
+
+            {/* Configuração do Perfil */}
+            <button 
+              onClick={() => setActiveModal(activeModal === 'profile' ? null : 'profile')}
+              title="Configurações da Clínica e Perfil"
+              className={`p-2 rounded-xl transition-all border ${
+                activeModal === 'profile'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-300/40'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border-transparent'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
+            {/* Divisor Vertical */}
+            <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+            {/* Simple User Profile: Apenas Nome e Foto */}
+            <div 
+              onClick={() => setActiveModal(activeModal === 'profile' ? null : 'profile')}
+              className="flex items-center space-x-2.5 pl-1 py-1 pr-2 rounded-xl hover:bg-slate-100/80 cursor-pointer transition-all border border-transparent hover:border-slate-200/80"
+              title="Perfil: Dra. Isabela Muñoz"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-bold text-xs flex items-center justify-center shadow-xs ring-2 ring-white shrink-0">
+                IM
+              </div>
+              <span className="text-xs font-bold text-slate-800 hidden sm:inline">
+                {nutritionist.name.split(' ')[0] + ' ' + (nutritionist.name.split(' ')[1] || '')}
+              </span>
+            </div>
+
           </div>
 
         </div>
@@ -638,13 +682,15 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
 
       {/* PANEL 1: PROFILE & PRINTING DENTISTRY MODAL */}
       {activeModal === 'profile' && (
-        <div className="bg-emerald-950 text-emerald-100 p-4 border-b border-emerald-800 print:hidden transition-all shadow-inner">
-          <div className="max-w-7xl mx-auto space-y-3">
-            <div className="flex justify-between items-center border-b border-emerald-800 pb-2">
-              <h3 className="font-bold text-sm flex items-center text-emerald-300">
+        <div className="bg-slate-900 text-slate-100 p-5 border-b border-slate-700 print:hidden transition-all shadow-xl animate-fade-in">
+          <div className="max-w-7xl mx-auto space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-sm flex items-center text-emerald-400">
                 <User className="w-4 h-4 mr-1.5 text-emerald-400" /> Perfil Profissional da Nutricionista (Dados de Impressão)
               </h3>
-              <span className="text-[10px] bg-emerald-900 text-emerald-300 px-2 py-0.5 rounded">Utilizado nos cabeçalhos e rodapés dos laudos</span>
+              <span className="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700">
+                Utilizado nos cabeçalhos e rodapés dos laudos
+              </span>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
@@ -789,168 +835,236 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
 
       {/* Main Content Area */}
       {appMode === 'dashboard' ? (
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 print:p-0">
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 relative z-10 print:p-0">
           <DashboardWhatsApp />
         </main>
       ) : appMode === 'anamnese' ? (
-        <main className="flex-1 w-full mx-auto p-4 md:p-6 print:p-0">
+        <main className="flex-1 w-full mx-auto p-4 md:p-6 relative z-10 print:p-0">
           <Anamnese activeModel={selectedModel} />
         </main>
       ) : (
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 print:p-0">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 relative z-10 print:p-0">
 
-        {/* LAUDO TABS */}
-        <div className="flex gap-2 mb-6 border-b border-slate-200 overflow-x-auto print:hidden">
-          <button 
+        {/* STEPPER PROGRESS BAR - REPLICANDO O MOCKUP */}
+        <div className="flex items-center justify-center max-w-2xl mx-auto my-6 print:hidden">
+          {/* Step 1 */}
+          <div 
             onClick={() => setCurrentStep(1)} 
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wide rounded-t-lg transition-all whitespace-nowrap ${currentStep === 1 ? 'bg-white text-emerald-700 border-x border-t border-slate-200 shadow-sm' : 'text-slate-400 hover:text-emerald-600'}`}
+            className="flex items-center space-x-2.5 cursor-pointer group"
           >
-            1. Upload PDFs
-          </button>
-          <button 
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+              currentStep === 1 
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50' 
+                : currentStep > 1 
+                  ? 'bg-emerald-600 text-white shadow-xs' 
+                  : 'bg-slate-100 text-slate-400 border border-slate-200'
+            }`}>
+              1
+            </div>
+            <span className={`text-xs uppercase tracking-wider font-extrabold transition-colors ${
+              currentStep === 1 ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'
+            }`}>
+              1. Upload PDFs
+            </span>
+          </div>
+
+          {/* Line 1-2 */}
+          <div className={`flex-1 h-0.5 mx-4 transition-colors ${currentStep >= 2 ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+
+          {/* Step 2 */}
+          <div 
             onClick={() => currentStep >= 2 && setCurrentStep(2)} 
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wide rounded-t-lg transition-all whitespace-nowrap ${currentStep === 2 ? 'bg-white text-emerald-700 border-x border-t border-slate-200 shadow-sm' : 'text-slate-400 hover:text-emerald-600'} ${currentStep < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex items-center space-x-2.5 ${currentStep >= 2 ? 'cursor-pointer group' : 'cursor-not-allowed opacity-60'}`}
           >
-            2. Seleção de Dados
-          </button>
-          <button 
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+              currentStep === 2 
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50' 
+                : currentStep > 2 
+                  ? 'bg-emerald-600 text-white shadow-xs' 
+                  : 'bg-white text-slate-400 border border-slate-200'
+            }`}>
+              2
+            </div>
+            <span className={`text-xs uppercase tracking-wider font-extrabold transition-colors ${
+              currentStep === 2 ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'
+            }`}>
+              2. Seleção de Dados
+            </span>
+          </div>
+
+          {/* Line 2-3 */}
+          <div className={`flex-1 h-0.5 mx-4 transition-colors ${currentStep >= 3 ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+
+          {/* Step 3 */}
+          <div 
             onClick={() => currentStep >= 2 && setCurrentStep(3)} 
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wide rounded-t-lg transition-all whitespace-nowrap ${currentStep === 3 ? 'bg-white text-emerald-700 border-x border-t border-slate-200 shadow-sm' : 'text-slate-400 hover:text-emerald-600'} ${currentStep < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex items-center space-x-2.5 ${currentStep >= 2 ? 'cursor-pointer group' : 'cursor-not-allowed opacity-60'}`}
           >
-            3. Laudo Unificado
-          </button>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+              currentStep === 3 
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50' 
+                : 'bg-white text-slate-400 border border-slate-200'
+            }`}>
+              3
+            </div>
+            <span className={`text-xs uppercase tracking-wider font-extrabold transition-colors ${
+              currentStep === 3 ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'
+            }`}>
+              3. Laudo Unificado
+            </span>
+          </div>
         </div>
 
-        {/* STEP 1: UPLOAD SCREEN */}
+        {/* STEP 1: UPLOAD SCREEN - EXACT MOCKUP STYLE */}
         {currentStep === 1 && (
-          <div className="space-y-6">
-            <div className="text-center space-y-3 pt-2 pb-2">
-              <span className="inline-block px-3.5 py-1 bg-emerald-100/80 text-emerald-800 text-xs font-semibold rounded-full uppercase tracking-wider border border-emerald-200/50">
-                Interpretador Inteligente de Laudos
-              </span>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">
-                Plataforma de geração de Laudo Integrado
+          <div className="space-y-6 animate-fade-in mt-4">
+            
+            {/* Header Title & Subtitle */}
+            <div className="text-center space-y-2 pt-2 pb-2">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                Plataforma de Geração de Laudo Integrado
               </h2>
-              <p className="text-slate-600 text-sm md:text-base leading-relaxed max-w-2xl mx-auto">
-                Envie o laudo de <strong className="font-semibold text-emerald-800">Adipometria</strong> e o de <strong className="font-semibold text-teal-800">Bioimpedância</strong>. A IA extrairá os valores automaticamente para você conferir, editar e/ou selecionar os dados ideais.
+              <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-2xl mx-auto font-normal">
+                Extração, cruzamento e interpretação automática de parâmetros antropométricos e de composição corporal, com validação clínica.
               </p>
             </div>
 
-            {/* Dropzones */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Dropzones Cards (Fundo Branco Puro com Borda Pontilhada Suave) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
               
-              {/* Adipometry PDF Dropzone */}
-              <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${adipometryFile ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-300 bg-white hover:border-emerald-400'}`}>
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Scale className="w-6 h-6" />
-                </div>
-                <h3 className="font-semibold text-slate-800 text-base">Laudo de Adipometria / Antropometria</h3>
-                <p className="text-xs text-slate-500 mt-1 mb-4">
-                  Medidas de dobras cutâneas, circunferências e protocolo utilizado.
-                </p>
-
-                {adipometryFile ? (
-                  <div className="bg-white p-3 rounded-lg border border-emerald-200 flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-left truncate">
-                      <FileText className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                      <span className="text-xs font-medium text-slate-700 truncate">{adipometryFile.name}</span>
-                    </div>
-                    <button 
-                      onClick={() => setAdipometryFile(null)}
-                      className="text-xs text-red-500 hover:text-red-700 font-medium ml-2"
-                    >
-                      Remover
-                    </button>
+              {/* Card 1: Adipometria */}
+              <div className={`bg-white rounded-3xl p-8 text-center transition-all duration-300 border-2 border-dashed flex flex-col justify-between shadow-xs hover:shadow-md ${
+                adipometryFile 
+                  ? 'border-emerald-500 bg-emerald-50/20' 
+                  : 'border-slate-300/90 hover:border-emerald-500'
+              }`}>
+                <div>
+                  <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 transition-transform hover:scale-105">
+                    <CloudUpload className="w-8 h-8 text-slate-400" />
                   </div>
-                ) : (
-                  <label className="cursor-pointer inline-flex items-center justify-center px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-medium text-xs rounded-lg transition border border-emerald-200">
-                    <FileUp className="w-4 h-4 mr-2" />
-                    Selecionar PDF Adipometria
-                    <input 
-                      type="file" 
-                      accept="application/pdf"
-                      className="hidden" 
-                      onChange={e => e.target.files?.[0] && setAdipometryFile(e.target.files[0])}
-                    />
-                  </label>
-                )}
+                  <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-center space-x-2">
+                    <Scale className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Laudo de Adipometria</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1.5 mb-6 max-w-xs mx-auto">
+                    Dobras cutâneas, perímetros, circunferências e protocolo Jackson & Pollock.
+                  </p>
+                </div>
+
+                <div>
+                  {adipometryFile ? (
+                    <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 flex items-center justify-between shadow-2xs">
+                      <div className="flex items-center space-x-2 truncate">
+                        <FileText className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span className="text-xs font-bold text-slate-800 truncate">{adipometryFile.name}</span>
+                      </div>
+                      <button 
+                        onClick={() => setAdipometryFile(null)}
+                        className="text-xs text-rose-500 hover:text-rose-700 font-bold ml-2 px-2 py-0.5 rounded-lg hover:bg-rose-50 transition-all"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer inline-flex items-center justify-center px-6 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-full transition-all border border-slate-200 shadow-2xs active:scale-95">
+                      ou Selecionar Arquivo
+                      <input 
+                        type="file" 
+                        accept="application/pdf"
+                        className="hidden" 
+                        onChange={e => e.target.files?.[0] && setAdipometryFile(e.target.files[0])}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
 
-              {/* Bioimpedance PDF Dropzone */}
-              <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${bioimpedanceFile ? 'border-teal-500 bg-teal-50/50' : 'border-slate-300 bg-white hover:border-teal-400'}`}>
-                <div className="w-12 h-12 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Zap className="w-6 h-6" />
-                </div>
-                <h3 className="font-semibold text-slate-800 text-base">Laudo de Bioimpedância (BIA)</h3>
-                <p className="text-xs text-slate-500 mt-1 mb-4">
-                  Resultados InBody, Biodynamics, Seca ou equivalente.
-                </p>
-
-                {bioimpedanceFile ? (
-                  <div className="bg-white p-3 rounded-lg border border-teal-200 flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-left truncate">
-                      <FileText className="w-5 h-5 text-teal-600 flex-shrink-0" />
-                      <span className="text-xs font-medium text-slate-700 truncate">{bioimpedanceFile.name}</span>
-                    </div>
-                    <button 
-                      onClick={() => setBioimpedanceFile(null)}
-                      className="text-xs text-red-500 hover:text-red-700 font-medium ml-2"
-                    >
-                      Remover
-                    </button>
+              {/* Card 2: Bioimpedância */}
+              <div className={`bg-white rounded-3xl p-8 text-center transition-all duration-300 border-2 border-dashed flex flex-col justify-between shadow-xs hover:shadow-md ${
+                bioimpedanceFile 
+                  ? 'border-emerald-500 bg-emerald-50/20' 
+                  : 'border-slate-300/90 hover:border-emerald-500'
+              }`}>
+                <div>
+                  <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 transition-transform hover:scale-105">
+                    <CloudUpload className="w-8 h-8 text-slate-400" />
                   </div>
-                ) : (
-                  <label className="cursor-pointer inline-flex items-center justify-center px-4 py-2 bg-teal-50 text-teal-700 hover:bg-teal-100 font-medium text-xs rounded-lg transition border border-teal-200">
-                    <FileUp className="w-4 h-4 mr-2" />
-                    Selecionar PDF Bioimpedância
-                    <input 
-                      type="file" 
-                      accept="application/pdf"
-                      className="hidden" 
-                      onChange={e => e.target.files?.[0] && setBioimpedanceFile(e.target.files[0])}
-                    />
-                  </label>
-                )}
+                  <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-center space-x-2">
+                    <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Laudo de Bioimpedância (BIA)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1.5 mb-6 max-w-xs mx-auto">
+                    Avaliação multifrequência InBody, AvaBio, Seca ou equivalente.
+                  </p>
+                </div>
+
+                <div>
+                  {bioimpedanceFile ? (
+                    <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 flex items-center justify-between shadow-2xs">
+                      <div className="flex items-center space-x-2 truncate">
+                        <FileText className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span className="text-xs font-bold text-slate-800 truncate">{bioimpedanceFile.name}</span>
+                      </div>
+                      <button 
+                        onClick={() => setBioimpedanceFile(null)}
+                        className="text-xs text-rose-500 hover:text-rose-700 font-bold ml-2 px-2 py-0.5 rounded-lg hover:bg-rose-50 transition-all"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer inline-flex items-center justify-center px-6 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-full transition-all border border-slate-200 shadow-2xs active:scale-95">
+                      ou Selecionar Arquivo
+                      <input 
+                        type="file" 
+                        accept="application/pdf"
+                        className="hidden" 
+                        onChange={e => e.target.files?.[0] && setBioimpedanceFile(e.target.files[0])}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
 
             </div>
 
-            {/* Actions & Analyze Trigger */}
-            <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="text-left space-y-1.5 max-w-md">
-                <h4 className="font-bold text-slate-800 text-base flex items-center">
-                  <Sparkles className="w-5 h-5 text-amber-500 mr-2 flex-shrink-0" /> Leitura Inteligente com IA Gemini
+            {/* Bottom Actions Card (Barra Branca com Botão Verde Esmeralda) */}
+            <div className="bg-white/95 backdrop-blur-md p-5 md:p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4 max-w-5xl mx-auto mt-6">
+              <div className="text-left space-y-1">
+                <h4 className="font-extrabold text-slate-900 text-sm flex items-center">
+                  <Sparkles className="w-4 h-4 text-amber-500 mr-2 shrink-0" />
+                  Processamento com Inteligência Artificial
                 </h4>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Os dados de ambos os laudos serão mapeados e organizados automaticamente para sua conferência e escolha de fontes.
+                <p className="text-xs text-slate-500 max-w-md">
+                  Os valores dos laudos serão extraídos, unificados e calibrados automaticamente pelo motor Gemini com validação clínica.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto min-w-[360px] sm:min-w-[440px]">
+              <div className="flex items-center space-x-3 w-full md:w-auto justify-end">
                 <button
                   type="button"
                   onClick={loadDemoData}
-                  className="w-full h-11 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all flex items-center justify-center border border-slate-200 shadow-sm hover:shadow"
+                  className="px-4 py-2.5 text-slate-700 hover:text-slate-900 text-xs font-bold transition-all flex items-center space-x-1.5 hover:bg-slate-100/80 rounded-full"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2 text-slate-500" />
-                  Usar Dados de Exemplo (Demo)
+                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Carregar Dados Demo</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={processFilesWithGemini}
                   disabled={isAnalyzing}
-                  className="w-full h-11 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center disabled:opacity-50"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 disabled:opacity-50 active:scale-95"
                 >
                   {isAnalyzing ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Analisando...
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Processando...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Interpretar Laudos com IA
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Interpretar Laudos</span>
                     </>
                   )}
                 </button>
@@ -958,7 +1072,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
             </div>
 
             {isAnalyzing && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs text-center animate-pulse">
+              <div className="p-4 bg-emerald-500/10 backdrop-blur-md border border-emerald-500/30 rounded-2xl text-emerald-900 text-xs font-semibold text-center animate-pulse shadow-sm max-w-5xl mx-auto">
                 {analysisProgress}
               </div>
             )}
@@ -972,10 +1086,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
             {/* Header / Info box */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
-                  Passo 2 de 3 • Seleção de Fontes
-                </span>
-                <h2 className="text-xl font-bold text-slate-800 mt-1">Conferência e Seleção de Parâmetros</h2>
+                <h2 className="text-xl font-bold text-slate-800">Conferência e Seleção de Parâmetros</h2>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Selecione a chave correspondente para escolher se prefere o valor da <strong className="font-semibold text-teal-800">Bioimpedância</strong> ou da <strong className="font-semibold text-emerald-800">Adipometria</strong> para compor o laudo final.
                 </p>
@@ -1174,14 +1285,14 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Dobras Cutâneas (Editável) */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide text-emerald-700 mb-3 flex items-center">
-                  <Activity className="w-4 h-4 mr-1.5" /> Dobras Cutâneas (mm) - Editável
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wide text-emerald-800 mb-3 flex items-center">
+                  <Activity className="w-4 h-4 mr-1.5 text-emerald-600" /> Dobras Cutâneas (mm) - Editável
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {extractedData.skinfolds.map((s, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100 gap-2">
-                      <span className="text-slate-600 font-medium">{s.site}:</span>
+                    <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200 gap-2 shadow-2xs">
+                      <span className="text-slate-700 font-semibold">{s.site}:</span>
                       <div className="flex items-center gap-1">
                         <input 
                           type="number"
@@ -1192,9 +1303,9 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                             newSkinfolds[idx] = { ...s, value: parseFloat(e.target.value) || 0 };
                             setExtractedData({ ...extractedData, skinfolds: newSkinfolds });
                           }}
-                          className="w-16 text-right font-semibold text-slate-800 text-xs p-1 border border-slate-300 rounded bg-white focus:ring-1 focus:ring-emerald-500"
+                          className="w-16 text-right font-bold text-slate-900 text-xs p-1.5 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
-                        <span className="text-[10px] text-slate-500">mm</span>
+                        <span className="text-[10px] text-slate-500 font-medium">mm</span>
                       </div>
                     </div>
                   ))}
@@ -1202,14 +1313,14 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               </div>
 
               {/* Circunferências (Editável) */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide text-teal-700 mb-3 flex items-center">
-                  <Scale className="w-4 h-4 mr-1.5" /> Perímetros e Circunferências (cm) - Editável
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wide text-teal-800 mb-3 flex items-center">
+                  <Scale className="w-4 h-4 mr-1.5 text-teal-600" /> Perímetros e Circunferências (cm) - Editável
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {extractedData.circumferences.map((c, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100 gap-2">
-                      <span className="text-slate-600 font-medium">{c.site}:</span>
+                    <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200 gap-2 shadow-2xs">
+                      <span className="text-slate-700 font-semibold">{c.site}:</span>
                       <div className="flex items-center gap-1">
                         <input 
                           type="number"
@@ -1220,9 +1331,9 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                             newCircumferences[idx] = { ...c, value: parseFloat(e.target.value) || 0 };
                             setExtractedData({ ...extractedData, circumferences: newCircumferences });
                           }}
-                          className="w-16 text-right font-semibold text-slate-800 text-xs p-1 border border-slate-300 rounded bg-white focus:ring-1 focus:ring-teal-500"
+                          className="w-16 text-right font-bold text-slate-900 text-xs p-1.5 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                         />
-                        <span className="text-[10px] text-slate-500">cm</span>
+                        <span className="text-[10px] text-slate-500 font-medium">cm</span>
                       </div>
                     </div>
                   ))}
@@ -1230,8 +1341,8 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               </div>
 
               {/* Análise Segmentar por Membro (Editável) */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm col-span-1 md:col-span-2">
-                <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide text-emerald-800 mb-3 flex items-center">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs col-span-1 md:col-span-2">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wide text-emerald-800 mb-2 flex items-center">
                   <User className="w-4 h-4 mr-1.5 text-emerald-600" /> Análise Segmentar de Massa Magra & Gordura (Editável)
                 </h4>
                 <p className="text-[11px] text-slate-500 mb-3">Ajuste a Massa Magra (kg e % ideal) e Gordura (kg e % ideal) medidos pela Bioimpedância Octopolar para cada segmento:</p>
@@ -1245,12 +1356,12 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   ].map(limb => {
                     const seg = extractedData.segmental?.[limb.key] || DEMO_EXTRACTED_DATA.segmental[limb.key];
                     return (
-                      <div key={limb.key} className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-2">
-                        <strong className="text-[11px] font-bold text-slate-800 block border-b border-slate-200 pb-1">{limb.title}</strong>
+                      <div key={limb.key} className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-2.5">
+                        <strong className="text-[11px] font-bold text-slate-900 block border-b border-slate-100 pb-1.5">{limb.title}</strong>
                         
                         <div>
-                          <label className="text-[9.5px] font-semibold text-emerald-800 block uppercase">Massa Magra (kg)</label>
-                          <div className="grid grid-cols-2 gap-1 mt-0.5">
+                          <label className="text-[9.5px] font-bold text-emerald-800 block uppercase">Massa Magra (kg)</label>
+                          <div className="grid grid-cols-2 gap-1.5 mt-1">
                             <input 
                               type="number"
                               step="0.01"
@@ -1262,7 +1373,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                   [limb.key]: { ...seg, leanMass: parseFloat(e.target.value) || 0 }
                                 }
                               })}
-                              className="w-full text-xs p-1 border border-slate-300 rounded bg-white"
+                              className="w-full text-xs p-1.5 border border-slate-300 rounded-lg bg-white font-medium focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                               placeholder="kg"
                             />
                             <input 
@@ -1275,7 +1386,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                   [limb.key]: { ...seg, leanMassRatio: parseInt(e.target.value) || 0 }
                                 }
                               })}
-                              className="w-full text-xs p-1 border border-slate-300 rounded bg-white"
+                              className="w-full text-xs p-1.5 border border-slate-300 rounded-lg bg-white font-medium focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                               placeholder="% Ideal"
                             />
                           </div>
@@ -1283,8 +1394,8 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
 
                         {limb.hasFat && (
                           <div>
-                            <label className="text-[9.5px] font-semibold text-amber-800 block uppercase">Gordura (kg)</label>
-                            <div className="grid grid-cols-2 gap-1 mt-0.5">
+                            <label className="text-[9.5px] font-bold text-amber-800 block uppercase">Gordura (kg)</label>
+                            <div className="grid grid-cols-2 gap-1.5 mt-1">
                               <input 
                                 type="number"
                                 step="0.01"
@@ -1296,7 +1407,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                     [limb.key]: { ...seg, fatMass: parseFloat(e.target.value) || 0 }
                                   }
                                 })}
-                                className="w-full text-xs p-1 border border-slate-300 rounded bg-white"
+                                className="w-full text-xs p-1.5 border border-slate-300 rounded-lg bg-white font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                                 placeholder="kg"
                               />
                               <input 
@@ -1309,7 +1420,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                     [limb.key]: { ...seg, fatMassRatio: parseInt(e.target.value) || 0 }
                                   }
                                 })}
-                                className="w-full text-xs p-1 border border-slate-300 rounded bg-white"
+                                className="w-full text-xs p-1.5 border border-slate-300 rounded-lg bg-white font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                                 placeholder="% Ideal"
                               />
                             </div>
@@ -1324,15 +1435,15 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
             </div>
 
             {/* AI Clinical Remarks Editor */}
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
-              <div className="flex justify-between items-center mb-2">
-                <label className="font-bold text-slate-800 text-xs uppercase tracking-wide text-amber-700 flex items-center">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <div className="flex justify-between items-center mb-1">
+                <label className="font-bold text-slate-900 text-xs uppercase tracking-wide text-amber-800 flex items-center">
                   <Sparkles className="w-4 h-4 mr-1.5 text-amber-500" /> Parecer Nutricional Integrado (IA / Editável)
                 </label>
                 <button
                   onClick={generateAIAnalysis}
                   disabled={isGeneratingAI}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded flex items-center transition disabled:opacity-50"
+                  className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold rounded-xl flex items-center transition shadow-2xs disabled:opacity-50 active:scale-95"
                 >
                   {isGeneratingAI ? (
                     <>
@@ -1351,10 +1462,10 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                 maxLength={1100}
                 value={extractedData.aiAnalysisText}
                 onChange={e => setExtractedData({...extractedData, aiAnalysisText: e.target.value})}
-                className={`w-full border rounded-lg p-3 text-xs text-slate-700 leading-relaxed focus:ring-2 focus:outline-none transition-colors ${
+                className={`w-full border rounded-xl p-3.5 text-xs text-slate-800 bg-white leading-relaxed focus:ring-2 focus:outline-none transition-all ${
                   (extractedData.aiAnalysisText?.length || 0) >= 1000 
                     ? 'border-red-400 focus:ring-red-500 bg-red-50/10' 
-                    : 'border-slate-300 focus:ring-emerald-500'
+                    : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-500/20'
                 }`}
               />
               <div className="flex justify-end mt-1">
@@ -1389,27 +1500,27 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
         {currentStep === 3 && (
           <div className="space-y-6">
             
-            {/* Top Toolbar (Hidden on Print) */}
-            <div className="bg-slate-800 text-white p-4 rounded-xl flex flex-wrap justify-between items-center gap-4 shadow-md print:hidden">
+            {/* Top Toolbar (Hidden on Print) - CLEAN LUXURY SAAS STYLE */}
+            <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap justify-between items-center gap-4 print:hidden">
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => setCurrentStep(2)}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded transition flex items-center"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center shadow-2xs active:scale-95"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Editar Seleções
+                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Editar Seleções
                 </button>
-                <span className="text-xs text-slate-300">
-                  Laudo estruturado e pronto para envio ao paciente ou impressão.
+                <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+                  Laudo estruturado e pronto para envio ao paciente ou impressão em PDF.
                 </span>
               </div>
 
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => window.print()}
-                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded shadow transition flex items-center"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95"
                 >
                   <Printer className="w-4 h-4 mr-1.5" />
-                  Imprimir / Salvar em PDF
+                  <span>Imprimir / Salvar em PDF</span>
                 </button>
               </div>
             </div>
@@ -1482,24 +1593,31 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                 </div>
               </div>
 
-              {/* VISUAL BODY COMPOSITION SUMMARY (GRAPH & METRICS) */}
+              {/* VISUAL BODY COMPOSITION SUMMARY (GRAPH & METRICS) - IPHONE GLASS TILES */}
               <div className="space-y-3 print:space-y-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-l-2 border-emerald-700 pl-2">
-                  Resumo da Composição Corporal Selecionada
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-l-2 border-emerald-600 pl-2">
+                    Resumo da Composição Corporal Selecionada
+                  </h3>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 print:hidden">
+                    💎 Indicadores Chave
+                  </span>
+                </div>
 
-                <div className="grid grid-cols-3 gap-3 print:gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 print:gap-2">
                   {/* 1. % Gordura Card */}
                   {(() => {
                     const m = extractedData.metrics.find(x => x.key === 'fatPercentage');
                     const val = m ? getFinalValue(m) : 0;
                     return (
-                      <div className="bg-slate-50 p-2.5 print:p-2 rounded-lg border border-slate-200 text-center">
-                        <span className="text-[10px] print:text-[8.5px] uppercase font-bold text-slate-500 block truncate">
+                      <div className="bg-white p-3 print:p-2 rounded-2xl border border-slate-200 shadow-xs text-center transition-all hover:shadow-md">
+                        <span className="text-[10px] print:text-[8.5px] uppercase font-extrabold text-emerald-800 block tracking-wider truncate">
                           % Gordura (%G)
                         </span>
-                        <span className="text-xl print:text-lg font-black text-emerald-800 block my-0.5">{val}%</span>
-                        <span className="text-[9.5px] print:text-[8px] text-slate-500 block">Ideal: {m?.idealMin}% - {m?.idealMax}%</span>
+                        <span className="text-2xl print:text-lg font-black text-emerald-900 block my-1">{val}%</span>
+                        <span className="text-[10px] print:text-[8px] font-medium text-slate-500 bg-slate-50 py-0.5 px-2 rounded-full inline-block border border-slate-200/60">
+                          Ideal: {m?.idealMin}% - {m?.idealMax}%
+                        </span>
                       </div>
                     );
                   })()}
@@ -1509,12 +1627,14 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     const m = extractedData.metrics.find(x => x.key === 'leanMass');
                     const val = m ? getFinalValue(m) : 0;
                     return (
-                      <div className="bg-slate-50 p-2.5 print:p-2 rounded-lg border border-slate-200 text-center">
-                        <span className="text-[10px] print:text-[8.5px] uppercase font-bold text-slate-500 block truncate">
-                          Massa Livre de Gordura
+                      <div className="bg-white p-3 print:p-2 rounded-2xl border border-slate-200 shadow-xs text-center transition-all hover:shadow-md">
+                        <span className="text-[10px] print:text-[8.5px] uppercase font-extrabold text-slate-700 block tracking-wider truncate">
+                          Massa Magra / Livre
                         </span>
-                        <span className="text-xl print:text-lg font-black text-slate-800 block my-0.5">{val} kg</span>
-                        <span className="text-[9.5px] print:text-[8px] text-slate-500 block">Ideal: {m?.idealMin}kg - {m?.idealMax}kg</span>
+                        <span className="text-2xl print:text-lg font-black text-slate-900 block my-1">{val} kg</span>
+                        <span className="text-[10px] print:text-[8px] font-medium text-slate-500 bg-slate-50 py-0.5 px-2 rounded-full inline-block border border-slate-200/60">
+                          Ideal: {m?.idealMin}kg - {m?.idealMax}kg
+                        </span>
                       </div>
                     );
                   })()}
@@ -1524,12 +1644,14 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     const m = extractedData.metrics.find(x => x.key === 'bmr');
                     const val = m ? getFinalValue(m) : 0;
                     return (
-                      <div className="bg-slate-50 p-2.5 print:p-2 rounded-lg border border-slate-200 text-center">
-                        <span className="text-[10px] print:text-[8.5px] uppercase font-bold text-slate-500 block truncate">
+                      <div className="bg-white p-3 print:p-2 rounded-2xl border border-slate-200 shadow-xs text-center transition-all hover:shadow-md">
+                        <span className="text-[10px] print:text-[8.5px] uppercase font-extrabold text-amber-800 block tracking-wider truncate">
                           Taxa Metabólica (TMB)
                         </span>
-                        <span className="text-xl print:text-lg font-black text-amber-700 block my-0.5">{val} kcal</span>
-                        <span className="text-[9.5px] print:text-[8px] text-slate-500 block">Ideal: {m?.idealMin || 1200} - {m?.idealMax || 1500}</span>
+                        <span className="text-2xl print:text-lg font-black text-amber-900 block my-1">{val} kcal</span>
+                        <span className="text-[10px] print:text-[8px] font-medium text-amber-800/80 bg-slate-50 py-0.5 px-2 rounded-full inline-block border border-slate-200/60">
+                          Ideal: {m?.idealMin || 1200} - {m?.idealMax || 1500}
+                        </span>
                       </div>
                     );
                   })()}
@@ -1539,12 +1661,14 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     const m = extractedData.metrics.find(x => x.key === 'metabolicAge');
                     const val = m ? getFinalValue(m) : (extractedData.patient?.age ? parseInt(extractedData.patient.age) : 31);
                     return (
-                      <div className="bg-slate-50 p-2.5 print:p-2 rounded-lg border border-slate-200 text-center">
-                        <span className="text-[10px] print:text-[8.5px] uppercase font-bold text-slate-500 block truncate">
+                      <div className="bg-white p-3 print:p-2 rounded-2xl border border-slate-200 shadow-xs text-center transition-all hover:shadow-md">
+                        <span className="text-[10px] print:text-[8.5px] uppercase font-extrabold text-indigo-800 block tracking-wider truncate">
                           Idade Metabólica
                         </span>
-                        <span className="text-xl print:text-lg font-black text-indigo-800 block my-0.5">{val} anos</span>
-                        <span className="text-[9.5px] print:text-[8px] text-slate-500 block">Idade Real: {extractedData.patient?.age || '31 anos'}</span>
+                        <span className="text-2xl print:text-lg font-black text-indigo-900 block my-1">{val} anos</span>
+                        <span className="text-[10px] print:text-[8px] font-medium text-indigo-800/80 bg-slate-50 py-0.5 px-2 rounded-full inline-block border border-slate-200/60">
+                          Cronológica: {extractedData.patient?.age || '31 anos'}
+                        </span>
                       </div>
                     );
                   })()}
@@ -1554,12 +1678,14 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     const m = extractedData.metrics.find(x => x.key === 'visceralFatLevel');
                     const val = m ? getFinalValue(m) : 0;
                     return (
-                      <div className="bg-slate-50 p-2.5 print:p-2 rounded-lg border border-slate-200 text-center">
-                        <span className="text-[10px] print:text-[8.5px] uppercase font-bold text-slate-500 block truncate">
+                      <div className="bg-white p-3 print:p-2 rounded-2xl border border-slate-200 shadow-xs text-center transition-all hover:shadow-md">
+                        <span className="text-[10px] print:text-[8.5px] uppercase font-extrabold text-rose-800 block tracking-wider truncate">
                           Gordura Visceral
                         </span>
-                        <span className="text-xl print:text-lg font-black text-rose-800 block my-0.5">Nível {val}</span>
-                        <span className="text-[9.5px] print:text-[8px] text-slate-500 block">Faixa Ideal: {m?.idealMin || 1} a {m?.idealMax || 9}</span>
+                        <span className="text-2xl print:text-lg font-black text-rose-900 block my-1">Nível {val}</span>
+                        <span className="text-[10px] print:text-[8px] font-medium text-rose-800/80 bg-slate-50 py-0.5 px-2 rounded-full inline-block border border-slate-200/60">
+                          Faixa Ideal: {m?.idealMin || 1} a {m?.idealMax || 9}
+                        </span>
                       </div>
                     );
                   })()}
@@ -1569,12 +1695,14 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     const m = extractedData.metrics.find(x => x.key === 'totalBodyWater');
                     const val = m ? getFinalValue(m) : 0;
                     return (
-                      <div className="bg-slate-50 p-2.5 print:p-2 rounded-lg border border-slate-200 text-center">
-                        <span className="text-[10px] print:text-[8.5px] uppercase font-bold text-slate-500 block truncate">
+                      <div className="bg-white p-3 print:p-2 rounded-2xl border border-slate-200 shadow-xs text-center transition-all hover:shadow-md">
+                        <span className="text-[10px] print:text-[8.5px] uppercase font-extrabold text-cyan-800 block tracking-wider truncate">
                           Água Corporal (ACT)
                         </span>
-                        <span className="text-xl print:text-lg font-black text-cyan-800 block my-0.5">{val} L</span>
-                        <span className="text-[9.5px] print:text-[8px] text-slate-500 block">Ideal: {m?.idealMin}L - {m?.idealMax}L</span>
+                        <span className="text-2xl print:text-lg font-black text-cyan-900 block my-1">{val} L</span>
+                        <span className="text-[10px] print:text-[8px] font-medium text-cyan-800/80 bg-slate-50 py-0.5 px-2 rounded-full inline-block border border-slate-200/60">
+                          Ideal: {m?.idealMin}L - {m?.idealMax}L
+                        </span>
                       </div>
                     );
                   })()}
