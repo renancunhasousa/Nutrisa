@@ -177,12 +177,20 @@ export default function WhatsAppFilters({
               </button>
             )}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-            <span>Resultados com filtro:</span>
-            <span className="font-extrabold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
-              {/* O pai pode renderizar ou deixar genérico */}
-              Filtrados
-            </span>
+
+          {/* Legenda de filtros ativos idêntica ao design de referência */}
+          <div className="flex items-center space-x-2 text-[10px] text-slate-400 font-medium pt-1 truncate">
+            {ignoreCourtesy && (
+              <span className="flex items-center text-amber-700/80">
+                ✨ Sem cortesia / emojis
+              </span>
+            )}
+            {ignoreCourtesy && ignoreOthers && <span>•</span>}
+            {ignoreOthers && (
+              <span className="flex items-center text-amber-700/80">
+                🏷️ Sem categoria "Outros"
+              </span>
+            )}
           </div>
         </div>
 

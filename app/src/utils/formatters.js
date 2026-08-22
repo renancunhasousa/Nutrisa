@@ -38,3 +38,12 @@ export const formatDateTimeBr = (dateInput) => {
   if (isNaN(d.getTime())) return '--';
   return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 };
+
+export const cleanPhoneNumber = (phoneInput) => {
+  if (!phoneInput) return '';
+  // Remove @s.whatsapp.net, @c.us, @g.us, etc.
+  let cleaned = String(phoneInput).replace(/@.*$/, '').trim();
+  // Se for apenas números, remove caracteres inválidos
+  return cleaned;
+};
+

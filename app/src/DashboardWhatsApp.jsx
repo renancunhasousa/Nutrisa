@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import logo from './assets/logo_new.png';
+import logo from './assets/logo.png';
 import { fetchConversations } from './supabase';
 import { 
   MessageSquare, Clock, CheckCircle2, AlertCircle, 
@@ -430,34 +430,43 @@ DADOS CONSOLIDADOS DO PERÍODO:
 - Dra. Isabela: ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions}
 - Temas Mais Frequentes: ${topPatientThemes}
 
-METAS:
+METAS E DIRETRIZES:
 1. SLA < 30 min (Meta Ouro <= 15 min).
 2. Secretária liderar o volume de mensagens.
 3. Intervenções da Dra. em agendamentos <= 2.
 4. Bônus Individual da Secretária atrelado ao cumprimento do SLA e absorção das mensagens.
 
-Responda OBRIGATORIAMENTE em JSON puro no formato:
+REGRAS CRÍTICAS DE LIMITE DE CARACTERES (PARA NÃO QUEBRAR O LAYOUT DO PDF A4):
+- "motivo" do atingimentoBonusSecretaria: MÁXIMO DE 250 CARACTERES.
+- "statusGeralDescricao": MÁXIMO DE 250 CARACTERES.
+- "diagnosticoExecutivo": MÁXIMO DE 400 CARACTERES (seja direto, conciso e objetivo).
+- Cada "detalhe" em avaliacaoMetas: MÁXIMO DE 110 CARACTERES.
+- "recomendacao" em temaPrincipalPacientes: MÁXIMO DE 300 CARACTERES.
+- "planoDeAcao" (soma das 2 a 3 ações): MÁXIMO DE 300 CARACTERES TOTAL.
+
+Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
 {
   "statusGeral": "Excelente" | "Dentro da Meta" | "Atenção Necessária" | "Crítico",
-  "diagnosticoExecutivo": "Texto claro com avaliação geral",
+  "statusGeralDescricao": "Texto de até 250 caracteres avaliando a operação integrada",
+  "diagnosticoExecutivo": "Texto conciso de até 400 caracteres com avaliação geral da operação",
   "atingimentoBonusSecretaria": {
     "status": "Atingido" | "Parcialmente" | "Fora da Meta",
-    "motivo": "Justificativa clara sobre o atingimento do bônus"
+    "motivo": "Texto de até 250 caracteres justificando a apuração do bônus"
   },
   "avaliacaoMetas": [
-    { "meta": "Tempo de Resposta (< 30 min)", "atingido": boolean, "detalhe": "ex: Média de 12 min registrada" },
-    { "meta": "Volume de Mensagens (Secretária > Dra)", "atingido": boolean, "detalhe": "ex: Secretária absorveu 75% do fluxo" },
-    { "meta": "Intervenção da Dra. Isabela (Mínima)", "atingido": boolean, "detalhe": "ex: 1 intervenção registrada" },
-    { "meta": "Fila de Pendências Zerada", "atingido": boolean, "detalhe": "ex: Nenhuma mensagem atrasada" }
+    { "meta": "Tempo", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: Média de 12 min registrada)" },
+    { "meta": "Volume", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: Secretária absorveu 75% do fluxo)" },
+    { "meta": "Intervenção", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: 1 intervenção registrada)" },
+    { "meta": "Pendências", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: Fila de atendimento zerada)" }
   ],
   "temaPrincipalPacientes": {
     "tema": "Nome do tema",
-    "recomendacao": "Orientação para a recepção"
+    "recomendacao": "Texto de até 300 caracteres com orientação para a recepção"
   },
   "planoDeAcao": [
-    "Ação prática 1",
-    "Ação prática 2",
-    "Ação prática 3"
+    "Ação prática 1 concisa",
+    "Ação prática 2 concisa",
+    "Ação prática 3 concisa"
   ]
 }
 `;
@@ -490,6 +499,7 @@ Responda OBRIGATORIAMENTE em JSON puro no formato:
 
     setAiAnalysis({
       statusGeral: isBonusAtingido ? "Excelente" : (isSlaOk ? "Dentro da Meta" : "Atenção Necessária"),
+      statusGeralDescricao: "Avaliação integrada de tempo médio, distribuição de volume e autonomia da recepção no período.",
       diagnosticoExecutivo: `No período avaliado, a recepção registrou tempo médio de resposta de ${secAvg} minutos (${comparisonStats.secretaria.fastRate}% das respostas em até 15 minutos). O volume de atendimento foi satisfatoriamente absorvido pela secretária, mantendo a Dra. Isabela concentrada na rotina clínica.`,
       atingimentoBonusSecretaria: {
         status: isBonusAtingido ? "Atingido" : (isSlaOk || isVolOk ? "Parcialmente" : "Fora da Meta"),
@@ -498,19 +508,19 @@ Responda OBRIGATORIAMENTE em JSON puro no formato:
           : `Tempo médio registrado em ${secAvg} min com pendências em observação.`
       },
       avaliacaoMetas: [
-        { meta: "Tempo de Resposta (< 30 min)", atingido: isSlaOk, detalhe: `Média de ${secAvg} min (Meta Ouro <= 15 min)` },
-        { meta: "Volume (Secretária > Dra)", atingido: isVolOk, detalhe: `Secretária: ${comparisonStats.secretaria.total} msgs vs Dra: ${comparisonStats.isabela.total} msgs` },
-        { meta: "Intervenção Dra. Isabela (<= 2)", atingido: isIntervOk, detalhe: `${comparisonStats.isabelaInterventions} intervenções em agendamentos/valores` },
-        { meta: "Fila de Recepção Zerada", atingido: comparisonStats.secretaria.pendingCount === 0, detalhe: `${comparisonStats.secretaria.pendingCount} mensagens aguardando retorno` }
+        { meta: "Tempo", atingido: isSlaOk, detalhe: `Média de ${secAvg} min (Meta Ouro <= 15 min)` },
+        { meta: "Volume", atingido: isVolOk, detalhe: `Secretária: ${comparisonStats.secretaria.total} msgs vs Dra: ${comparisonStats.isabela.total} msgs` },
+        { meta: "Intervenção", atingido: isIntervOk, detalhe: `${comparisonStats.isabelaInterventions} intervenções em agendamentos/valores` },
+        { meta: "Pendências", atingido: comparisonStats.secretaria.pendingCount === 0, detalhe: `${comparisonStats.secretaria.pendingCount} mensagens aguardando retorno` }
       ],
       temaPrincipalPacientes: {
         tema: categoryChartData[0]?.name || "Agendamento e Horários",
         recomendacao: "Manter templates de respostas rápidas para dúvidas de horários e valores para agilizar o primeiro contato."
       },
       planoDeAcao: [
-        "Priorizar retorno aos pacientes que enviarem mensagens entre 08h e 10h (horário de pico).",
-        "Encaminhar apenas dúvidas técnicas/clínicas complexas para o celular da Dra. Isabela.",
-        "Checar e zerar a fila de mensagens pendentes antes do encerramento do expediente."
+        "Priorizar retorno aos pacientes entre 08h e 10h (horário de pico).",
+        "Encaminhar apenas dúvidas clínicas para o celular da Dra. Isabela.",
+        "Zerar a fila de mensagens pendentes antes de encerrar o expediente."
       ]
     });
   };

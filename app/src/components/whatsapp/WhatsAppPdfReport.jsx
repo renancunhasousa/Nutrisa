@@ -35,7 +35,7 @@ export default function WhatsAppPdfReport({
   slaResolutionBreakdownData
 }) {
   return (
-    <div className="bg-slate-100 min-h-screen p-0 md:p-6 print:p-0 print:bg-white animate-fade-in font-sans">
+    <div className="bg-transparent min-h-screen p-0 md:py-4 print:p-0 print:bg-white animate-fade-in font-sans">
       {/* BARRA SUPERIOR DE AÇÕES (VOLTAR / IMPRIMIR) - OCULTA NO PRINT */}
       <div className="max-w-4xl mx-auto mb-4 p-4 bg-white md:rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3 print:hidden sticky top-2 z-50">
         <div className="flex items-center space-x-3">
@@ -68,7 +68,7 @@ export default function WhatsAppPdfReport({
       {/* ========================================================================= */}
       {/* PÁGINA 1: CABEÇALHO, COMPARATIVO DE ATENDIMENTO E PARECER DE METAS IA */}
       {/* ========================================================================= */}
-      <div className="bg-white border border-slate-300 rounded-none md:rounded-2xl shadow-lg p-6 md:p-10 text-slate-800 max-w-4xl mx-auto w-full space-y-6 print:space-y-4 print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none a4-print-page print:break-after-page">
+      <div className="bg-white border border-slate-300 rounded-none md:rounded-2xl shadow-lg p-6 md:p-10 text-slate-800 max-w-4xl mx-auto w-full space-y-6 print:space-y-4 print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none a4-print-page">
         
         {/* CABEÇALHO DA CLÍNICA */}
         <div className="border-b-2 border-emerald-800 pb-5 print:pb-3">
@@ -256,8 +256,8 @@ export default function WhatsAppPdfReport({
                       {aiAnalysis.statusGeral}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-600">
-                    Avaliação integrada de tempo médio, distribuição de volume e autonomia de recepção.
+                  <p className="text-[11px] text-slate-600 font-medium leading-snug">
+                    {aiAnalysis.statusGeralDescricao || 'Avaliação integrada de tempo médio, distribuição de volume e autonomia de recepção.'}
                   </p>
                 </div>
               </div>
@@ -285,7 +285,7 @@ export default function WhatsAppPdfReport({
                           {m.atingido ? '✓ Meta' : '✕ Fora'}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-700 font-semibold">{m.detalhe}</p>
+                      <p className="text-[10px] text-slate-700 font-semibold leading-tight">{m.detalhe}</p>
                     </div>
                   ))}
                 </div>
@@ -296,7 +296,7 @@ export default function WhatsAppPdfReport({
                 {aiAnalysis.temaPrincipalPacientes && (
                   <div className="p-3.5 bg-teal-50/50 border border-teal-200 rounded-2xl">
                     <span className="text-[10px] font-black text-teal-900 uppercase block mb-1">
-                      📢 Tema Mais Frequente dos Pacientes: {aiAnalysis.temaPrincipalPacientes.tema}
+                      📢 Tema Mais Frequente: {aiAnalysis.temaPrincipalPacientes.tema}
                     </span>
                     <p className="text-[11px] text-teal-950 font-medium leading-relaxed">
                       {aiAnalysis.temaPrincipalPacientes.recomendacao}

@@ -45,6 +45,8 @@ import {
 } from 'recharts';
 import Anamnese from './Anamnese';
 import DashboardWhatsApp from './DashboardWhatsApp';
+import NotificationPopover from './components/NotificationPopover';
+import { fetchConversations } from './supabase';
 
 const DEFAULT_NUTRITIONIST = {
   name: "Dra. Isabela Muñoz Mendonça",
@@ -177,6 +179,82 @@ export default function App() {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState("");
   const [appNotification, setAppNotification] = useState(null); // { message, type: 'info' | 'warning' | 'error' }
+
+  // Sistema de Notificações Inteligentes
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notificationsList, setNotificationsList] = useState([]);
+  const [liveNotificationsEnabled, setLiveNotificationsEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nutrisa_live_notifs');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  const toggleLiveNotifications = () => {
+    setLiveNotificationsEnabled(prev => {
+      const nextVal = !prev;
+      try {
+        localStorage.setItem('nutrisa_live_notifs', JSON.stringify(nextVal));
+      } catch (e) {}
+      return nextVal;
+    });
+  };
+
+  // Efeito para checar alertas de Mensagens Pendentes e Virada de Mês
+  useEffect(() => {
+    async function checkSystemNotifications() {
+      const items = [];
+      const now = new Date();
+      const currentDay = now.getDate();
+      const currentMonthName = now.toLocaleString('pt-BR', { month: 'long' });
+
+      // 1. Alerta de Virada de Mês (ex: primeiros 5 dias do mês para gerar o relatório do mês anterior)
+      if (currentDay <= 5) {
+        items.push({
+          id: 'month_close',
+          category: 'month_close',
+          type: 'warning',
+          title: `Fechamento do Mês (${currentMonthName})`,
+          description: `Novo mês iniciado! Lembre-se de emitir o Relatório Executivo de Metas & Bonificação da secretária.`,
+          actionLabel: 'Abrir Dashboard e Gerar PDF',
+          targetMode: 'dashboard',
+          timeAgo: 'Lembrete do Mês'
+        });
+      }
+
+      // 2. Alerta de Mensagens Pendentes no Supabase (se o modo Ao Vivo estiver ativado)
+      if (liveNotificationsEnabled) {
+        try {
+          const convs = await fetchConversations({ limit: 100 });
+          if (Array.isArray(convs)) {
+            const pending = convs.filter(c => !c.respondida && c.categoria !== 'Cortesia / Encerramento');
+            if (pending.length > 0) {
+              items.push({
+                id: 'pending_messages',
+                category: 'whatsapp',
+                type: pending.length >= 3 ? 'danger' : 'warning',
+                title: `${pending.length} Mensagem(ns) Aguardando Resposta`,
+                description: `Existem pacientes aguardando retorno no WhatsApp. Cheque a fila para manter a meta de SLA da clínica.`,
+                actionLabel: 'Ver Conversas Pendentes',
+                targetMode: 'dashboard',
+                timeAgo: 'Ao Vivo'
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('Não foi possível verificar mensagens pendentes para notificações:', err);
+        }
+      }
+
+      setNotificationsList(items);
+    }
+
+    checkSystemNotifications();
+    const interval = setInterval(checkSystemNotifications, 60000); // Recheca a cada 1 minuto
+    return () => clearInterval(interval);
+  }, [liveNotificationsEnabled]);
 
   const showAppNotification = (message, type = 'info', duration = 6000) => {
     setAppNotification({ message, type });
@@ -622,14 +700,40 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
           {/* 2. Right Section: Quick Action Buttons & Simple User Profile */}
           <div className="flex items-center space-x-3">
             
-            {/* Botão de Notificações */}
-            <button 
-              title="Notificações do Sistema"
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all relative"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-white"></span>
-            </button>
+            {/* Botão de Notificações com Popover Inteligente */}
+            <div className="relative">
+              <button 
+                type="button"
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                title="Notificações e Alertas do Consultório"
+                className={`p-2 rounded-xl transition-all relative border cursor-pointer ${
+                  isNotificationOpen 
+                    ? 'bg-slate-100 text-slate-900 border-slate-300' 
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border-transparent'
+                }`}
+              >
+                <Bell className="w-4 h-4" />
+                {notificationsList.length > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-rose-500 text-white text-[9px] font-black rounded-full ring-2 ring-white flex items-center justify-center animate-pulse">
+                    {notificationsList.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Modal Dropdown de Notificações */}
+              <NotificationPopover
+                isOpen={isNotificationOpen}
+                notifications={notificationsList}
+                liveEnabled={liveNotificationsEnabled}
+                onToggleLive={toggleLiveNotifications}
+                onClose={() => setIsNotificationOpen(false)}
+                onAction={(notif) => {
+                  if (notif.targetMode) {
+                    setAppMode(notif.targetMode);
+                  }
+                }}
+              />
+            </div>
 
             {/* Configuração de IA */}
             <button 
