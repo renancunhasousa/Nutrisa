@@ -548,63 +548,55 @@ Responda OBRIGATORIAMENTE em JSON puro no formato:
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* CABEÇALHO DO DASHBOARD */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* CABEÇALHO DO DASHBOARD - IDÊNTICO À IMAGEM DE REFERÊNCIA */}
+      <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-                Painel de Atendimento WhatsApp
-              </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                Métricas de produtividade, SLA e comparativo entre Dra. Isabela e Secretária
-              </p>
-            </div>
-          </div>
-          {lastUpdated && (
-            <p className="text-[11px] text-slate-400 mt-2 flex items-center">
-              <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
-              Última sincronização: {lastUpdated.toLocaleTimeString('pt-BR')} ({lastUpdated.toLocaleDateString('pt-BR')})
-            </p>
-          )}
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+            Painel de Produtividade & SLA WhatsApp
+          </h1>
+          <p className="text-xs text-slate-500 font-medium mt-1 max-w-2xl leading-relaxed">
+            Análise comparativa de volume, tempos de resposta (médio, mín., máx.) e categorias atendidas entre Dra. Isabela e Secretária.
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Botão PDF */}
-          <button
-            type="button"
-            onClick={() => setShowPdfModal(true)}
-            className="px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-full shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95"
-            title="Abrir Relatório Executivo Oficial de Atendimento para envio à Secretária ou Impressão em PDF"
-          >
-            <FileText className="w-4 h-4 text-emerald-300" />
-            <span>PDF</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Badge: Atualizado às */}
+          {lastUpdated && (
+            <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 flex items-center space-x-1.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Atualizado às {lastUpdated.toLocaleTimeString('pt-BR')}</span>
+            </span>
+          )}
 
-          {/* Botão CSV */}
-          <button
-            type="button"
-            onClick={exportToCSV}
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-full border border-slate-200 transition-all flex items-center space-x-1.5 active:scale-95"
-            title="Exportar dados filtrados em planilha CSV"
-          >
-            <Download className="w-4 h-4 text-slate-600" />
-            <span>CSV</span>
-          </button>
-
-          {/* Botão Atualizar */}
+          {/* Botão Atualizar (Verde Sólido) */}
           <button
             type="button"
             onClick={loadData}
             disabled={loading}
-            className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full border border-emerald-200 transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
-            title="Recarregar conversas do banco de dados"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
+          </button>
+
+          {/* Botão CSV (Outline) */}
+          <button
+            type="button"
+            onClick={exportToCSV}
+            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-600" />
+            <span>CSV</span>
+          </button>
+
+          {/* Botão PDF (Outline) */}
+          <button
+            type="button"
+            onClick={() => setShowPdfModal(true)}
+            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95"
+          >
+            <Printer className="w-3.5 h-3.5 text-emerald-600" />
+            <span>PDF</span>
           </button>
         </div>
       </div>
