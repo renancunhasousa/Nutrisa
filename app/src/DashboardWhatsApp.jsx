@@ -3,7 +3,7 @@ import logo from './assets/logo_new.png';
 import { fetchConversations } from './supabase';
 import { 
   MessageSquare, Clock, CheckCircle2, AlertCircle, 
-  RefreshCw, Download, FileText
+  RefreshCw, Download, FileText, Printer
 } from 'lucide-react';
 
 import WhatsAppFilters from './components/whatsapp/WhatsAppFilters';
