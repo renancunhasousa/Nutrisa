@@ -564,35 +564,46 @@ Responda OBRIGATORIAMENTE em JSON puro no formato:
               </p>
             </div>
           </div>
+          {lastUpdated && (
+            <p className="text-[11px] text-slate-400 mt-2 flex items-center">
+              <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
+              Última sincronização: {lastUpdated.toLocaleTimeString('pt-BR')} ({lastUpdated.toLocaleDateString('pt-BR')})
+            </p>
+          )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Botão PDF */}
           <button
             type="button"
             onClick={() => setShowPdfModal(true)}
-            className="px-4 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-full shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95"
+            className="px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-full shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95"
             title="Abrir Relatório Executivo Oficial de Atendimento para envio à Secretária ou Impressão em PDF"
           >
-            <FileText className="w-4 h-4 mr-1 text-emerald-300" />
-            <span>Relatório Executivo PDF</span>
+            <FileText className="w-4 h-4 text-emerald-300" />
+            <span>PDF</span>
           </button>
 
+          {/* Botão CSV */}
           <button
             type="button"
             onClick={exportToCSV}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-full border border-slate-200 transition-all flex items-center space-x-1.5 active:scale-95"
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-full border border-slate-200 transition-all flex items-center space-x-1.5 active:scale-95"
+            title="Exportar dados filtrados em planilha CSV"
           >
-            <Download className="w-4 h-4" />
-            <span>Exportar CSV</span>
+            <Download className="w-4 h-4 text-slate-600" />
+            <span>CSV</span>
           </button>
 
+          {/* Botão Atualizar */}
           <button
             type="button"
             onClick={loadData}
             disabled={loading}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-full border border-slate-200 transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
+            className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full border border-emerald-200 transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
+            title="Recarregar conversas do banco de dados"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
           </button>
         </div>
