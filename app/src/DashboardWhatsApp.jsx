@@ -154,9 +154,9 @@ export default function DashboardWhatsApp() {
       // 7. Busca por Paciente / Telefone / Mensagem
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        const nome = (item.nome_paciente || '').toLowerCase();
-        const fone = (item.telefone_paciente || '').toLowerCase();
-        const msg = (item.conteudo_mensagem || '').toLowerCase();
+        const nome = (item.nome_paciente || item.nome_contato || item.contato || '').toLowerCase();
+        const fone = (item.telefone_paciente || item.contato_jid || item.telefone || '').toLowerCase();
+        const msg = (item.conteudo_mensagem || item.mensagem_texto || item.mensagem || '').toLowerCase();
         if (!nome.includes(term) && !fone.includes(term) && !msg.includes(term)) return false;
       }
 

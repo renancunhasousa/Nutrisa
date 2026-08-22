@@ -62,12 +62,20 @@ export default function WhatsAppFeedTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {filteredData.map((conv) => {
+              {filteredData.map((conv, idx) => {
                 const attendantType = getAttendantType(conv);
                 const isIsabela = attendantType === 'isabela';
 
+                const pacienteNome = conv.nome_paciente || conv.nome_contato || conv.contato || 'Paciente Sem Nome';
+                const pacienteTelefone = conv.telefone_paciente || conv.contato_jid || conv.telefone || '';
+                const mensagemTexto = conv.conteudo_mensagem || conv.mensagem_texto || conv.mensagem || '--';
+                const dataEnvio = conv.data_envio || conv.created_at || conv.data;
+                const categoria = conv.categoria || conv.categoria_paciente || 'Geral';
+                const tempoEspera = conv.tempo_espera_minutos ?? conv.tempo_espera ?? null;
+                const isRespondida = conv.respondida === true || conv.respondida === 'true' || conv.status === 'respondida';
+
                 return (
-                  <tr key={conv.id} className="hover:bg-slate-50/80 transition-colors">
+                  <tr key={conv.id || conv.id_mensagem || idx} className="hover:bg-slate-50/80 transition-colors">
                     {/* Badge do Atendente com visual refinado */}
                     <td className="py-4 px-6 whitespace-nowrap">
                       {isIsabela ? (
@@ -83,40 +91,42 @@ export default function WhatsAppFeedTable({
 
                     {/* Paciente */}
                     <td className="py-4 px-6">
-                      <div className="font-extrabold text-slate-900">{conv.nome_paciente || 'Paciente Sem Nome'}</div>
-                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">{conv.telefone_paciente}</div>
+                      <div className="font-extrabold text-slate-900">{pacienteNome}</div>
+                      {pacienteTelefone && (
+                        <div className="text-[11px] text-slate-400 font-mono mt-0.5">{pacienteTelefone}</div>
+                      )}
                     </td>
 
                     {/* Categoria */}
                     <td className="py-4 px-6 whitespace-nowrap">
                       <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200/80">
-                        {conv.categoria || 'Geral'}
+                        {categoria}
                       </span>
                     </td>
 
                     {/* Conteúdo da Mensagem */}
                     <td className="py-4 px-6 max-w-xs truncate text-slate-600 font-normal">
-                      {conv.conteudo_mensagem || '--'}
+                      {mensagemTexto}
                     </td>
 
                     {/* Data */}
                     <td className="py-4 px-6 whitespace-nowrap text-slate-500 font-medium">
-                      {conv.data_envio ? new Date(conv.data_envio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '--'}
+                      {dataEnvio ? new Date(dataEnvio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '--'}
                     </td>
 
                     {/* Tempo de Espera */}
                     <td className="py-4 px-6 whitespace-nowrap text-center">
                       <div className="font-black text-slate-800 text-[13px]">
-                        {formatWaitTime(conv.tempo_espera_minutos)}
+                        {formatWaitTime(tempoEspera)}
                       </div>
                       <div className="text-[10px] mt-0.5">
-                        {getWaitStatusBadge(conv.tempo_espera_minutos, conv.respondida)}
+                        {getWaitStatusBadge(tempoEspera, isRespondida)}
                       </div>
                     </td>
 
                     {/* Status de Resposta */}
                     <td className="py-4 px-6 whitespace-nowrap text-right">
-                      {conv.respondida ? (
+                      {isRespondida ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Respondida
                         </span>
