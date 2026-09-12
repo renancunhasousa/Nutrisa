@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "signature": "5533efb45af27a05745cee86d1a3161463f13af1190f459ea4a47afa67ed7df9",
+  "n8nacVersion": "2.5.0",
+  "n8nVersion": "2.11.4",
+  "generatedAt": "2026-09-12T14:13:12.807Z",
+  "reason": "snapshot:webview-delete-environment"
+}

@@ -92,6 +92,8 @@ export default function WhatsAppFeedTable({
                   const tempoEspera = conv.tempo_espera_minutos ?? conv.tempo_espera ?? null;
                   const isRespondida = conv.respondida === true || conv.respondida === 'true' || conv.status === 'respondida';
 
+                  const pacienteFoto = conv.foto_perfil || null;
+
                   const initial = pacienteNome.charAt(0).toUpperCase() || 'P';
 
                   let dataFormatada = '--';
@@ -113,7 +115,19 @@ export default function WhatsAppFeedTable({
                       {/* 1. PACIENTE */}
                       <td className="py-3 px-3">
                         <div className="flex items-center space-x-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-full bg-emerald-100/80 text-emerald-800 font-black text-[11px] flex items-center justify-center flex-shrink-0">
+                          {pacienteFoto ? (
+                            <img 
+                              src={pacienteFoto} 
+                              alt={pacienteNome}
+                              referrerPolicy="no-referrer"
+                              className="w-7 h-7 rounded-full object-cover border border-emerald-200/80 flex-shrink-0 shadow-2xs"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-7 h-7 rounded-full bg-emerald-100/80 text-emerald-800 font-black text-[11px] flex items-center justify-center flex-shrink-0 ${pacienteFoto ? 'hidden' : ''}`}>
                             {initial}
                           </div>
                           <div className="min-w-0 truncate">
@@ -208,9 +222,9 @@ export default function WhatsAppFeedTable({
                         <button
                           type="button"
                           onClick={() => setSelectedChat(conv)}
-                          className="inline-flex items-center text-[11.5px] font-bold text-emerald-700 hover:text-emerald-900 transition-colors active:scale-95 cursor-pointer"
+                          className="inline-flex items-center text-[11.5px] font-bold text-slate-800 hover:text-black transition-colors active:scale-95 cursor-pointer"
                         >
-                          <Eye className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                          <Eye className="w-3.5 h-3.5 mr-1 text-slate-800" />
                           Ver
                         </button>
                       </td>
@@ -245,12 +259,26 @@ export default function WhatsAppFeedTable({
           }
         }
 
+        const modalFoto = selectedChat.foto_perfil || null;
+
         return (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
             <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 animate-scale-up">
               <div className="bg-[#005B48] p-5 text-white flex items-center justify-between">
                 <div className="flex items-center space-x-3.5">
-                  <div className="w-11 h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white font-black text-sm">
+                  {modalFoto ? (
+                    <img 
+                      src={modalFoto} 
+                      alt={pacienteNome}
+                      referrerPolicy="no-referrer"
+                      className="w-11 h-11 rounded-full object-cover border border-white/30 flex-shrink-0 shadow-sm"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-11 h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white font-black text-sm flex-shrink-0 ${modalFoto ? 'hidden' : ''}`}>
                     {initial}
                   </div>
                   <div>
@@ -279,7 +307,9 @@ export default function WhatsAppFeedTable({
                   </span>
 
                   <span className="px-3.5 py-1 bg-[#E6F8F3] text-[#007A5A] font-bold text-[11px] rounded-full border border-[#B3EBDC] flex items-center shadow-2xs">
-                    👩‍⚕️ Respondido por {isIsabela ? 'Dra. Isabela' : 'Secretária'}
+                    {respostaSecretaria 
+                      ? `👩‍⚕️ Respondido por ${isIsabela ? 'Dra. Isabela' : 'Secretária'}` 
+                      : `⏳ Atribuído para ${isIsabela ? 'Dra. Isabela' : 'Secretária'}`}
                   </span>
 
                   {tempoEspera !== null && tempoEspera !== undefined && (

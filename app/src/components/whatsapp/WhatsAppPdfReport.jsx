@@ -16,7 +16,7 @@ import {
   YAxis, 
   ResponsiveContainer 
 } from 'recharts';
-import logo from '../../assets/logo_new.png';
+import logo from '../../assets/logo.png';
 import { formatWaitTime } from '../../utils/formatters';
 
 export default function WhatsAppPdfReport({

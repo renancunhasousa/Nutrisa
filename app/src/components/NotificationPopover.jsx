@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { 
   MessageCircle, 
   MessageSquare, 
   Calendar, 
   ChevronRight, 
-  AlertTriangle 
+  AlertTriangle,
+  X
 } from 'lucide-react';
 
 export default function NotificationPopover({
@@ -15,16 +16,49 @@ export default function NotificationPopover({
   liveEnabled = true,
   onToggleLive
 }) {
+  const popoverRef = useRef(null);
+
+  // Fecha ao clicar fora ou apertar ESC
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target)) {
+        // Evita fechar se o clique foi no botão do sino (tratado pelo pai)
+        const bellButton = event.target.closest('button[title*="Notificações"]');
+        if (!bellButton && onClose) {
+          onClose();
+        }
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const totalCount = notifications.length;
   const unreadCount = notifications.length;
 
   return (
-    <div className="absolute right-0 top-12 w-80 sm:w-[350px] bg-white rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-slate-100/80 z-50 animate-scale-up overflow-hidden text-slate-800 font-sans">
+    <div 
+      ref={popoverRef}
+      className="absolute right-0 top-12 w-80 sm:w-[350px] bg-white rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-slate-100/80 z-50 animate-scale-up overflow-hidden text-slate-800 font-sans"
+    >
       
-      {/* 1. CABEÇALHO MINIMALISTA COM TOGGLE AO VIVO */}
-      <div className="pt-6 px-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+      {/* 1. CABEÇALHO COM TOGGLE AO VIVO E BOTÃO DE FECHAR */}
+      <div className="pt-5 px-5 pb-3.5 border-b border-slate-100 flex items-center justify-between gap-2">
         <div>
           <h3 className="font-black text-sm tracking-tight text-slate-900 uppercase">
             NOTIFICAÇÕES
@@ -34,22 +68,36 @@ export default function NotificationPopover({
           </p>
         </div>
 
-        {/* Toggle Ao Vivo */}
-        {onToggleLive && (
-          <button
-            type="button"
-            onClick={onToggleLive}
-            title={liveEnabled ? "Desativar alertas ao vivo de mensagens pendentes" : "Ativar alertas ao vivo de mensagens pendentes"}
-            className={`px-3 py-1 rounded-full text-[10px] font-black tracking-tight transition-all flex items-center space-x-1.5 border active:scale-95 cursor-pointer ${
-              liveEnabled 
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs' 
-                : 'bg-slate-100 text-slate-400 border-slate-200'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${liveEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-            <span>{liveEnabled ? 'Ao Vivo ON' : 'Ao Vivo OFF'}</span>
-          </button>
-        )}
+        <div className="flex items-center space-x-1.5">
+          {/* Toggle Ao Vivo */}
+          {onToggleLive && (
+            <button
+              type="button"
+              onClick={onToggleLive}
+              title={liveEnabled ? "Desativar alertas ao vivo de mensagens pendentes" : "Ativar alertas ao vivo de mensagens pendentes"}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-tight transition-all flex items-center space-x-1 border active:scale-95 cursor-pointer ${
+                liveEnabled 
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs' 
+                  : 'bg-slate-100 text-slate-400 border-slate-200'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${liveEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+              <span>{liveEnabled ? 'Ao Vivo ON' : 'Ao Vivo OFF'}</span>
+            </button>
+          )}
+
+          {/* Botão de Fechar */}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              title="Fechar notificações"
+              className="w-7 h-7 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors active:scale-90 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 2. CORPO / LISTA DE NOTIFICAÇÕES */}

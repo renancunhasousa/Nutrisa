@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import logo from './assets/logo_new.png';
+import logoPdf from './assets/logo.png';
+import logoPlatform from './assets/logo_new.png';
 import { 
   FileUp, 
   Sparkles, 
@@ -46,6 +47,7 @@ import {
 import Anamnese from './Anamnese';
 import DashboardWhatsApp from './DashboardWhatsApp';
 import NotificationPopover from './components/NotificationPopover';
+import AgendaView from './components/agenda/AgendaView';
 import { fetchConversations } from './supabase';
 
 const DEFAULT_NUTRITIONIST = {
@@ -97,7 +99,6 @@ const DEMO_EXTRACTED_DATA = {
     { site: "Suprailíaca", value: 35.0 },
     { site: "Abdomen", value: 30.0 },
     { site: "Coxa Média", value: 40.5 },
-    { site: "Panturrilha", value: 11.0 },
     { site: "Torácica / Peitoral", value: 21.0 }
   ],
   circumferences: [
@@ -137,19 +138,17 @@ export default function App() {
     try {
       const saved = localStorage.getItem('nutrisa_selected_model');
       const validModels = [
-        "gemini-3.7-flash",
+        "gemini-3.8-flash",
         "gemini-3.5-flash-lite",
         "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
-        "gemini-3.5-pro",
-        "gemini-3.5-flash"
+        "gemini-2.5-flash-lite"
       ];
       if (saved && validModels.includes(saved)) {
         return saved;
       }
-      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.7-flash";
+      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.8-flash";
     } catch (e) {
-      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.7-flash";
+      return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.8-flash";
     }
   };
 
@@ -266,7 +265,7 @@ export default function App() {
   // Ordem de Fallback em Camadas (Cascata Multi-Nível)
   const getModelFallbackChain = (initialModel) => {
     const defaultChain = [
-      "gemini-3.7-flash",
+      "gemini-3.8-flash",
       "gemini-3.5-flash-lite",
       "gemini-2.5-flash",
       "gemini-2.5-flash-lite"
@@ -374,7 +373,7 @@ export default function App() {
 Analise os arquivos de laudo anexados (um de adipometria/antropometria e/ou um de bioimpedância).
 Extraia rigorosamente os dados identificados no formato JSON especificado.
 
-IMPORTANTE PARA OS VALORES IDEIAIS: Extraia os valores de referência/ideais (idealMin e idealMax) diretamente dos laudos anexados quando disponíveis no exame (ex: faixas ideais ou normais impressas ao lado do resultado). Se não constar no laudo, forneça a faixa ideal padrão aceita pela literatura científica para a idade/gênero do paciente.
+IMPORTANTE PARA OS VALORES IDEIAIS: Extraia os valores de referência/ideais (idealMin e idealMax) diretamente dos laudos anexados quando disponíveis no exame (ex: faixas ideais ou normais impressas ao lado do resultado). Se não constar no laudo, forneça a faixa ideal padrão aceita pela literatura científica oficial (OMS para IMC/cintura, ACSM e Jackson & Pollock para % gordura/dobras, e equações normativas validadas contra DXA para massa magra e segmentos) para a idade/gênero do paciente.
 
 ATENÇÃO AO RELATÓRIO DE 3 PÁGINAS:
 Os dados alimentarão um Laudo Clínico estruturado em 3 páginas:
@@ -383,6 +382,9 @@ Pág 2: Dobras Cutâneas, Circunferências, Análise Segmentar por Membro (extra
 Pág 3: Histórico Comparativo de Avaliações Físicas (com variação Δ) e Gráfico Evolutivo de Composição Corporal.
 
 Portanto, gere o campo "aiAnalysisText" como um 'Diagnóstico e Parecer Nutricional Integrado' com cerca de 850 a 1000 caracteres, profissional, encorajador, focado na saúde metabólica, escrita direta para o paciente. IMPORTANTE: Escreva este campo como um texto contínuo de um único parágrafo, sem aspas duplas internas ou com quebras de linha devidamente escapadas como \\n.
+
+REGRA RIGOROSA PARA DOBRAS CUTÂNEAS (skinfolds):
+Extraia EXCLUSIVAMENTE as dobras cutâneas que estiverem explicitamente medidas no documento anexado. NUNCA invente, presuma ou deduza dobras que não constam no laudo (ex: NÃO invente Panturrilha, Torácica, Biciptal ou Axilar se elas não foram medidas no teste). Se foram medidas apenas 3, 5 ou 7 dobras, liste APENAS essas no array skinfolds.
 
 Se algum parâmetro não for encontrado em um dos laudos, atribua null.
 Infira o equipamento de Bioimpedância utilizado (ex: InBody 270, AvaBio 380) e o Método Antropométrico (ex: Jackson & Pollock 7 dobras).
@@ -423,8 +425,7 @@ Retorne APENAS o JSON válido no seguinte formato:
     { "site": "Subescapular", "value": 12.5 },
     { "site": "Suprailíaca", "value": 16.2 },
     { "site": "Abdomen", "value": 18.5 },
-    { "site": "Coxa Média", "value": 21.0 },
-    { "site": "Panturrilha", "value": 11.0 }
+    { "site": "Coxa Média", "value": 21.0 }
   ],
   "circumferences": [
     { "site": "Cintura", "value": 71.5 },
@@ -652,7 +653,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
             {/* Brand Logo */}
             <div className="flex items-center shrink-0 py-1">
               <img 
-                src={logo} 
+                src={logoPlatform} 
                 alt="NutrIsa" 
                 className="h-14 md:h-16 w-auto object-contain transition-all hover:scale-105 drop-shadow-2xs" 
               />
@@ -692,6 +693,17 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 <span>WhatsApp</span>
+              </button>
+              <button
+                onClick={() => setAppMode('agenda')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  appMode === 'agenda' 
+                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Agenda</span>
               </button>
             </div>
 
@@ -885,15 +897,13 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
                 >
-                  <option value="gemini-3.7-flash">Gemini 3.7 Flash (Recomendado - Mais Inteligente e Preciso)</option>
+                  <option value="gemini-3.8-flash">Gemini 3.8 Flash (Recomendado - Mais Inteligente e Recente)</option>
                   <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Super Rápido e Econômico)</option>
                   <option value="gemini-2.5-flash">Gemini 2.5 Flash (Geração 2.5 - Cota e Fila Separadas)</option>
                   <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Leve e Baixa Latência)</option>
-                  <option value="gemini-3.5-pro">Gemini 3.5 Pro (Raciocínio Clínico Avançado)</option>
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                  🛡️ <strong>Cascata Inteligente Ativa:</strong> Se o modelo principal exceder a cota diária (Erro 429), a aplicação alternará automaticamente na sequência (<em>3.7 Flash → 3.5 Flash-Lite → 2.5 Flash → 2.5 Flash-Lite</em>) para nunca interromper seu atendimento.
+                  🛡️ <strong>Cascata Inteligente Ativa:</strong> Se o modelo principal exceder a cota diária (Erro 429), a aplicação alternará automaticamente na sequência (<em>3.8 Flash → 3.5 Flash-Lite → 2.5 Flash → 2.5 Flash-Lite</em>) para nunca interromper seu atendimento.
                 </p>
               </div>
 
@@ -941,6 +951,10 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
       {appMode === 'dashboard' ? (
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 relative z-10 print:p-0">
           <DashboardWhatsApp />
+        </main>
+      ) : appMode === 'agenda' ? (
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 relative z-10 print:p-0">
+          <AgendaView />
         </main>
       ) : appMode === 'anamnese' ? (
         <main className="flex-1 w-full mx-auto p-4 md:p-6 relative z-10 print:p-0">
@@ -1636,7 +1650,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               <div className="border-b-2 border-emerald-800 pb-5 print:pb-3">
                 <div className="flex flex-col md:flex-row justify-between items-start print:flex-row">
                   <div className="flex items-center space-x-3.5">
-                    <img src={logo} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+                    <img src={logoPdf} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
                     <div>
                       <h1 className="text-2xl print:text-lg font-black tracking-tight text-emerald-950 uppercase whitespace-nowrap truncate">{nutritionist.name}</h1>
                       <p className="text-xs print:text-[10px] font-semibold text-emerald-700 uppercase tracking-wider whitespace-nowrap truncate">{nutritionist.title}</p>
@@ -1861,10 +1875,15 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                 </table>
               </div>
 
-              {/* NOTA EXPLICATIVA SOBRE A ORIGEM DOS VALORES IDEIAIS NA PÁGINA 1 (TEXTO LIMPO) */}
-              <p className="text-[9.5px] print:text-[8px] text-slate-500 leading-tight text-right pt-0.5">
-                💡 <strong>Origem dos Valores Ideais:</strong> Calculados via algoritmos antropométricos normatizados para gênero, idade e estatura do paciente.
-              </p>
+              {/* NOTA EXPLICATIVA SOBRE A ORIGEM DOS VALORES E METODOLOGIA INTEGRADA */}
+              <div className="bg-slate-50/90 border border-slate-200/80 rounded-lg p-2 print:p-1.5 text-[9px] print:text-[7.5px] text-slate-600 leading-snug space-y-0.5">
+                <p>
+                  🔬 <strong>Metodologia e Cálculo do Laudo:</strong> Os resultados deste laudo integram medições diretas da <strong>Bioimpedância Octapolar AvaBio 380</strong> (que analisa a resistência e reatância celular para quantificar água, massa livre e taxa metabólica) combinadas à <strong>Adipometria Clínica</strong> pelo protocolo de <em>Jackson & Pollock (7 Dobras)</em>, que afere com precisão milimétrica a gordura subcutânea.
+                </p>
+                <p>
+                  📚 <strong>Referências e Faixas Ideais:</strong> As faixas de normalidade são personalizadas para o gênero, idade e biotipo do paciente, baseadas nos consensos da <strong>OMS/WHO</strong> (classificação de IMC e risco cardiometabólico), <strong>ACSM</strong> (diretrizes de percentual de gordura) e equações científicas validadas contra o padrão-ouro DXA (Densitometria de Dupla Energia).
+                </p>
+              </div>
 
               {/* RODAPÉ UNIFICADO DO LAUDO DA NUTRICIONISTA (PÁGINA 1) */}
               <div className="pt-8 print:pt-4 border-t border-slate-300 mt-8 print:mt-auto a4-print-footer">
@@ -1896,7 +1915,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               <div className="border-b-2 border-emerald-800 pb-5 print:pb-3">
                 <div className="flex flex-col md:flex-row justify-between items-start print:flex-row">
                   <div className="flex items-center space-x-3.5">
-                    <img src={logo} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+                    <img src={logoPdf} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
                     <div>
                       <h1 className="text-2xl print:text-lg font-black tracking-tight text-emerald-950 uppercase whitespace-nowrap truncate">{nutritionist.name}</h1>
                       <p className="text-xs print:text-[10px] font-semibold text-emerald-700 uppercase tracking-wider whitespace-nowrap truncate">{nutritionist.title}</p>
@@ -1990,13 +2009,8 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                           <User className="w-4 h-4 mr-1.5 text-emerald-700" />
                           Análise Segmentar de Massa Magra e Gordura
                         </h3>
-                        <p className="text-[10px] print:text-[8.5px] text-slate-500">Avaliação quantitativa por membro em relação à faixa ideal de referência</p>
+                        <p className="text-[10px] print:text-[8.5px] text-slate-500">Distribuição quantitativa de tecido magro e adiposo por membro corporal</p>
                       </div>
-
-                      {/* EXPLICAÇÃO DO VALOR IDEAL NO CANTO SUPERIOR DIREITO (TEXTO LIMPO) */}
-                      <p className="text-[9.5px] print:text-[8px] text-slate-500 leading-tight max-w-xs text-left sm:text-right">
-                        💡 <strong>Origem do Valor Ideal:</strong> Calculado via algoritmos antropométricos normatizados para gênero, idade e estatura do paciente.
-                      </p>
                     </div>
 
                     <div className="relative flex flex-col md:flex-row print:flex-row items-center justify-between gap-3 print:gap-2 py-1 print:py-0">
@@ -2005,45 +2019,35 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                       <div className="w-full md:w-5/12 print:w-5/12 space-y-3 print:space-y-1.5 z-10">
                         
                         {/* BRAÇO DIREITO */}
-                        <div className={`bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 ${isRightArmOk ? 'border-l-emerald-600' : 'border-l-amber-500'} border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative`}>
+                        <div className="bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 border-l-emerald-700 border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative">
                           <div className="flex justify-between items-center border-b border-slate-100 pb-0.5">
                             <strong className="text-emerald-950 font-bold uppercase text-[10px]">Braço Direito (BD)</strong>
-                            <span className={`text-[8.5px] font-semibold px-1 py-0.2 rounded border ${isRightArmOk ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                              {isRightArmOk ? 'Adequado' : 'Atenção'}
-                            </span>
                           </div>
                           <div className="grid grid-cols-2 gap-1.5 text-[10px] print:text-[9px]">
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Massa Magra</span>
-                              <strong className="text-slate-900">{seg?.rightArm?.leanMass ?? 2.15} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.rightArm?.leanMassRatio ?? 102}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.rightArm?.leanMass ?? 2.15} kg</strong>
                             </div>
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Gordura</span>
-                              <strong className="text-slate-900">{seg?.rightArm?.fatMass ?? 1.80} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.rightArm?.fatMassRatio ?? 115}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.rightArm?.fatMass ?? 1.80} kg</strong>
                             </div>
                           </div>
                         </div>
 
                         {/* PERNA DIREITA */}
-                        <div className={`bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 ${isRightLegOk ? 'border-l-emerald-600' : 'border-l-amber-500'} border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative`}>
+                        <div className="bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 border-l-emerald-700 border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative">
                           <div className="flex justify-between items-center border-b border-slate-100 pb-0.5">
                             <strong className="text-emerald-950 font-bold uppercase text-[10px]">Perna Direita (PD)</strong>
-                            <span className={`text-[8.5px] font-semibold px-1 py-0.2 rounded border ${isRightLegOk ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                              {isRightLegOk ? 'Adequado' : 'Atenção'}
-                            </span>
                           </div>
                           <div className="grid grid-cols-2 gap-1.5 text-[10px] print:text-[9px]">
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Massa Magra</span>
-                              <strong className="text-slate-900">{seg?.rightLeg?.leanMass ?? 6.40} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.rightLeg?.leanMassRatio ?? 98}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.rightLeg?.leanMass ?? 6.40} kg</strong>
                             </div>
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Gordura</span>
-                              <strong className="text-slate-900">{seg?.rightLeg?.fatMass ?? 4.90} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.rightLeg?.fatMassRatio ?? 120}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.rightLeg?.fatMass ?? 4.90} kg</strong>
                             </div>
                           </div>
                         </div>
@@ -2065,28 +2069,19 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                             <path d="M 28 112 C 32 112, 47 112, 47 140 L 45 185 C 44 192, 33 192, 34 185 L 31 140 C 29 125, 27 115, 28 112 Z" />
                             <path d="M 72 112 C 68 112, 53 112, 53 140 L 55 185 C 56 192, 67 192, 66 185 L 69 140 C 71 125, 73 115, 72 112 Z" />
 
-                            {/* Linhas de Conexão Diretas (Ligando até o centro exato de cada bolinha) */}
-                            {/* Braço Direito (Conecta da esquerda X=-20 até X=20, Y=70) */}
-                            <line x1="-25" y1="70" x2="20" y2="70" stroke={isRightArmOk ? "#059669" : "#f59e0b"} strokeWidth="1.5" strokeDasharray="3 2" />
-                            
-                            {/* Perna Direita (Conecta da esquerda X=-25 até X=38, Y=150) */}
-                            <line x1="-25" y1="150" x2="38" y2="150" stroke={isRightLegOk ? "#059669" : "#f59e0b"} strokeWidth="1.5" strokeDasharray="3 2" />
+                            {/* Linhas de Conexão Diretas (Ligando até o centro de cada membro) */}
+                            <line x1="-25" y1="70" x2="20" y2="70" stroke="#059669" strokeWidth="1.5" strokeDasharray="3 2" />
+                            <line x1="-25" y1="150" x2="38" y2="150" stroke="#059669" strokeWidth="1.5" strokeDasharray="3 2" />
+                            <line x1="125" y1="45" x2="50" y2="75" stroke="#059669" strokeWidth="1.5" strokeDasharray="3 2" />
+                            <line x1="125" y1="95" x2="80" y2="70" stroke="#059669" strokeWidth="1.5" strokeDasharray="3 2" />
+                            <line x1="125" y1="150" x2="62" y2="150" stroke="#059669" strokeWidth="1.5" strokeDasharray="3 2" />
 
-                            {/* Tronco (Conecta da direita X=125 até X=50, Y=75) */}
-                            <line x1="125" y1="45" x2="50" y2="75" stroke={isTrunkOk ? "#059669" : "#f59e0b"} strokeWidth="1.5" strokeDasharray="3 2" />
-
-                            {/* Braço Esquerdo (Conecta da direita X=125 até X=80, Y=70) */}
-                            <line x1="125" y1="95" x2="80" y2="70" stroke={isLeftArmOk ? "#059669" : "#f59e0b"} strokeWidth="1.5" strokeDasharray="3 2" />
-
-                            {/* Perna Esquerda (Conecta da direita X=125 até X=62, Y=150) */}
-                            <line x1="125" y1="150" x2="62" y2="150" stroke={isLeftLegOk ? "#059669" : "#f59e0b"} strokeWidth="1.5" strokeDasharray="3 2" />
-
-                            {/* Pontos de Apontamento nos membros (Com borda branca e destaque) */}
-                            <circle cx="20" cy="70" r="4.5" className={`${isRightArmOk ? 'fill-emerald-600' : 'fill-amber-500'} stroke-white stroke-2`} />
-                            <circle cx="80" cy="70" r="4.5" className={`${isLeftArmOk ? 'fill-emerald-600' : 'fill-amber-500'} stroke-white stroke-2`} />
-                            <circle cx="50" cy="75" r="5" className={`${isTrunkOk ? 'fill-emerald-600' : 'fill-amber-500'} stroke-white stroke-2`} />
-                            <circle cx="38" cy="150" r="4.5" className={`${isRightLegOk ? 'fill-emerald-600' : 'fill-amber-500'} stroke-white stroke-2`} />
-                            <circle cx="62" cy="150" r="4.5" className={`${isLeftLegOk ? 'fill-emerald-600' : 'fill-amber-500'} stroke-white stroke-2`} />
+                            {/* Pontos de Apontamento nos membros */}
+                            <circle cx="20" cy="70" r="4.5" className="fill-emerald-600 stroke-white stroke-2" />
+                            <circle cx="80" cy="70" r="4.5" className="fill-emerald-600 stroke-white stroke-2" />
+                            <circle cx="50" cy="75" r="5" className="fill-emerald-600 stroke-white stroke-2" />
+                            <circle cx="38" cy="150" r="4.5" className="fill-emerald-600 stroke-white stroke-2" />
+                            <circle cx="62" cy="150" r="4.5" className="fill-emerald-600 stroke-white stroke-2" />
                           </svg>
                         </div>
                       </div>
@@ -2095,67 +2090,52 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                       <div className="w-full md:w-5/12 print:w-5/12 space-y-3 print:space-y-1.5 z-10">
                         
                         {/* TRONCO */}
-                        <div className={`bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 ${isTrunkOk ? 'border-l-emerald-600' : 'border-l-amber-500'} border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative`}>
+                        <div className="bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 border-l-emerald-700 border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative">
                           <div className="flex justify-between items-center border-b border-slate-100 pb-0.5">
                             <strong className="text-emerald-950 font-bold uppercase text-[10px]">Tronco (TR)</strong>
-                            <span className={`text-[8.5px] font-semibold px-1 py-0.2 rounded border ${isTrunkOk ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                              {isTrunkOk ? 'Adequado' : 'Atenção'}
-                            </span>
                           </div>
                           <div className="grid grid-cols-2 gap-1.5 text-[10px] print:text-[9px]">
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Massa Magra</span>
-                              <strong className="text-slate-900">{seg?.trunk?.leanMass ?? 18.60} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.trunk?.leanMassRatio ?? 100}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.trunk?.leanMass ?? 18.60} kg</strong>
                             </div>
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Gordura</span>
-                              <strong className="text-slate-900">{seg?.trunk?.fatMass ?? 3.50} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.trunk?.fatMassRatio ?? 105}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.trunk?.fatMass ?? 3.50} kg</strong>
                             </div>
                           </div>
                         </div>
 
                         {/* BRAÇO ESQUERDO */}
-                        <div className={`bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 ${isLeftArmOk ? 'border-l-emerald-600' : 'border-l-amber-500'} border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative`}>
+                        <div className="bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 border-l-emerald-700 border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative">
                           <div className="flex justify-between items-center border-b border-slate-100 pb-0.5">
                             <strong className="text-emerald-950 font-bold uppercase text-[10px]">Braço Esquerdo (BE)</strong>
-                            <span className={`text-[8.5px] font-semibold px-1 py-0.2 rounded border ${isLeftArmOk ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                              {isLeftArmOk ? 'Adequado' : 'Atenção'}
-                            </span>
                           </div>
                           <div className="grid grid-cols-2 gap-1.5 text-[10px] print:text-[9px]">
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Massa Magra</span>
-                              <strong className="text-slate-900">{seg?.leftArm?.leanMass ?? 2.10} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.leftArm?.leanMassRatio ?? 100}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.leftArm?.leanMass ?? 2.10} kg</strong>
                             </div>
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Gordura</span>
-                              <strong className="text-slate-900">{seg?.leftArm?.fatMass ?? 1.70} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.leftArm?.fatMassRatio ?? 112}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.leftArm?.fatMass ?? 1.70} kg</strong>
                             </div>
                           </div>
                         </div>
 
                         {/* PERNA ESQUERDA */}
-                        <div className={`bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 ${isLeftLegOk ? 'border-l-emerald-600' : 'border-l-amber-500'} border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative`}>
+                        <div className="bg-white p-2.5 print:p-1.5 rounded-lg border-l-4 border-l-emerald-700 border border-slate-200 shadow-sm text-xs space-y-1 hover:shadow-md transition-shadow relative">
                           <div className="flex justify-between items-center border-b border-slate-100 pb-0.5">
                             <strong className="text-emerald-950 font-bold uppercase text-[10px]">Perna Esquerda (PE)</strong>
-                            <span className={`text-[8.5px] font-semibold px-1 py-0.2 rounded border ${isLeftLegOk ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                              {isLeftLegOk ? 'Adequado' : 'Atenção'}
-                            </span>
                           </div>
                           <div className="grid grid-cols-2 gap-1.5 text-[10px] print:text-[9px]">
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Massa Magra</span>
-                              <strong className="text-slate-900">{seg?.leftLeg?.leanMass ?? 6.30} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.leftLeg?.leanMassRatio ?? 97}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.leftLeg?.leanMass ?? 6.30} kg</strong>
                             </div>
-                            <div className="bg-slate-50 p-1 rounded border border-slate-100">
+                            <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
                               <span className="text-[8.5px] uppercase font-bold text-emerald-800 block">Gordura</span>
-                              <strong className="text-slate-900">{seg?.leftLeg?.fatMass ?? 4.80} kg</strong>
-                              <span className="text-[8.5px] text-emerald-600 block font-medium">{seg?.leftLeg?.fatMassRatio ?? 118}% do Ideal</span>
+                              <strong className="text-slate-900 text-sm print:text-xs">{seg?.leftLeg?.fatMass ?? 4.80} kg</strong>
                             </div>
                           </div>
                         </div>
@@ -2208,7 +2188,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               <div className="border-b-2 border-emerald-800 pb-4 print:pb-2">
                 <div className="flex flex-col md:flex-row justify-between items-start print:flex-row">
                   <div className="flex items-center space-x-3.5">
-                    <img src={logo} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+                    <img src={logoPdf} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
                     <div>
                       <h1 className="text-2xl print:text-lg font-black tracking-tight text-emerald-950 uppercase whitespace-nowrap truncate">{nutritionist.name}</h1>
                       <p className="text-xs print:text-[10px] font-semibold text-emerald-700 uppercase tracking-wider whitespace-nowrap truncate">{nutritionist.title}</p>
@@ -2455,7 +2435,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               <div className="border-b-2 border-emerald-800 pb-4 print:pb-2">
                 <div className="flex flex-col md:flex-row justify-between items-start print:flex-row">
                   <div className="flex items-center space-x-3.5">
-                    <img src={logo} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+                    <img src={logoPdf} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
                     <div>
                       <h1 className="text-2xl print:text-lg font-black tracking-tight text-emerald-950 uppercase whitespace-nowrap truncate">{nutritionist.name}</h1>
                       <p className="text-xs print:text-[10px] font-semibold text-emerald-700 uppercase tracking-wider whitespace-nowrap truncate">{nutritionist.title}</p>

@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
+    "gapi-script": "^1.2.0",
     "lucide-react": "^1.30.0",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^6.2.108",

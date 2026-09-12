@@ -15,19 +15,42 @@ import WhatsAppPdfReport from './components/whatsapp/WhatsAppPdfReport';
 import { callGeminiWithFallback } from './services/gemini';
 import { formatWaitTime } from './utils/formatters';
 
-// Helper para identificar o atendente que efetivamente respondeu
+// Categorias clínicas atribuídas diretamente à Dra. Isabela
+export const CLINICAL_CATEGORIES = [
+  'Dúvida Plano Alimentar',
+  'Dificuldades e Sintomas',
+  'Exames e Documentos',
+  'Suplementação e Receitas',
+  'Feedback e Motivação'
+];
+
+// Helper para identificar o atendente responsável / que efetivamente respondeu
 export const getAttendantType = (item) => {
+  if (!item) return 'secretaria';
+
   const src = (item.source || '').toLowerCase();
   const resp = (item.resposta_secretaria || '').toLowerCase();
-  
+  const cat = item.categoria || '';
+
+  // 1. Se já tem indicação explícita de resposta da Dra. Isabela
   if (src === 'primario' || src === 'notebook' || resp.includes('dra isabela') || resp.includes('isabela muñoz')) {
     return 'isabela';
   }
+
+  // 2. Se já tem indicação explícita de resposta da secretária
   if (src === 'secretaria' || item.categoria_secretaria) {
     return 'secretaria';
   }
-  return 'outros';
+
+  // 3. Se for uma categoria clínica (ex: Exames e Documentos, Dúvidas de Dieta), é da Dra. Isabela
+  if (CLINICAL_CATEGORIES.includes(cat)) {
+    return 'isabela';
+  }
+
+  // 4. Se for administrativo / financeiro / agendamento ou outros
+  return 'secretaria';
 };
+
 
 // Expressões e palavras típicas de encerramento / cortesia / confirmação rápida
 const COURTESY_PHRASES = [
@@ -100,6 +123,11 @@ export default function DashboardWhatsApp() {
   // FILTRAGEM DOS DADOS
   const filteredData = useMemo(() => {
     return conversations.filter(item => {
+      // 0. Filtro de Mensagens Técnicas / Atendimento Ativo (linhas criadas apenas como log de resposta)
+      if (item.mensagem_texto === '[Atendimento Ativo]') {
+        return false;
+      }
+
       // 1. Filtro de Cortesia
       if (ignoreCourtesy && isClosingOrGreetingMessage(item)) {
         return false;
@@ -113,23 +141,27 @@ export default function DashboardWhatsApp() {
       // 3. Filtro de Período
       if (period !== 'all' && item.data_envio) {
         const itemDate = new Date(item.data_envio);
+        // Usar como data de referência a data atual do sistema ou a data do registro mais recente
         const now = new Date();
-        now.setHours(23, 59, 59, 999);
+        const latestDate = conversations[0]?.data_envio ? new Date(conversations[0].data_envio) : now;
+        const refDate = latestDate > now ? latestDate : now;
+        const endDay = new Date(refDate);
+        endDay.setHours(23, 59, 59, 999);
 
         if (period === 'today') {
-          const startToday = new Date();
+          const startToday = new Date(refDate);
           startToday.setHours(0, 0, 0, 0);
-          if (itemDate < startToday || itemDate > now) return false;
+          if (itemDate < startToday || itemDate > endDay) return false;
         } else if (period === 'this_week') {
-          const startWeek = new Date();
+          const startWeek = new Date(refDate);
           const day = startWeek.getDay();
           const diff = startWeek.getDate() - day + (day === 0 ? -6 : 1);
           startWeek.setDate(diff);
           startWeek.setHours(0, 0, 0, 0);
-          if (itemDate < startWeek || itemDate > now) return false;
+          if (itemDate < startWeek || itemDate > endDay) return false;
         } else if (period === 'this_month') {
-          const startMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-          if (itemDate < startMonth || itemDate > now) return false;
+          const startMonth = new Date(refDate.getFullYear(), refDate.getMonth(), 1, 0, 0, 0);
+          if (itemDate < startMonth || itemDate > endDay) return false;
         } else if (period.startsWith('month:')) {
           const [yr, mo] = period.replace('month:', '').split('-').map(Number);
           if (itemDate.getFullYear() !== yr || itemDate.getMonth() + 1 !== mo) return false;
@@ -210,8 +242,12 @@ export default function DashboardWhatsApp() {
       return { total, answeredCount: answeredList.length, avg, min, max, fastRate, pendingCount, topCategories };
     };
 
-    const isabelaStats = getStats(isabelaConvs);
-    const secretariaStats = getStats(secretariaConvs);
+    // Atribuição de mensagens pendentes (Clínicas vão para Dra. Isabela, Administrativas vão para Recepção)
+    const isabelaPendingCount = filteredData.filter(c => !c.respondida && getAttendantType(c) === 'isabela').length;
+    const secretariaPendingCount = filteredData.filter(c => !c.respondida && getAttendantType(c) === 'secretaria').length;
+
+    const isabelaStats = { ...getStats(isabelaConvs), pendingCount: isabelaPendingCount };
+    const secretariaStats = { ...getStats(secretariaConvs), pendingCount: secretariaPendingCount };
     const totalAnswered = isabelaStats.answeredCount + secretariaStats.answeredCount;
 
     // Contagem de intervenções da Dra. Isabela em agendamentos/financeiro
@@ -637,6 +673,54 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
           <span>{error}</span>
         </div>
       )}
+
+      {/* BARRA DE KPIS GERAIS CONSOLIDADOS */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">Total de Mensagens</span>
+            <MessageSquare className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-black text-slate-900">{globalStats.total}</div>
+          <span className="text-[10px] text-slate-400 font-medium">No período filtrado</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">Respondidas</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-black text-emerald-700">{globalStats.answered}</div>
+          <span className="text-[10px] text-emerald-600 font-bold">{globalStats.responseRate}% resolvidas</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">Aguardando</span>
+            <Clock className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-black text-amber-700">{globalStats.pending}</div>
+          <span className="text-[10px] text-slate-400 font-medium">Na fila de resposta</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">Taxa de Resposta</span>
+            <CheckCircle2 className="w-4 h-4 text-teal-600" />
+          </div>
+          <div className="text-2xl font-black text-teal-700">{globalStats.responseRate}%</div>
+          <span className="text-[10px] text-teal-600 font-bold">Meta: &gt; 90%</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs col-span-2 md:col-span-1">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">Tempo Médio Geral</span>
+            <Clock className="w-4 h-4 text-purple-600" />
+          </div>
+          <div className="text-2xl font-black text-purple-700">{formatWaitTime(globalStats.avgWaitMinutes)}</div>
+          <span className="text-[10px] text-slate-400 font-medium">Espera média do paciente</span>
+        </div>
+      </div>
 
       {/* CARDS COMPARATIVOS: DRA. ISABELA vs SECRETÁRIA */}
       <WhatsAppAttendantCards comparisonStats={comparisonStats} />

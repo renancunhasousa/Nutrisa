@@ -168,11 +168,11 @@ export default function Anamnese({ activeModel }) {
       showNotification("Chave API não configurada no ambiente (.env).", "error");
       throw new Error("Chave não configurada.");
     }
-    const initialModel = activeModel || localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-3.7-flash";
+    const initialModel = activeModel || localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-3.8-flash";
     
     // Cascata de modelos em camadas
     const fallbackChain = [
-      "gemini-3.7-flash",
+      "gemini-3.8-flash",
       "gemini-3.5-flash-lite",
       "gemini-2.5-flash",
       "gemini-2.5-flash-lite"
