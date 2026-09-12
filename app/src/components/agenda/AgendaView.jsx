@@ -295,7 +295,28 @@ function AgendaViewContent() {
 }
 
 export default function AgendaView() {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'COLOQUE_SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  if (!clientId || clientId.includes('COLOQUE_SEU_CLIENT_ID')) {
+    return (
+      <div className="p-8 max-w-2xl mx-auto my-8 bg-amber-900/20 border border-amber-600/40 rounded-2xl text-amber-200">
+        <h3 className="text-lg font-bold text-amber-300 mb-2">Configuração do Google Calendar Pendente</h3>
+        <p className="text-sm leading-relaxed mb-4">
+          A variável de ambiente <code>VITE_GOOGLE_CLIENT_ID</code> não foi encontrada ou não está configurada no seu ambiente de produção (Vercel).
+        </p>
+        <div className="bg-stone-900/80 p-4 rounded-xl text-xs space-y-2 text-stone-300 border border-stone-800">
+          <p><strong>Como resolver:</strong></p>
+          <ol className="list-decimal list-inside space-y-1 text-stone-400">
+            <li>Acesse o painel da <strong>Vercel</strong> &rarr; Seu Projeto &rarr; <strong>Settings</strong> &rarr; <strong>Environment Variables</strong>.</li>
+            <li>Adicione a variável <code>VITE_GOOGLE_CLIENT_ID</code> com o Client ID gerado no Google Cloud Console.</li>
+            <li>No Google Cloud Console (APIs &amp; Services &rarr; Credentials &rarr; OAuth 2.0 Client IDs), certifique-se de adicionar a URL da sua aplicação em produção (ex: <code>https://seu-dominio.vercel.app</code>) em <strong>Origens JavaScript autorizadas</strong>.</li>
+            <li>Faça um <strong>Redeploy</strong> na Vercel para aplicar as variáveis.</li>
+          </ol>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <GoogleOAuthProvider clientId={clientId}>
       <AgendaViewContent />
