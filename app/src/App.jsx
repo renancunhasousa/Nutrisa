@@ -454,9 +454,15 @@ Portanto, gere o campo "aiAnalysisText" como um 'Diagnóstico e Parecer Nutricio
 REGRA RIGOROSA PARA DOBRAS CUTÂNEAS (skinfolds):
 Extraia EXCLUSIVAMENTE as dobras cutâneas que estiverem explicitamente medidas no documento anexado. NUNCA invente, presuma ou deduza dobras que não constam no laudo (ex: NÃO invente Panturrilha, Torácica, Biciptal ou Axilar se elas não foram medidas no teste). Se foram medidas apenas 3, 5 ou 7 dobras, liste APENAS essas no array skinfolds.
 
-REGRA PARA HISTÓRICO DE AVALIAÇÕES (history):
-Se o documento anexado (especialmente o laudo de Bioimpedância ou software de avaliação física) contiver histórico comparativo, tabelas evolutivas ou datas anteriores de consultas do paciente, extraia até 3 avaliações anteriores em ordem cronológica no array "history".
-Para cada avaliação passada, extraia a "date" (ex: DD/MM/AAAA) e os valores numéricos disponíveis: weight, fatPercentage, fatMass, leanMass, skeletalMuscle, totalBodyWater, icw, ecw, visceralFatLevel, bmr, metabolicAge, bmi, waistHipRatio, skinfoldSum, waist, abdomen, hip, bodyDensity. Se um campo não estiver na consulta passada, defina como null. Se o laudo não contiver consultas anteriores (for a primeira avaliação), retorne "history": [].
+REGRA RIGOROSA PARA HISTÓRICO DE AVALIAÇÕES ANTERIORES (history):
+Muitos laudos de Bioimpedância (InBody, AvaBio, Tanita, etc.) e softwares de avaliação física contêm uma seção/tabela dedicada com o histórico de testes passados ("Histórico de Composição Corporal", "Evolução", "Avaliações Anteriores" ou colunas com múltiplas datas).
+- O array "history" deve conter EXCLUSIVAMENTE as consultas ANTERIORES/PASSADAS. A consulta ATUAL (a mais recente) já é capturada em "patient" e "metrics", portanto NUNCA duplique a consulta atual dentro de "history".
+- Inspecione todas as páginas do documento procurando por datas e valores de avaliações passadas do paciente.
+- Extraia todas as avaliações passadas encontradas no array "history", ordenadas cronologicamente (da mais antiga para a mais recente).
+- Para cada avaliação anterior, crie um objeto com a chave "date" (ex: DD/MM/AAAA ou DD/MM/AA) e extraia todos os valores numéricos que estiverem disponíveis na coluna daquela data: weight, fatPercentage, fatMass, leanMass, skeletalMuscle, totalBodyWater, icw, ecw, visceralFatLevel, bmr, metabolicAge, bmi, waistHipRatio, skinfoldSum, waist, abdomen, hip, bodyDensity.
+- Se o laudo contiver 2, 3 ou 4 consultas antigas, inclua todas as datas anteriores no array "history".
+- Se algum campo específico não foi medido ou não consta naquela consulta passada, preencha-o como null.
+- Se o documento NÃO contiver nenhuma data anterior (for a primeira avaliação), retorne "history": [].
 
 Se algum parâmetro não for encontrado em um dos laudos, atribua null.
 Infira o equipamento de Bioimpedância utilizado (ex: InBody 270, AvaBio 380) e o Método Antropométrico (ex: Jackson & Pollock 7 dobras).
@@ -705,8 +711,20 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
 
   // Helper dinâmico para montar o Histórico Comparativo e os dados do Gráfico da Página 3
   const buildComparativeData = () => {
-    const historyList = Array.isArray(extractedData.history) ? extractedData.history : [];
-    const currentDate = extractedData.patient?.date || new Date().toLocaleDateString('pt-BR');
+    const rawHistoryList = Array.isArray(extractedData.history) ? extractedData.history : [];
+    const currentDate = (extractedData.patient?.date || new Date().toLocaleDateString('pt-BR')).trim();
+
+    // FILTRO RIGOROSO: Garante que a avaliação atual NÃO se repita no histórico passado
+    // Remove qualquer entrada cuja data seja igual à data atual ou cujo rótulo contenha 'atual'
+    const normalizeDate = (d) => (d || "").replace(/\s+/g, "").toLowerCase();
+    const currentNorm = normalizeDate(currentDate);
+
+    const historyList = rawHistoryList.filter(h => {
+      if (!h || !h.date) return false;
+      const hNorm = normalizeDate(h.date);
+      if (hNorm === currentNorm || hNorm.includes("atual")) return false;
+      return true;
+    });
 
     // Mapeamento dos valores atuais selecionados/customizados
     const currentMetricVal = (key) => {
@@ -752,8 +770,9 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
       { param: "Circunferência Quadril", unit: "cm", key: "hip", isGoodIfDown: true, getter: () => currentCircumferenceVal("quadril") }
     ];
 
-    // Colunas de datas: até 3 anteriores + atual
-    const pastDates = historyList.slice(-3).map(h => h.date || "-");
+    // Colunas de datas: todas as anteriores (limitadas a até 5 para caber na folha A4 com perfeição) + atual
+    const maxPastCols = 4;
+    const pastDates = historyList.slice(-maxPastCols).map(h => h.date || "-");
     const allDates = [...pastDates, `${currentDate} (Atual)`];
 
     // Monta as linhas da tabela
@@ -761,8 +780,8 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
       const currentRaw = p.getter();
       const currentNum = currentRaw !== null && currentRaw !== undefined && !isNaN(Number(currentRaw)) ? Number(currentRaw) : null;
       
-      // Valores históricos passados (até 3)
-      const pastValues = historyList.slice(-3).map(h => {
+      // Valores históricos passados mapeados dinamicamente
+      const pastValues = historyList.slice(-maxPastCols).map(h => {
         const val = h[p.key];
         return val !== null && val !== undefined && !isNaN(Number(val)) ? Number(val) : null;
       });
@@ -800,9 +819,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
 
       return {
         param: `${p.param} ${p.unit ? `(${p.unit})` : ""}`,
-        d1: formatVal(pastValues[0]),
-        d2: formatVal(pastValues[1]),
-        d3: formatVal(pastValues[2]),
+        pastFormatted: pastValues.map(v => formatVal(v)),
         current: formatVal(currentNum),
         diff: diffText,
         isDown,
@@ -817,7 +834,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
     const currentFat = currentMetricVal("fatMass");
 
     const chartPoints = [
-      ...historyList.slice(-3).map(h => ({
+      ...historyList.slice(-maxPastCols).map(h => ({
         date: h.date || "-",
         weight: Number(h.weight) || 0,
         leanMass: Number(h.leanMass) || 0,
@@ -2514,21 +2531,11 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                 <td className="p-1.5 print:py-1 print:px-1.5 font-medium text-slate-800 border-r border-slate-200">
                                   {row.param}
                                 </td>
-                                {pastCols.length >= 1 && (
-                                  <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">
-                                    {row.d1}
+                                {row.pastFormatted.map((val, pIdx) => (
+                                  <td key={pIdx} className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">
+                                    {val}
                                   </td>
-                                )}
-                                {pastCols.length >= 2 && (
-                                  <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">
-                                    {row.d2}
-                                  </td>
-                                )}
-                                {pastCols.length >= 3 && (
-                                  <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">
-                                    {row.d3}
-                                  </td>
-                                )}
+                                ))}
                                 <td className="p-1.5 print:py-1 print:px-1.5 text-center font-bold text-slate-900 bg-emerald-50/50 border-r border-slate-200">
                                   {row.current}
                                 </td>
@@ -2914,7 +2921,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   <div className="grid grid-cols-2 gap-1.5 text-[10px] print:text-[8.5px]">
                     <div className="bg-white p-1.5 rounded border border-slate-100 flex items-center space-x-1.5">
                       <span className="text-xs">⏳</span>
-                      <span className="text-slate-700 leading-tight"><strong>Jejum:</strong> 4h alimentos e 2h deágua em excesso.</span>
+                      <span className="text-slate-700 leading-tight"><strong>Jejum:</strong> 4h alimentos e 2h de água em excesso.</span>
                     </div>
                     <div className="bg-white p-1.5 rounded border border-slate-100 flex items-center space-x-1.5">
                       <span className="text-xs">🚫</span>
