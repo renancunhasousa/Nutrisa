@@ -455,7 +455,72 @@ export default function App() {
           );
         }
 
-        // Ramo 1: Modelos DeepSeek (deepseek-flash / DeepSeek-V4.1-Flash ou deepseek-chat)
+        // --- TENTATIVA 1: ROTA SEGURA NO SERVIDOR VERCEL (/api/ai) ---
+        // Na Vercel, a rota /api/ai protege as chaves sem expor no F12 / Network do navegador
+        try {
+          const isDs = model.startsWith("deepseek");
+          let proxyPayload = payload;
+
+          if (isDs) {
+            let userPrompt = "";
+            if (payload.contents && Array.isArray(payload.contents)) {
+              for (const content of payload.contents) {
+                if (content.parts && Array.isArray(content.parts)) {
+                  for (const part of content.parts) {
+                    if (part.text) userPrompt += (userPrompt ? "\n\n" : "") + part.text;
+                  }
+                }
+              }
+            }
+            proxyPayload = {
+              model: model === "deepseek-flash" ? "deepseek-flash" : "deepseek-chat",
+              messages: [
+                {
+                  role: "system",
+                  content: "Você é um assistente especialista em nutrição clínica e esportiva e análise de composição corporal. Responda estritamente no formato solicitado."
+                },
+                {
+                  role: "user",
+                  content: userPrompt || "Processe os dados fornecidos."
+                }
+              ],
+              stream: false
+            };
+            if (payload.generationConfig?.responseMimeType === "application/json") {
+              proxyPayload.response_format = { type: "json_object" };
+            }
+          }
+
+          const proxyRes = await fetch("/api/ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              provider: isDs ? "deepseek" : "gemini",
+              model,
+              payload: proxyPayload
+            })
+          });
+
+          if (proxyRes.ok) {
+            const data = await proxyRes.json();
+            if (isDs) {
+              const contentText = data?.choices?.[0]?.message?.content || "";
+              return {
+                result: {
+                  candidates: [{ content: { parts: [{ text: contentText }] } }]
+                },
+                usedModel: model
+              };
+            }
+            return { result: data, usedModel: model };
+          }
+        } catch (proxyErr) {
+          // Em desenvolvimento local sem vercel dev, /api/ai pode retornar 404/html, prosseguimos para o modo direto
+          console.warn("[Proxy Seguro /api/ai indisponível localmente, usando fallback direto]:", proxyErr);
+        }
+
+        // --- TENTATIVA 2: MODO DIRETO (DESENVOLVIMENTO LOCAL COM .ENV) ---
+        // Ramo 2.1: Modelo DeepSeek
         if (model.startsWith("deepseek")) {
           if (!deepseekApiKey) {
             console.warn(`[DeepSeek] Chave VITE_DEEPSEEK_API_KEY não encontrada, pulando para próximo modelo de fallback.`);
@@ -512,7 +577,6 @@ export default function App() {
           const dsJson = await response.json();
           const contentText = dsJson?.choices?.[0]?.message?.content || "";
 
-          // Mapeia para o formato esperado pelos consumidores do Gemini ({ candidates: [{ content: { parts: [{ text }] } }] })
           const adaptedResult = {
             candidates: [
               {
@@ -526,7 +590,7 @@ export default function App() {
           return { result: adaptedResult, usedModel: model };
         }
 
-        // Ramo 2: Modelos Google Gemini (incluindo 3.8-flash, v4-flash, 3.5, 2.5)
+        // Ramo 2.2: Modelos Google Gemini
         if (!geminiApiKey) {
           console.warn(`[Gemini] Chave VITE_GEMINI_API_KEY não encontrada, pulando modelo ${model}.`);
           continue;
