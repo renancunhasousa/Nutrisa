@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import logoPdf from './assets/logo.png';
 import logoPlatform from './assets/logo_new.png';
+import signatureImg from './assets/assinatura.png';
 import { 
   FileUp, 
   Sparkles, 
@@ -35,6 +36,8 @@ import {
 import { 
   BarChart, 
   Bar, 
+  AreaChart,
+  Area,
   XAxis, 
   YAxis, 
   Tooltip, 
@@ -118,6 +121,71 @@ const DEMO_EXTRACTED_DATA = {
     rightLeg: { leanMass: 6.40, leanMassRatio: 98, fatMass: 4.90, fatMassRatio: 120 },
     leftLeg: { leanMass: 6.30, leanMassRatio: 97, fatMass: 4.80, fatMassRatio: 118 }
   },
+  history: [
+    {
+      date: "10/01/2026",
+      weight: 68.5,
+      fatPercentage: 38.5,
+      fatMass: 26.4,
+      leanMass: 42.1,
+      skeletalMuscle: 23.1,
+      totalBodyWater: 30.1,
+      icw: 18.8,
+      ecw: 11.3,
+      visceralFatLevel: 7,
+      bmr: 1280,
+      metabolicAge: 33,
+      bmi: 29.2,
+      waistHipRatio: 0.85,
+      skinfoldSum: 245.0,
+      waist: 88.0,
+      abdomen: 92.0,
+      hip: 106.0,
+      bodyDensity: 1.012
+    },
+    {
+      date: "15/03/2026",
+      weight: 67.0,
+      fatPercentage: 36.8,
+      fatMass: 24.6,
+      leanMass: 42.4,
+      skeletalMuscle: 23.4,
+      totalBodyWater: 30.5,
+      icw: 19.0,
+      ecw: 11.5,
+      visceralFatLevel: 6,
+      bmr: 1288,
+      metabolicAge: 31,
+      bmi: 28.6,
+      waistHipRatio: 0.84,
+      skinfoldSum: 230.0,
+      waist: 86.0,
+      abdomen: 90.0,
+      hip: 104.5,
+      bodyDensity: 1.015
+    },
+    {
+      date: "20/05/2026",
+      weight: 65.8,
+      fatPercentage: 35.2,
+      fatMass: 23.1,
+      leanMass: 42.7,
+      skeletalMuscle: 23.8,
+      totalBodyWater: 30.9,
+      icw: 19.3,
+      ecw: 11.6,
+      visceralFatLevel: 6,
+      bmr: 1292,
+      metabolicAge: 29,
+      bmi: 28.1,
+      waistHipRatio: 0.83,
+      skinfoldSum: 218.0,
+      waist: 84.5,
+      abdomen: 88.5,
+      hip: 103.0,
+      bodyDensity: 1.018
+    }
+  ],
   aiAnalysisText: "A paciente apresenta evolução positiva com redução no percentual de gordura (33.9%) e preservação da massa magra (42.8 kg). A relação cintura/quadril (0.82) indica evolução no perfil de risco metabólico. Nível de hidratação celular satisfatório e Ângulo de Fase dentro do padrão para o perfil."
 };
 
@@ -386,6 +454,10 @@ Portanto, gere o campo "aiAnalysisText" como um 'Diagnóstico e Parecer Nutricio
 REGRA RIGOROSA PARA DOBRAS CUTÂNEAS (skinfolds):
 Extraia EXCLUSIVAMENTE as dobras cutâneas que estiverem explicitamente medidas no documento anexado. NUNCA invente, presuma ou deduza dobras que não constam no laudo (ex: NÃO invente Panturrilha, Torácica, Biciptal ou Axilar se elas não foram medidas no teste). Se foram medidas apenas 3, 5 ou 7 dobras, liste APENAS essas no array skinfolds.
 
+REGRA PARA HISTÓRICO DE AVALIAÇÕES (history):
+Se o documento anexado (especialmente o laudo de Bioimpedância ou software de avaliação física) contiver histórico comparativo, tabelas evolutivas ou datas anteriores de consultas do paciente, extraia até 3 avaliações anteriores em ordem cronológica no array "history".
+Para cada avaliação passada, extraia a "date" (ex: DD/MM/AAAA) e os valores numéricos disponíveis: weight, fatPercentage, fatMass, leanMass, skeletalMuscle, totalBodyWater, icw, ecw, visceralFatLevel, bmr, metabolicAge, bmi, waistHipRatio, skinfoldSum, waist, abdomen, hip, bodyDensity. Se um campo não estiver na consulta passada, defina como null. Se o laudo não contiver consultas anteriores (for a primeira avaliação), retorne "history": [].
+
 Se algum parâmetro não for encontrado em um dos laudos, atribua null.
 Infira o equipamento de Bioimpedância utilizado (ex: InBody 270, AvaBio 380) e o Método Antropométrico (ex: Jackson & Pollock 7 dobras).
 
@@ -441,6 +513,9 @@ Retorne APENAS o JSON válido no seguinte formato:
     "rightLeg": { "leanMass": 6.40, "leanMassRatio": 98, "fatMass": 4.90, "fatMassRatio": 120 },
     "leftLeg": { "leanMass": 6.30, "leanMassRatio": 97, "fatMass": 4.80, "fatMassRatio": 118 }
   },
+  "history": [
+    { "date": "DD/MM/AAAA", "weight": 67.0, "fatPercentage": 36.8, "fatMass": 24.6, "leanMass": 42.4, "skeletalMuscle": 23.4, "totalBodyWater": 30.5, "visceralFatLevel": 6, "bmr": 1288, "metabolicAge": 31, "bmi": 28.6, "waistHipRatio": 0.84, "skinfoldSum": 230.0, "waist": 86.0, "abdomen": 90.0, "hip": 104.5 }
+  ],
   "aiAnalysisText": "Parecer clínico discursivo gerado pela IA focando em saúde metabólica, riscos e composição corporal para o paciente..."
 }`;
 
@@ -626,6 +701,137 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
     if (m.selected === 'custom') return customValues[m.key] || 0;
     if (m.selected === 'adipometry') return m.adipometryValue ?? m.biaValue ?? 0;
     return m.biaValue ?? m.adipometryValue ?? 0;
+  };
+
+  // Helper dinâmico para montar o Histórico Comparativo e os dados do Gráfico da Página 3
+  const buildComparativeData = () => {
+    const historyList = Array.isArray(extractedData.history) ? extractedData.history : [];
+    const currentDate = extractedData.patient?.date || new Date().toLocaleDateString('pt-BR');
+
+    // Mapeamento dos valores atuais selecionados/customizados
+    const currentMetricVal = (key) => {
+      const found = extractedData.metrics?.find(m => m.key === key);
+      return found ? getFinalValue(found) : null;
+    };
+
+    const currentCircumferenceVal = (siteName) => {
+      const found = extractedData.circumferences?.find(c => 
+        c.site?.toLowerCase().includes(siteName.toLowerCase())
+      );
+      return found ? found.value : null;
+    };
+
+    const currentSkinfoldSum = () => {
+      const found = extractedData.metrics?.find(m => m.key === 'skinfoldSum');
+      if (found && getFinalValue(found)) return getFinalValue(found);
+      if (Array.isArray(extractedData.skinfolds) && extractedData.skinfolds.length > 0) {
+        return extractedData.skinfolds.reduce((acc, s) => acc + (Number(s.value) || 0), 0);
+      }
+      return null;
+    };
+
+    // Definição dos parâmetros da tabela com suas unidades e chaves
+    const parameters = [
+      { param: "Peso Corporal", unit: "kg", key: "weight", isGoodIfDown: true, getter: () => currentMetricVal("weight") },
+      { param: "Percentual de Gordura (%G)", unit: "%", key: "fatPercentage", isGoodIfDown: true, getter: () => currentMetricVal("fatPercentage") },
+      { param: "Massa Gorda", unit: "kg", key: "fatMass", isGoodIfDown: true, getter: () => currentMetricVal("fatMass") },
+      { param: "Massa Magra / Livre Gordura", unit: "kg", key: "leanMass", isGoodIfDown: false, getter: () => currentMetricVal("leanMass") },
+      { param: "Massa Muscular SMM", unit: "kg", key: "skeletalMuscle", isGoodIfDown: false, getter: () => currentMetricVal("skeletalMuscle") },
+      { param: "Água Corporal Total - ACT", unit: "L", key: "totalBodyWater", isGoodIfDown: false, getter: () => currentMetricVal("totalBodyWater") },
+      { param: "Água Intracelular - AIC", unit: "L", key: "icw", isGoodIfDown: false, getter: () => currentMetricVal("icw") },
+      { param: "Água Extracelular - AEC", unit: "L", key: "ecw", isGoodIfDown: false, getter: () => currentMetricVal("ecw") },
+      { param: "Nível de Gordura Visceral", unit: "Nível", key: "visceralFatLevel", isGoodIfDown: true, getter: () => currentMetricVal("visceralFatLevel") },
+      { param: "Taxa Metabólica Basal - TMB", unit: "kcal", key: "bmr", isGoodIfDown: false, getter: () => currentMetricVal("bmr") },
+      { param: "Idade Metabólica", unit: "anos", key: "metabolicAge", isGoodIfDown: true, getter: () => currentMetricVal("metabolicAge") },
+      { param: "Índice de Massa Corporal (IMC)", unit: "kg/m²", key: "bmi", isGoodIfDown: true, getter: () => currentMetricVal("bmi") },
+      { param: "Relação Cintura/Quadril (RCQ)", unit: "", key: "waistHipRatio", isGoodIfDown: true, getter: () => currentMetricVal("waistHipRatio") },
+      { param: "Densidade Corporal", unit: "g/mL", key: "bodyDensity", isGoodIfDown: false, getter: () => currentMetricVal("bodyDensity") },
+      { param: "Somatório de Dobras", unit: "mm", key: "skinfoldSum", isGoodIfDown: true, getter: () => currentSkinfoldSum() },
+      { param: "Circunferência Cintura", unit: "cm", key: "waist", isGoodIfDown: true, getter: () => currentCircumferenceVal("cintura") },
+      { param: "Circunferência Abdomen", unit: "cm", key: "abdomen", isGoodIfDown: true, getter: () => currentCircumferenceVal("abdomen") },
+      { param: "Circunferência Quadril", unit: "cm", key: "hip", isGoodIfDown: true, getter: () => currentCircumferenceVal("quadril") }
+    ];
+
+    // Colunas de datas: até 3 anteriores + atual
+    const pastDates = historyList.slice(-3).map(h => h.date || "-");
+    const allDates = [...pastDates, `${currentDate} (Atual)`];
+
+    // Monta as linhas da tabela
+    const rows = parameters.map(p => {
+      const currentRaw = p.getter();
+      const currentNum = currentRaw !== null && currentRaw !== undefined && !isNaN(Number(currentRaw)) ? Number(currentRaw) : null;
+      
+      // Valores históricos passados (até 3)
+      const pastValues = historyList.slice(-3).map(h => {
+        const val = h[p.key];
+        return val !== null && val !== undefined && !isNaN(Number(val)) ? Number(val) : null;
+      });
+
+      // Último valor anterior válido para cálculo do Delta (Δ)
+      const lastPastValid = [...pastValues].reverse().find(v => v !== null);
+
+      let diffText = "-";
+      let isDown = false;
+      let isGood = true;
+
+      if (currentNum !== null && lastPastValid !== null && lastPastValid !== undefined) {
+        const delta = currentNum - lastPastValid;
+        const absDelta = Math.abs(delta);
+        isDown = delta < 0;
+        isGood = p.isGoodIfDown ? isDown : !isDown;
+
+        let formattedDelta = absDelta >= 10 ? absDelta.toFixed(0) : absDelta >= 1 ? absDelta.toFixed(1) : absDelta.toFixed(2);
+        if (p.unit === "%") {
+          diffText = `${delta >= 0 ? "+" : "-"}${formattedDelta}%`;
+        } else if (p.unit) {
+          diffText = `${delta >= 0 ? "+" : "-"}${formattedDelta} ${p.unit}`;
+        } else {
+          diffText = `${delta >= 0 ? "+" : "-"}${formattedDelta}`;
+        }
+      } else if (currentNum !== null) {
+        diffText = "1ª Aval.";
+        isGood = true;
+      }
+
+      const formatVal = (v) => {
+        if (v === null || v === undefined) return "-";
+        return p.unit === "%" ? `${v}%` : String(v);
+      };
+
+      return {
+        param: `${p.param} ${p.unit ? `(${p.unit})` : ""}`,
+        d1: formatVal(pastValues[0]),
+        d2: formatVal(pastValues[1]),
+        d3: formatVal(pastValues[2]),
+        current: formatVal(currentNum),
+        diff: diffText,
+        isDown,
+        isGood,
+        hasHistory: lastPastValid !== null && lastPastValid !== undefined
+      };
+    });
+
+    // Pontos para o Gráfico Evolutivo de Composição Corporal (Peso, Massa Magra, Massa Gorda)
+    const currentWeight = currentMetricVal("weight");
+    const currentLean = currentMetricVal("leanMass");
+    const currentFat = currentMetricVal("fatMass");
+
+    const chartPoints = [
+      ...historyList.slice(-3).map(h => ({
+        date: h.date || "-",
+        weight: Number(h.weight) || 0,
+        leanMass: Number(h.leanMass) || 0,
+        fatMass: Number(h.fatMass) || 0
+      })),
+      {
+        date: `${currentDate} (Atual)`,
+        weight: Number(currentWeight) || 0,
+        leanMass: Number(currentLean) || 0,
+        fatMass: Number(currentFat) || 0
+      }
+    ];
+
+    return { pastDates, allDates, rows, chartPoints };
   };
 
   return (
@@ -1894,11 +2100,13 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     <p>{nutritionist.address}</p>
                     <p>{nutritionist.phone} • {nutritionist.email}</p>
                   </div>
-                  <div className="flex flex-col items-center md:items-end print:items-end space-y-2">
-                    <div className="text-center w-48 border-t border-slate-400 pt-2">
-                      <p className="text-[11px] font-semibold text-slate-800">{nutritionist.name}</p>
-                      <p className="text-[10px] text-slate-500">{nutritionist.crn}</p>
-                      <span className="text-[9px] text-slate-400 block mt-0.5">Assinatura Digital / Carimbo</span>
+                  <div className="flex flex-col items-center md:items-end print:items-end space-y-1">
+                    <div className="flex flex-col items-center md:items-end print:items-end">
+                      <img 
+                        src={signatureImg} 
+                        alt="Assinatura da Nutricionista" 
+                        className="h-18 md:h-20 w-auto object-contain drop-shadow-xs" 
+                      />
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold text-emerald-800">Página 1 de 4</p>
@@ -2166,11 +2374,13 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     <p>{nutritionist.address}</p>
                     <p>{nutritionist.phone} • {nutritionist.email}</p>
                   </div>
-                  <div className="flex flex-col items-center md:items-end print:items-end space-y-2">
-                    <div className="text-center w-48 border-t border-slate-400 pt-2">
-                      <p className="text-[11px] font-semibold text-slate-800">{nutritionist.name}</p>
-                      <p className="text-[10px] text-slate-500">{nutritionist.crn}</p>
-                      <span className="text-[9px] text-slate-400 block mt-0.5">Assinatura Digital / Carimbo</span>
+                  <div className="flex flex-col items-center md:items-end print:items-end space-y-1">
+                    <div className="flex flex-col items-center md:items-end print:items-end">
+                      <img 
+                        src={signatureImg} 
+                        alt="Assinatura da Nutricionista" 
+                        className="h-18 md:h-20 w-auto object-contain drop-shadow-xs" 
+                      />
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold text-emerald-800">Página 2 de 4</p>
@@ -2227,182 +2437,268 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
               </div>
 
               {/* SEÇÃO 1: TABELA COMPARATIVA DE HISTÓRICO DE AVALIAÇÕES */}
-              <div className="space-y-3 print:space-y-2">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-l-2 border-emerald-700 pl-2">
-                    Histórico Comparativo de Avaliações Físicas
-                  </h3>
-                  <span className="text-[10px] text-slate-500">Últimas 4 Consultas • Variação Absoluta (Δ)</span>
-                </div>
+              {(() => {
+                const comparative = buildComparativeData();
+                const pastCols = comparative.pastDates;
+                const hasPastHistory = pastCols.length > 0;
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs print:text-[10px] text-left border-collapse border border-slate-200">
-                    <thead>
-                      <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 uppercase text-[10px] print:text-[8px]">
-                        <th className="p-2 print:py-1 print:px-1.5 font-bold border-r border-slate-200">Parâmetro Avaliado</th>
-                        <th className="p-2 print:py-1 print:px-1.5 font-bold border-r border-slate-200 text-center">10/01/2026</th>
-                        <th className="p-2 print:py-1 print:px-1.5 font-bold border-r border-slate-200 text-center">15/03/2026</th>
-                        <th className="p-2 print:py-1 print:px-1.5 font-bold border-r border-slate-200 text-center">20/05/2026</th>
-                        <th className="p-2 print:py-1 print:px-1.5 font-bold border-r border-slate-200 text-center text-emerald-950 bg-emerald-50/80">08/08/2026 (Atual)</th>
-                        <th className="p-2 print:py-1 print:px-1.5 font-bold text-center">Variação (Δ)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 bg-white">
-                      {[
-                        { param: "Peso Corporal (kg)", d1: "68.5", d2: "67.0", d3: "65.8", current: "64.7", diff: "-1.1 kg", isDown: true, isGood: true },
-                        { param: "Percentual de Gordura (%G)", d1: "38.5%", d2: "36.8%", d3: "35.2%", current: "33.9%", diff: "-1.3%", isDown: true, isGood: true },
-                        { param: "Massa Gorda (kg)", d1: "26.4", d2: "24.6", d3: "23.1", current: "21.9", diff: "-1.2 kg", isDown: true, isGood: true },
-                        { param: "Massa Magra / Livre Gordura (kg)", d1: "42.1", d2: "42.4", d3: "42.7", current: "42.8", diff: "+0.1 kg", isDown: false, isGood: true },
-                        { param: "Massa Muscular SMM (kg)", d1: "23.1", d2: "23.4", d3: "23.8", current: "24.0", diff: "+0.2 kg", isDown: false, isGood: true },
-                        { param: "Água Corporal Total - ACT (L)", d1: "30.1", d2: "30.5", d3: "30.9", current: "31.2", diff: "+0.3 L", isDown: false, isGood: true },
-                        { param: "Água Intracelular - AIC (L)", d1: "18.8", d2: "19.0", d3: "19.3", current: "19.5", diff: "+0.2 L", isDown: false, isGood: true },
-                        { param: "Água Extracelular - AEC (L)", d1: "11.3", d2: "11.5", d3: "11.6", current: "11.7", diff: "+0.1 L", isDown: false, isGood: true },
-                        { param: "Nível de Gordura Visceral", d1: "7", d2: "6", d3: "6", current: "5", diff: "-1 Nível", isDown: true, isGood: true },
-                        { param: "Taxa Metabólica Basal - TMB (kcal)", d1: "1280", d2: "1288", d3: "1292", current: "1295", diff: "+3 kcal", isDown: false, isGood: true },
-                        { param: "Idade Metabólica (anos)", d1: "33", d2: "31", d3: "29", current: "28", diff: "-1 ano", isDown: true, isGood: true },
-                        { param: "Índice de Massa Corporal (IMC)", d1: "29.2", d2: "28.6", d3: "28.1", current: "27.6", diff: "-0.5", isDown: true, isGood: true },
-                        { param: "Relação Cintura/Quadril (RCQ)", d1: "0.85", d2: "0.84", d3: "0.83", current: "0.82", diff: "-0.01", isDown: true, isGood: true },
-                        { param: "Densidade Corporal (g/mL)", d1: "1.012", d2: "1.015", d3: "1.018", current: "1.020", diff: "+0.002", isDown: false, isGood: true },
-                        { param: "Somatório de Dobras (mm)", d1: "245.0", d2: "230.0", d3: "218.0", current: "209.5", diff: "-8.5 mm", isDown: true, isGood: true },
-                        { param: "Circunferência Cintura (cm)", d1: "88.0", d2: "86.0", d3: "84.5", current: "83.5", diff: "-1.0 cm", isDown: true, isGood: true },
-                        { param: "Circunferência Abdomen (cm)", d1: "92.0", d2: "90.0", d3: "88.5", current: "87.0", diff: "-1.5 cm", isDown: true, isGood: true },
-                        { param: "Circunferência Quadril (cm)", d1: "106.0", d2: "104.5", d3: "103.0", current: "102.0", diff: "-1.0 cm", isDown: true, isGood: true }
-                      ].map((row, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          <td className="p-1.5 print:py-1 print:px-1.5 font-medium text-slate-800 border-r border-slate-200">
-                            {row.param}
-                          </td>
-                          <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">{row.d1}</td>
-                          <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">{row.d2}</td>
-                          <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">{row.d3}</td>
-                          <td className="p-1.5 print:py-1 print:px-1.5 text-center font-bold text-slate-900 bg-emerald-50/50 border-r border-slate-200">
-                            {row.current}
-                          </td>
-                          <td className="p-1.5 print:py-1 print:px-1.5 text-center font-bold">
-                            <span className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded font-extrabold ${
-                              row.isDown
-                                ? row.isGood
-                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300" // Queda de Gordura/Peso (Verde)
-                                  : "bg-amber-100 text-amber-800 border border-amber-300"     // Perda de Músculo (Âmbar)
-                                : row.isGood
-                                  ? "bg-blue-100 text-blue-800 border border-blue-300"       // Ganho de Músculo (Azul)
-                                  : "bg-rose-100 text-rose-800 border border-rose-300"       // Ganho de Gordura (Vermelho)
-                            }`}>
-                              <span>{row.isDown ? "↓" : "↑"}</span>
-                              <span>{row.diff}</span>
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                // Preparação dos dados do gráfico SVG dinâmico
+                const pts = comparative.chartPoints;
+                // Calculamos max e min para escala vertical inteligente
+                const allValues = pts.flatMap(p => [p.weight, p.leanMass, p.fatMass]).filter(v => v > 0);
+                const maxVal = allValues.length > 0 ? Math.max(...allValues) : 70;
+                const minVal = allValues.length > 0 ? Math.min(...allValues) : 15;
+                const topScale = Math.ceil(maxVal / 5) * 5 + 5;
+                const bottomScale = Math.max(0, Math.floor(minVal / 5) * 5 - 5);
+                const scaleRange = topScale - bottomScale || 1;
 
-                {/* Legenda Indicativa de Cores da Variação (NO FINAL DA TABELA) */}
-                <div className="flex flex-wrap items-center justify-end gap-2 text-[8.5px] print:text-[8px] pt-1 border-t border-slate-200/60">
-                  <span className="text-slate-500 font-semibold uppercase text-[8px]">Legenda Δ:</span>
-                  <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold">
-                    <span>↓</span><span>Redução de Gordura/Medidas</span>
-                  </span>
-                  <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 font-extrabold">
-                    <span>↑</span><span>Ganho de Músculo</span>
-                  </span>
-                  <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 font-extrabold">
-                    <span>↑</span><span>Aumento de Gordura</span>
-                  </span>
-                  <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-extrabold">
-                    <span>↓</span><span>Redução de Músculo</span>
-                  </span>
-                </div>
-              </div>
+                // Dimensões SVG: largura 600, altura 160. Área útil y: 20 (topo) a 130 (base).
+                const getY = (val) => {
+                  if (!val || isNaN(val)) return 130;
+                  const ratio = (val - bottomScale) / scaleRange;
+                  const clampedRatio = Math.max(0, Math.min(1, ratio));
+                  return 130 - clampedRatio * 105; // 25 a 130
+                };
 
-              {/* SEÇÃO 2: GRÁFICO COMPARATIVO ÚNICO DE EVOLUÇÃO TEMPORAL */}
-              <div className="bg-slate-50 p-4 print:p-2.5 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex flex-col md:flex-row print:flex-row justify-between items-start md:items-center print:items-center gap-2 border-b border-slate-200 pb-1.5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center">
-                    <Activity className="w-4 h-4 mr-1.5 text-emerald-700" />
-                    Evolução da Composição Corporal (Massa Total, Magra e Gorda)
-                  </h3>
-                  
-                  {/* Legenda do Gráfico */}
-                  <div className="flex items-center space-x-3 text-[10px] font-semibold">
-                    <span className="flex items-center text-slate-800">
-                      <span className="w-2.5 h-2.5 rounded-full bg-slate-800 mr-1 inline-block"></span> Peso Total (kg)
-                    </span>
-                    <span className="flex items-center text-emerald-700">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 mr-1 inline-block"></span> Massa Magra (kg)
-                    </span>
-                    <span className="flex items-center text-amber-600">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 mr-1 inline-block"></span> Massa Gorda (kg)
-                    </span>
-                  </div>
-                </div>
+                // Posições horizontais X distribuídas
+                const getX = (idx, total) => {
+                  if (total === 1) return 300;
+                  const startX = 90;
+                  const endX = 540;
+                  return startX + (idx / (total - 1)) * (endX - startX);
+                };
 
-                {/* SVG VETORIAL PROFISSIONAL PARA IMPRESSÃO EM A4 */}
-                <div className="bg-white p-3 print:p-2 rounded-lg border border-slate-200 shadow-sm flex justify-center">
-                  <svg className="w-full h-44 print:h-36" viewBox="0 0 600 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    
-                    {/* Linhas de Grade de Fundo */}
-                    <line x1="50" y1="20" x2="570" y2="20" stroke="#f1f5f9" strokeWidth="1" />
-                    <line x1="50" y1="50" x2="570" y2="50" stroke="#f1f5f9" strokeWidth="1" />
-                    <line x1="50" y1="80" x2="570" y2="80" stroke="#f1f5f9" strokeWidth="1" />
-                    <line x1="50" y1="110" x2="570" y2="110" stroke="#f1f5f9" strokeWidth="1" />
-                    <line x1="50" y1="135" x2="570" y2="135" stroke="#cbd5e1" strokeWidth="1.5" />
+                const weightPoints = pts.map((p, idx) => ({ x: getX(idx, pts.length), y: getY(p.weight), val: p.weight, date: p.date }));
+                const leanPoints = pts.map((p, idx) => ({ x: getX(idx, pts.length), y: getY(p.leanMass), val: p.leanMass, date: p.date }));
+                const fatPoints = pts.map((p, idx) => ({ x: getX(idx, pts.length), y: getY(p.fatMass), val: p.fatMass, date: p.date }));
 
-                    {/* Eixo X: Rótulos de Datas */}
-                    <text x="80" y="152" fill="#64748b" fontSize="10" fontWeight="600" textAnchor="middle">10/01/2026</text>
-                    <text x="230" y="152" fill="#64748b" fontSize="10" fontWeight="600" textAnchor="middle">15/03/2026</text>
-                    <text x="380" y="152" fill="#64748b" fontSize="10" fontWeight="600" textAnchor="middle">20/05/2026</text>
-                    <text x="530" y="152" fill="#047857" fontSize="10" fontWeight="800" textAnchor="middle">08/08/2026 (Atual)</text>
+                const makePath = (points) => {
+                  if (points.length === 0) return "";
+                  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+                  return points.reduce((acc, curr, i) => `${acc} ${i === 0 ? "M" : "L"} ${curr.x} ${curr.y}`, "");
+                };
 
-                    {/* Eixo Y: Rótulos de Escala (kg) */}
-                    <text x="40" y="24" fill="#94a3b8" fontSize="8" textAnchor="end">70 kg</text>
-                    <text x="40" y="54" fill="#94a3b8" fontSize="8" textAnchor="end">50 kg</text>
-                    <text x="40" y="84" fill="#94a3b8" fontSize="8" textAnchor="end">30 kg</text>
-                    <text x="40" y="114" fill="#94a3b8" fontSize="8" textAnchor="end">15 kg</text>
+                return (
+                  <>
+                    <div className="space-y-3 print:space-y-2">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-l-2 border-emerald-700 pl-2">
+                          Histórico Comparativo de Avaliações Físicas
+                        </h3>
+                        <span className="text-[10px] text-slate-500">
+                          {hasPastHistory 
+                            ? `Últimas ${pastCols.length + 1} Consultas • Variação Absoluta (Δ)` 
+                            : "Consulta Atual • Variação Absoluta (Δ)"}
+                        </span>
+                      </div>
 
-                    {/* ÁREAS COM DEGRADÊ SUAVE */}
-                    {/* Área Massa Magra */}
-                    <polygon points="80,72 230,71 380,70 530,69.5 530,135 80,135" fill="#ecfdf5" opacity="0.6" />
-                    
-                    {/* LINHA 1: PESO TOTAL (Preto/Slate-800) */}
-                    {/* Pontos: (80, 24) [68.5kg], (230, 28) [67.0kg], (380, 31) [65.8kg], (530, 34) [64.7kg] */}
-                    <path d="M 80 24 L 230 28 L 380 31 L 530 34" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />
-                    <circle cx="80" cy="24" r="4" fill="#1e293b" />
-                    <circle cx="230" cy="28" r="4" fill="#1e293b" />
-                    <circle cx="380" cy="31" r="4" fill="#1e293b" />
-                    <circle cx="530" cy="34" r="5" fill="#1e293b" stroke="#ffffff" strokeWidth="2" />
-                    <text x="80" y="17" fill="#0f172a" fontSize="9" fontWeight="800" textAnchor="middle">68.5kg</text>
-                    <text x="230" y="21" fill="#0f172a" fontSize="9" fontWeight="800" textAnchor="middle">67.0kg</text>
-                    <text x="380" y="24" fill="#0f172a" fontSize="9" fontWeight="800" textAnchor="middle">65.8kg</text>
-                    <text x="530" y="26" fill="#0f172a" fontSize="9.5" fontWeight="900" textAnchor="middle">64.7kg</text>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs print:text-[10px] text-left border-collapse border border-slate-200">
+                          <thead>
+                            <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 uppercase text-[10px] print:text-[8px]">
+                              <th className="p-2 print:py-1 print:px-1.5 font-bold border-r border-slate-200">Parâmetro Avaliado</th>
+                              {pastCols.map((d, i) => (
+                                <th key={i} className="p-2 print:py-1 print:px-1.5 font-bold border-r border-slate-200 text-center">
+                                  {d}
+                                </th>
+                              ))}
+                              <th className="p-2 print:py-1 print:px-1.5 font-bold border-r border-slate-200 text-center text-emerald-950 bg-emerald-50/80">
+                                {extractedData.patient?.date || "Atual"} (Atual)
+                              </th>
+                              <th className="p-2 print:py-1 print:px-1.5 font-bold text-center">Variação (Δ)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 bg-white">
+                            {comparative.rows.map((row, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50">
+                                <td className="p-1.5 print:py-1 print:px-1.5 font-medium text-slate-800 border-r border-slate-200">
+                                  {row.param}
+                                </td>
+                                {pastCols.length >= 1 && (
+                                  <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">
+                                    {row.d1}
+                                  </td>
+                                )}
+                                {pastCols.length >= 2 && (
+                                  <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">
+                                    {row.d2}
+                                  </td>
+                                )}
+                                {pastCols.length >= 3 && (
+                                  <td className="p-1.5 print:py-1 print:px-1.5 text-center text-slate-500 border-r border-slate-200">
+                                    {row.d3}
+                                  </td>
+                                )}
+                                <td className="p-1.5 print:py-1 print:px-1.5 text-center font-bold text-slate-900 bg-emerald-50/50 border-r border-slate-200">
+                                  {row.current}
+                                </td>
+                                <td className="p-1.5 print:py-1 print:px-1.5 text-center font-bold">
+                                  {row.hasHistory ? (
+                                    <span className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded font-extrabold ${
+                                      row.isDown
+                                        ? row.isGood
+                                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300" // Queda de Gordura/Peso (Verde)
+                                          : "bg-amber-100 text-amber-800 border border-amber-300"     // Perda de Músculo (Âmbar)
+                                        : row.isGood
+                                          ? "bg-blue-100 text-blue-800 border border-blue-300"       // Ganho de Músculo (Azul)
+                                          : "bg-rose-100 text-rose-800 border border-rose-300"       // Ganho de Gordura (Vermelho)
+                                    }`}>
+                                      <span>{row.isDown ? "↓" : "↑"}</span>
+                                      <span>{row.diff}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400 text-[10px] font-medium italic">
+                                      {row.diff}
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
 
-                    {/* LINHA 2: MASSA MAGRA (Verde Emerald) */}
-                    {/* Pontos: (80, 72) [42.1kg], (230, 71) [42.4kg], (380, 70) [42.7kg], (530, 69.5) [42.8kg] */}
-                    <path d="M 80 72 L 230 71 L 380 70 L 530 69.5" stroke="#059669" strokeWidth="3" strokeLinecap="round" />
-                    <circle cx="80" cy="72" r="4" fill="#059669" />
-                    <circle cx="230" cy="71" r="4" fill="#059669" />
-                    <circle cx="380" cy="70" r="4" fill="#059669" />
-                    <circle cx="530" cy="69.5" r="5" fill="#059669" stroke="#ffffff" strokeWidth="2" />
-                    <text x="80" y="65" fill="#047857" fontSize="9" fontWeight="800" textAnchor="middle">42.1kg</text>
-                    <text x="230" y="64" fill="#047857" fontSize="9" fontWeight="800" textAnchor="middle">42.4kg</text>
-                    <text x="380" y="63" fill="#047857" fontSize="9" fontWeight="800" textAnchor="middle">42.7kg</text>
-                    <text x="530" y="62" fill="#047857" fontSize="9.5" fontWeight="900" textAnchor="middle">42.8kg</text>
+                      {/* Legenda Indicativa de Cores da Variação (NO FINAL DA TABELA) */}
+                      <div className="flex flex-wrap items-center justify-end gap-2 text-[8.5px] print:text-[8px] pt-1 border-t border-slate-200/60">
+                        <span className="text-slate-500 font-semibold uppercase text-[8px]">Legenda Δ:</span>
+                        <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold">
+                          <span>↓</span><span>Redução de Gordura/Medidas</span>
+                        </span>
+                        <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 font-extrabold">
+                          <span>↑</span><span>Ganho de Músculo</span>
+                        </span>
+                        <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 font-extrabold">
+                          <span>↑</span><span>Aumento de Gordura</span>
+                        </span>
+                        <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-extrabold">
+                          <span>↓</span><span>Redução de Músculo</span>
+                        </span>
+                      </div>
+                    </div>
 
-                    {/* LINHA 3: MASSA GORDA (Âmbar/Laranja) */}
-                    {/* Pontos: (80, 103) [26.4kg], (230, 107) [24.6kg], (380, 110) [23.1kg], (530, 113) [21.9kg] */}
-                    <path d="M 80 103 L 230 107 L 380 110 L 530 113" stroke="#d97706" strokeWidth="3" strokeLinecap="round" />
-                    <circle cx="80" cy="103" r="4" fill="#d97706" />
-                    <circle cx="230" cy="107" r="4" fill="#d97706" />
-                    <circle cx="380" cy="110" r="4" fill="#d97706" />
-                    <circle cx="530" cy="113" r="5" fill="#d97706" stroke="#ffffff" strokeWidth="2" />
-                    <text x="80" y="97" fill="#b45309" fontSize="9" fontWeight="800" textAnchor="middle">26.4kg</text>
-                    <text x="230" y="101" fill="#b45309" fontSize="9" fontWeight="800" textAnchor="middle">24.6kg</text>
-                    <text x="380" y="104" fill="#b45309" fontSize="9" fontWeight="800" textAnchor="middle">23.1kg</text>
-                    <text x="530" y="107" fill="#b45309" fontSize="9.5" fontWeight="900" textAnchor="middle">21.9kg</text>
-                  </svg>
-                </div>
-              </div>
+                    {/* SEÇÃO 2: GRÁFICO COMPARATIVO ÚNICO DE EVOLUÇÃO TEMPORAL */}
+                    <div className="bg-slate-50/70 p-4 print:p-2 rounded-2xl border border-slate-200/80 space-y-2">
+                      <div className="flex flex-col md:flex-row print:flex-row justify-between items-start md:items-center print:items-center gap-2 border-b border-slate-200/60 pb-2">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center">
+                          <Activity className="w-4 h-4 mr-1.5 text-teal-600" />
+                          Evolução da Composição Corporal (Massa Total, Magra e Gorda)
+                        </h3>
+                        
+                        {/* Legenda com círculos coloridos idêntica ao design da imagem */}
+                        <div className="flex items-center space-x-4 text-[11px] font-bold">
+                          <span className="flex items-center text-slate-700">
+                            <span className="w-2.5 h-2.5 rounded-full bg-slate-800 mr-1.5 inline-block"></span> Peso Total
+                          </span>
+                          <span className="flex items-center text-teal-700">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#14B8A6] mr-1.5 inline-block"></span> Massa Magra
+                          </span>
+                          <span className="flex items-center text-purple-700">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6] mr-1.5 inline-block"></span> Massa Gorda
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* GRÁFICO RECHARTS COM GRADIENTE, CURVAS SUAVES E TOOLTIP FLUTUANTE */}
+                      <div className="bg-white p-3 print:p-1.5 rounded-xl border border-slate-200/70 shadow-2xs">
+                        <div className="h-48 print:h-40 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart 
+                              data={pts} 
+                              margin={{ top: 15, right: 25, left: -15, bottom: 0 }}
+                            >
+                              <defs>
+                                {/* Gradiente 1: Peso Total (Slate suave) */}
+                                <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#334155" stopOpacity={0.22}/>
+                                  <stop offset="95%" stopColor="#334155" stopOpacity={0.01}/>
+                                </linearGradient>
+                                {/* Gradiente 2: Massa Magra (Tiffany / Teal) */}
+                                <linearGradient id="leanGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.35}/>
+                                  <stop offset="95%" stopColor="#14B8A6" stopOpacity={0.01}/>
+                                </linearGradient>
+                                {/* Gradiente 3: Massa Gorda (Roxo Suave / Purple) */}
+                                <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.35}/>
+                                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.01}/>
+                                </linearGradient>
+                              </defs>
+
+                              <XAxis 
+                                dataKey="date" 
+                                tickLine={false}
+                                axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
+                                tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
+                              />
+                              <YAxis 
+                                domain={[bottomScale, topScale]}
+                                tickLine={false}
+                                axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
+                                tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                unit=" kg"
+                              />
+
+                              {/* Linha 1: Peso Total - Com números impressos no ponto */}
+                              <Area 
+                                type="monotone" 
+                                dataKey="weight" 
+                                name="Peso Total" 
+                                stroke="#1e293b" 
+                                strokeWidth={2.5} 
+                                fillOpacity={1} 
+                                fill="url(#weightGrad)" 
+                                dot={{ r: 4, fill: "#1e293b", strokeWidth: 1.5, stroke: "#ffffff" }}
+                                activeDot={false}
+                                label={({ x, y, value }) => (
+                                  <text x={x} y={y - 8} fill="#0f172a" fontSize={9.5} fontWeight={800} textAnchor="middle">
+                                    {value ? `${value}kg` : ""}
+                                  </text>
+                                )}
+                              />
+
+                              {/* Linha 2: Massa Magra - Com números impressos no ponto */}
+                              <Area 
+                                type="monotone" 
+                                dataKey="leanMass" 
+                                name="Massa Magra" 
+                                stroke="#14B8A6" 
+                                strokeWidth={2.5} 
+                                fillOpacity={1} 
+                                fill="url(#leanGrad)" 
+                                dot={{ r: 4, fill: "#14B8A6", strokeWidth: 1.5, stroke: "#ffffff" }}
+                                activeDot={false}
+                                label={({ x, y, value }) => (
+                                  <text x={x} y={y - 8} fill="#0f766e" fontSize={9.5} fontWeight={800} textAnchor="middle">
+                                    {value ? `${value}kg` : ""}
+                                  </text>
+                                )}
+                              />
+
+                              {/* Linha 3: Massa Gorda - Com números impressos no ponto */}
+                              <Area 
+                                type="monotone" 
+                                dataKey="fatMass" 
+                                name="Massa Gorda" 
+                                stroke="#8B5CF6" 
+                                strokeWidth={2.5} 
+                                fillOpacity={1} 
+                                fill="url(#fatGrad)" 
+                                dot={{ r: 4, fill: "#8B5CF6", strokeWidth: 1.5, stroke: "#ffffff" }}
+                                activeDot={false}
+                                label={({ x, y, value }) => (
+                                  <text x={x} y={y + 16} fill="#7c3aed" fontSize={9.5} fontWeight={800} textAnchor="middle">
+                                    {value ? `${value}kg` : ""}
+                                  </text>
+                                )}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* RODAPÉ UNIFICADO DO LAUDO DA NUTRICIONISTA (PÁGINA 3) */}
               <div className="pt-6 print:pt-3 border-t border-slate-300 mt-6 print:mt-auto a4-print-footer">
@@ -2413,11 +2709,13 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     <p>{nutritionist.address}</p>
                     <p>{nutritionist.phone} • {nutritionist.email}</p>
                   </div>
-                  <div className="flex flex-col items-center md:items-end print:items-end space-y-2">
-                    <div className="text-center w-48 border-t border-slate-400 pt-2">
-                      <p className="text-[11px] font-semibold text-slate-800">{nutritionist.name}</p>
-                      <p className="text-[10px] text-slate-500">{nutritionist.crn}</p>
-                      <span className="text-[9px] text-slate-400 block mt-0.5">Assinatura Digital / Carimbo</span>
+                  <div className="flex flex-col items-center md:items-end print:items-end space-y-1">
+                    <div className="flex flex-col items-center md:items-end print:items-end">
+                      <img 
+                        src={signatureImg} 
+                        alt="Assinatura da Nutricionista" 
+                        className="h-18 md:h-20 w-auto object-contain drop-shadow-xs" 
+                      />
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold text-emerald-800">Página 3 de 4</p>
@@ -2616,11 +2914,11 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   <div className="grid grid-cols-2 gap-1.5 text-[10px] print:text-[8.5px]">
                     <div className="bg-white p-1.5 rounded border border-slate-100 flex items-center space-x-1.5">
                       <span className="text-xs">⏳</span>
-                      <span className="text-slate-700 leading-tight"><strong>Jejum:</strong> 2h a 3h de alimentos e água em excesso.</span>
+                      <span className="text-slate-700 leading-tight"><strong>Jejum:</strong> 4h alimentos e 2h deágua em excesso.</span>
                     </div>
                     <div className="bg-white p-1.5 rounded border border-slate-100 flex items-center space-x-1.5">
                       <span className="text-xs">🚫</span>
-                      <span className="text-slate-700 leading-tight"><strong>Sem Álcool/Café:</strong> Evitar nas 24h pré-exame.</span>
+                      <span className="text-slate-700 leading-tight"><strong>Álcool/Café:</strong> Evitar café 8h e álcool 48h pré-exame.</span>
                     </div>
                     <div className="bg-white p-1.5 rounded border border-slate-100 flex items-center space-x-1.5">
                       <span className="text-xs">🏃‍♂️</span>
@@ -2686,11 +2984,13 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                     <p>{nutritionist.address}</p>
                     <p>{nutritionist.phone} • {nutritionist.email}</p>
                   </div>
-                  <div className="flex flex-col items-center md:items-end print:items-end space-y-2">
-                    <div className="text-center w-48 border-t border-slate-400 pt-2">
-                      <p className="text-[11px] font-semibold text-slate-800">{nutritionist.name}</p>
-                      <p className="text-[10px] text-slate-500">{nutritionist.crn}</p>
-                      <span className="text-[9px] text-slate-400 block mt-0.5">Assinatura Digital / Carimbo</span>
+                  <div className="flex flex-col items-center md:items-end print:items-end space-y-1">
+                    <div className="flex flex-col items-center md:items-end print:items-end">
+                      <img 
+                        src={signatureImg} 
+                        alt="Assinatura da Nutricionista" 
+                        className="h-18 md:h-20 w-auto object-contain drop-shadow-xs" 
+                      />
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold text-emerald-800">Página 4 de 4</p>
