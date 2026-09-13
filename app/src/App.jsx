@@ -246,6 +246,7 @@ export default function App() {
   const [bioimpedanceFile, setBioimpedanceFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState("");
   const [appNotification, setAppNotification] = useState(null); // { message, type: 'info' | 'warning' | 'error' }
 
   // Status e Teste de Conectividade em Tempo Real das APIs de IA
