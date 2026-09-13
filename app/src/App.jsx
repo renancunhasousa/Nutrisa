@@ -207,6 +207,8 @@ export default function App() {
       const saved = localStorage.getItem('nutrisa_selected_model');
       const validModels = [
         "gemini-3.8-flash",
+        "deepseek-flash",
+        "deepseek-chat",
         "gemini-3.5-flash-lite",
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite"
@@ -244,8 +246,92 @@ export default function App() {
   const [bioimpedanceFile, setBioimpedanceFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [analysisProgress, setAnalysisProgress] = useState("");
   const [appNotification, setAppNotification] = useState(null); // { message, type: 'info' | 'warning' | 'error' }
+
+  // Status e Teste de Conectividade em Tempo Real das APIs de IA
+  const [geminiStatus, setGeminiStatus] = useState(() => {
+    const key = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+    return key && !key.includes('Sua_Chave') ? 'configured' : 'missing';
+  }); // 'missing' | 'configured' | 'testing' | 'online' | 'error'
+  const [deepseekStatus, setDeepseekStatus] = useState(() => {
+    const key = (import.meta.env.VITE_DEEPSEEK_API_KEY || '').trim();
+    return key ? 'configured' : 'missing';
+  }); // 'missing' | 'configured' | 'testing' | 'online' | 'error'
+  const [apiTestDetails, setApiTestDetails] = useState(null);
+
+  const testApiConnection = async () => {
+    const geminiKey = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+    const deepseekKey = (import.meta.env.VITE_DEEPSEEK_API_KEY || '').trim();
+
+    setGeminiStatus('testing');
+    setDeepseekStatus('testing');
+    setApiTestDetails("Testando conectividade real com as APIs...");
+
+    const results = { gemini: null, deepseek: null };
+
+    // 1. Testar Gemini
+    if (!geminiKey || geminiKey.includes('Sua_Chave')) {
+      setGeminiStatus('missing');
+      results.gemini = 'Chave VITE_GEMINI_API_KEY ausente no .env';
+    } else {
+      try {
+        const pingUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`;
+        const res = await fetch(pingUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+            generationConfig: { maxOutputTokens: 2 }
+          })
+        });
+        if (res.ok) {
+          setGeminiStatus('online');
+          results.gemini = 'Online (200 OK)';
+        } else {
+          const err = await res.text();
+          setGeminiStatus('error');
+          results.gemini = `Falha ${res.status}: ${res.status === 429 ? 'Cota Excedida' : 'Erro na requisição'}`;
+        }
+      } catch (e) {
+        setGeminiStatus('error');
+        results.gemini = `Erro de rede: ${e.message}`;
+      }
+    }
+
+    // 2. Testar DeepSeek
+    if (!deepseekKey) {
+      setDeepseekStatus('missing');
+      results.deepseek = 'Chave VITE_DEEPSEEK_API_KEY não configurada no .env';
+    } else {
+      try {
+        const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${deepseekKey}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-flash',
+            messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 2
+          })
+        });
+        if (dsRes.ok) {
+          setDeepseekStatus('online');
+          results.deepseek = 'Online (200 OK)';
+        } else {
+          const err = await dsRes.text();
+          setDeepseekStatus('error');
+          results.deepseek = `Falha ${dsRes.status}: ${dsRes.status === 401 ? 'Chave Inválida' : dsRes.status === 429 ? 'Sem Saldo/Cota' : 'Erro'}`;
+        }
+      } catch (e) {
+        setDeepseekStatus('error');
+        results.deepseek = `Erro de rede: ${e.message}`;
+      }
+    }
+
+    setApiTestDetails(`Gemini: ${results.gemini} | DeepSeek: ${results.deepseek}`);
+  };
 
   // Sistema de Notificações Inteligentes
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -334,6 +420,8 @@ export default function App() {
   const getModelFallbackChain = (initialModel) => {
     const defaultChain = [
       "gemini-3.8-flash",
+      "deepseek-flash",
+      "deepseek-chat",
       "gemini-3.5-flash-lite",
       "gemini-2.5-flash",
       "gemini-2.5-flash-lite"
@@ -342,12 +430,14 @@ export default function App() {
     return [initialModel, ...defaultChain.filter(m => m !== initialModel)];
   };
 
-  // Helper com cascata para chamadas Gemini na aplicação
+  // Helper com cascata para chamadas de IA (Gemini e DeepSeek) na aplicação
   const executeGeminiWithFallback = async (payload, onModelChangeText = "Processando com modelo alternativo...") => {
-    const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
-    if (!apiKey || apiKey.includes("Sua_Chave")) {
-      alert("Atenção: A chave API do Gemini (VITE_GEMINI_API_KEY) não está configurada no painel da Vercel!\n\nAcesse Vercel -> Seu Projeto -> Settings -> Environment Variables, adicione VITE_GEMINI_API_KEY com sua chave do Google AI Studio e faça um Novo Deploy.");
-      throw new Error("Chave VITE_GEMINI_API_KEY ausente ou inválida.");
+    const geminiApiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
+    const deepseekApiKey = (import.meta.env.VITE_DEEPSEEK_API_KEY || "").trim();
+
+    if ((!geminiApiKey || geminiApiKey.includes("Sua_Chave")) && !deepseekApiKey) {
+      alert("Atenção: A chave API do Gemini (VITE_GEMINI_API_KEY) ou DeepSeek não está configurada!\n\nAcesse seu ambiente / Vercel -> Settings -> Environment Variables para configurar as chaves de IA.");
+      throw new Error("Chave de IA ausente ou inválida.");
     }
 
     const modelsToTry = getModelFallbackChain(selectedModel);
@@ -365,7 +455,84 @@ export default function App() {
           );
         }
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        // Ramo 1: Modelos DeepSeek (deepseek-flash / DeepSeek-V4.1-Flash ou deepseek-chat)
+        if (model.startsWith("deepseek")) {
+          if (!deepseekApiKey) {
+            console.warn(`[DeepSeek] Chave VITE_DEEPSEEK_API_KEY não encontrada, pulando para próximo modelo de fallback.`);
+            continue;
+          }
+
+          // Converte o payload de formato Gemini para OpenAI messages
+          let userPrompt = "";
+          if (payload.contents && Array.isArray(payload.contents)) {
+            for (const content of payload.contents) {
+              if (content.parts && Array.isArray(content.parts)) {
+                for (const part of content.parts) {
+                  if (part.text) userPrompt += (userPrompt ? "\n\n" : "") + part.text;
+                }
+              }
+            }
+          }
+
+          const deepseekBody = {
+            model: model === "deepseek-flash" ? "deepseek-flash" : "deepseek-chat",
+            messages: [
+              {
+                role: "system",
+                content: "Você é um assistente especialista em nutrição clínica e esportiva e análise de composição corporal. Responda estritamente no formato solicitado."
+              },
+              {
+                role: "user",
+                content: userPrompt || "Processe os dados fornecidos."
+              }
+            ],
+            stream: false
+          };
+
+          if (payload.generationConfig?.responseMimeType === "application/json") {
+            deepseekBody.response_format = { type: "json_object" };
+          }
+
+          const response = await fetch("https://api.deepseek.com/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${deepseekApiKey}`
+            },
+            body: JSON.stringify(deepseekBody)
+          });
+
+          if (!response.ok) {
+            const errBody = await response.text();
+            console.warn(`DeepSeek retornou status ${response.status}: ${errBody}`);
+            lastError = new Error(`DeepSeek falhou (${response.status}): ${errBody}`);
+            continue;
+          }
+
+          const dsJson = await response.json();
+          const contentText = dsJson?.choices?.[0]?.message?.content || "";
+
+          // Mapeia para o formato esperado pelos consumidores do Gemini ({ candidates: [{ content: { parts: [{ text }] } }] })
+          const adaptedResult = {
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: contentText }]
+                }
+              }
+            ]
+          };
+
+          return { result: adaptedResult, usedModel: model };
+        }
+
+        // Ramo 2: Modelos Google Gemini (incluindo 3.8-flash, v4-flash, 3.5, 2.5)
+        if (!geminiApiKey) {
+          console.warn(`[Gemini] Chave VITE_GEMINI_API_KEY não encontrada, pulando modelo ${model}.`);
+          continue;
+        }
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -388,7 +555,7 @@ export default function App() {
       }
     }
 
-    throw lastError || new Error("Todos os modelos da cascata do Gemini falharam.");
+    throw lastError || new Error("Todos os modelos da cascata falharam.");
   };
 
   // Extracted and calculated data state
@@ -1107,7 +1274,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
           <div className="max-w-7xl mx-auto space-y-3">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
               <h3 className="font-bold text-sm flex items-center text-amber-300">
-                <Zap className="w-4 h-4 mr-1.5 text-amber-400" /> Configuração do Motor de IA (Google Gemini)
+                <Zap className="w-4 h-4 mr-1.5 text-amber-400" /> Configuração do Motor de IA
               </h3>
               <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-800/60 px-2 py-0.5 rounded">Conexão Ativa via Gemini API</span>
             </div>
@@ -1120,24 +1287,99 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
                 >
-                  <option value="gemini-3.8-flash">Gemini 3.8 Flash (Recomendado - Mais Inteligente e Recente)</option>
+                  <option value="gemini-3.8-flash">Gemini 3.8 Flash (Padrão Google - Mais Inteligente e Recente)</option>
+                  <option value="deepseek-flash">DeepSeek V4 Flash / deepseek-flash (Ultra Rápido & Econômico)</option>
+                  <option value="deepseek-chat">DeepSeek Chat / V3 (Raciocínio Avançado)</option>
                   <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Super Rápido e Econômico)</option>
                   <option value="gemini-2.5-flash">Gemini 2.5 Flash (Geração 2.5 - Cota e Fila Separadas)</option>
                   <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Leve e Baixa Latência)</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                  🛡️ <strong>Cascata Inteligente Ativa:</strong> Se o modelo principal exceder a cota diária (Erro 429), a aplicação alternará automaticamente na sequência (<em>3.8 Flash → 3.5 Flash-Lite → 2.5 Flash → 2.5 Flash-Lite</em>) para nunca interromper seu atendimento.
+                  🛡️ <strong>Cascata Inteligente Ativa:</strong> Se o modelo principal exceder a cota diária ou falhar, a aplicação alternará automaticamente na sequência (<em>3.8 Flash → DeepSeek V4 Flash → DeepSeek Chat → 3.5 Flash-Lite → 2.5 Flash → 2.5 Flash-Lite</em>) para garantir atendimento ininterrupto.
                 </p>
               </div>
 
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1.5">
-                <span className="text-[10px] uppercase font-bold text-amber-400 block">Status da Conexão</span>
-                <div className="flex items-center space-x-2 text-emerald-400 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span>Gemini API Operacional</span>
+              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-amber-400 block">Diagnóstico de Provedores</span>
+                  <button
+                    onClick={testApiConnection}
+                    disabled={geminiStatus === 'testing' || deepseekStatus === 'testing'}
+                    className="flex items-center gap-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-0.5 rounded border border-slate-700 transition"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${geminiStatus === 'testing' ? 'animate-spin' : ''}`} />
+                    <span>Testar Conexão</span>
+                  </button>
                 </div>
-                <p className="text-[10px] text-slate-400">
-                  Modelo Selecionado: <strong className="text-amber-300">{selectedModel}</strong>
+
+                {/* Gemini Status */}
+                <div className="flex items-center justify-between text-[11px] border-b border-slate-800/80 pb-1.5">
+                  <span className="text-slate-300 font-medium">Google Gemini:</span>
+                  <div className="flex items-center gap-1.5">
+                    {geminiStatus === 'online' && (
+                      <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Online
+                      </span>
+                    )}
+                    {geminiStatus === 'configured' && (
+                      <span className="flex items-center gap-1 text-emerald-300">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Chave Ativa
+                      </span>
+                    )}
+                    {geminiStatus === 'testing' && (
+                      <span className="text-amber-400 animate-pulse">Testando...</span>
+                    )}
+                    {geminiStatus === 'error' && (
+                      <span className="flex items-center gap-1 text-rose-400 font-medium">
+                        <span className="w-2 h-2 rounded-full bg-rose-500"></span> Erro / Cota
+                      </span>
+                    )}
+                    {geminiStatus === 'missing' && (
+                      <span className="flex items-center gap-1 text-slate-500">
+                        <span className="w-2 h-2 rounded-full bg-slate-600"></span> Sem Chave
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* DeepSeek Status */}
+                <div className="flex items-center justify-between text-[11px] border-b border-slate-800/80 pb-1.5">
+                  <span className="text-slate-300 font-medium">DeepSeek (V4/Chat):</span>
+                  <div className="flex items-center gap-1.5">
+                    {deepseekStatus === 'online' && (
+                      <span className="flex items-center gap-1 text-cyan-400 font-semibold">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> Online
+                      </span>
+                    )}
+                    {deepseekStatus === 'configured' && (
+                      <span className="flex items-center gap-1 text-cyan-300">
+                        <span className="w-2 h-2 rounded-full bg-cyan-500"></span> Chave Ativa
+                      </span>
+                    )}
+                    {deepseekStatus === 'testing' && (
+                      <span className="text-amber-400 animate-pulse">Testando...</span>
+                    )}
+                    {deepseekStatus === 'error' && (
+                      <span className="flex items-center gap-1 text-rose-400 font-medium">
+                        <span className="w-2 h-2 rounded-full bg-rose-500"></span> Erro / Saldo
+                      </span>
+                    )}
+                    {deepseekStatus === 'missing' && (
+                      <span className="flex items-center gap-1 text-slate-500">
+                        <span className="w-2 h-2 rounded-full bg-slate-600"></span> Sem Chave
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {apiTestDetails && (
+                  <p className="text-[9.5px] text-amber-200/80 bg-slate-900 p-1 rounded border border-slate-800 font-mono">
+                    {apiTestDetails}
+                  </p>
+                )}
+
+                <p className="text-[10px] text-slate-400 pt-0.5">
+                  Modelo Ativo: <strong className="text-amber-300">{selectedModel}</strong>
                 </p>
               </div>
             </div>

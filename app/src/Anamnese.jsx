@@ -163,16 +163,19 @@ export default function Anamnese({ activeModel }) {
 
   // --- INTEGRAÇÃO GEMINI COM CASCATA DE FALLBACK MULTI-NÍVEL ---
   const callGemini = async (prompt, isJson = false) => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
+    const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const deepseekApiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
+    if (!geminiApiKey && !deepseekApiKey) {
       showNotification("Chave API não configurada no ambiente (.env).", "error");
       throw new Error("Chave não configurada.");
     }
     const initialModel = activeModel || localStorage.getItem('nutrisa_selected_model') || import.meta.env.VITE_GEMINI_MODEL || "gemini-3.8-flash";
     
-    // Cascata de modelos em camadas
+    // Cascata de modelos em camadas (3.8 -> DeepSeek Flash (V4) -> DeepSeek Chat -> 3.5 -> 2.5...)
     const fallbackChain = [
       "gemini-3.8-flash",
+      "deepseek-flash",
+      "deepseek-chat",
       "gemini-3.5-flash-lite",
       "gemini-2.5-flash",
       "gemini-2.5-flash-lite"
@@ -197,7 +200,37 @@ export default function Anamnese({ activeModel }) {
           showNotification(`Cota ou instabilidade no modelo anterior. Alternando para ${model}...`, "info");
         }
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        if (model.startsWith("deepseek")) {
+          if (!deepseekApiKey) continue;
+          const dsBody = {
+            model: model === "deepseek-flash" ? "deepseek-flash" : "deepseek-chat",
+            messages: [
+              { role: "system", content: "Você é um assistente de nutrição clínica especializado em anamnese." },
+              { role: "user", content: prompt }
+            ],
+            stream: false
+          };
+          if (isJson) dsBody.response_format = { type: "json_object" };
+
+          const dsRes = await fetch("https://api.deepseek.com/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${deepseekApiKey}`
+            },
+            body: JSON.stringify(dsBody)
+          });
+          if (!dsRes.ok) {
+            const errBody = await dsRes.text();
+            lastError = new Error(`Erro ${dsRes.status} no modelo ${model}: ${errBody}`);
+            continue;
+          }
+          const dsData = await dsRes.json();
+          return dsData?.choices?.[0]?.message?.content || "";
+        }
+
+        if (!geminiApiKey) continue;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
