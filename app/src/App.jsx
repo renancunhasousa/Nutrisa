@@ -456,71 +456,7 @@ export default function App() {
           );
         }
 
-        // --- TENTATIVA 1: ROTA SEGURA NO SERVIDOR VERCEL (/api/ai) ---
-        // Na Vercel, a rota /api/ai protege as chaves sem expor no F12 / Network do navegador
-        try {
-          const isDs = model.startsWith("deepseek");
-          let proxyPayload = payload;
-
-          if (isDs) {
-            let userPrompt = "";
-            if (payload.contents && Array.isArray(payload.contents)) {
-              for (const content of payload.contents) {
-                if (content.parts && Array.isArray(content.parts)) {
-                  for (const part of content.parts) {
-                    if (part.text) userPrompt += (userPrompt ? "\n\n" : "") + part.text;
-                  }
-                }
-              }
-            }
-            proxyPayload = {
-              model: model === "deepseek-flash" ? "deepseek-flash" : "deepseek-chat",
-              messages: [
-                {
-                  role: "system",
-                  content: "Você é um assistente especialista em nutrição clínica e esportiva e análise de composição corporal. Responda estritamente no formato solicitado."
-                },
-                {
-                  role: "user",
-                  content: userPrompt || "Processe os dados fornecidos."
-                }
-              ],
-              stream: false
-            };
-            if (payload.generationConfig?.responseMimeType === "application/json") {
-              proxyPayload.response_format = { type: "json_object" };
-            }
-          }
-
-          const proxyRes = await fetch("/api/ai", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              provider: isDs ? "deepseek" : "gemini",
-              model,
-              payload: proxyPayload
-            })
-          });
-
-          if (proxyRes.ok) {
-            const data = await proxyRes.json();
-            if (isDs) {
-              const contentText = data?.choices?.[0]?.message?.content || "";
-              return {
-                result: {
-                  candidates: [{ content: { parts: [{ text: contentText }] } }]
-                },
-                usedModel: model
-              };
-            }
-            return { result: data, usedModel: model };
-          }
-        } catch (proxyErr) {
-          // Em desenvolvimento local sem vercel dev, /api/ai pode retornar 404/html, prosseguimos para o modo direto
-          console.warn("[Proxy Seguro /api/ai indisponível localmente, usando fallback direto]:", proxyErr);
-        }
-
-        // --- TENTATIVA 2: MODO DIRETO (DESENVOLVIMENTO LOCAL COM .ENV) ---
+        // --- EXECUÇÃO DO MODELO DE IA ---
         // Ramo 2.1: Modelo DeepSeek
         if (model.startsWith("deepseek")) {
           if (!deepseekApiKey) {
