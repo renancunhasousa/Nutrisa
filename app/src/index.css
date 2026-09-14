@@ -54,4 +54,18 @@
     max-width: 100% !important;
     overflow: hidden !important;
   }
+
+  /* Gráfico SVG puro: garante renderização correta na impressão */
+  .print-chart-svg {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Força o SVG a ser preservado com cores na impressão */
+  svg text, svg path, svg circle, svg polyline, svg polygon, svg line, svg rect {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }

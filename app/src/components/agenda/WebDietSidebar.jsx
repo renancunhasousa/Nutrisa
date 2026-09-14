@@ -1,5 +1,5 @@
-import React from 'react';
-import { Plus, Calendar, Share2, LogOut } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Plus, Calendar, Share2, LogOut, Users, CheckCircle, Clock, TrendingUp } from 'lucide-react';
 import { colorMapper } from '../../utils/googleCalendarMapper';
 
 export default function WebDietSidebar({ 
@@ -7,38 +7,124 @@ export default function WebDietSidebar({
   onDisconnect, 
   onNewEvent,
   blockedDates = [],
-  onOpenBlockModal
+  onOpenBlockModal,
+  events = [],
+  currentDate
 }) {
+  const hiddenFromLegend = ['Amigo', 'Encaixe', 'Teste', 'Em grupo'];
   const categoriesList = Object.values(colorMapper.categories).filter((c, idx, arr) => 
-    arr.findIndex(x => x.label === c.label) === idx && c.label !== 'Consulta'
+    arr.findIndex(x => x.label === c.label) === idx && c.label !== 'Consulta' && !hiddenFromLegend.includes(c.label)
   );
 
   const statusesList = Object.values(colorMapper.statuses);
 
+  // Calcular métricas da semana atual
+  const weekMetrics = useMemo(() => {
+    const ref = currentDate ? new Date(currentDate) : new Date();
+    const weekStart = new Date(ref);
+    weekStart.setDate(ref.getDate() - ref.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+    weekEnd.setHours(0, 0, 0, 0);
+
+    const weekEvents = events.filter(ev => {
+      const start = ev.start?.dateTime || ev.start?.date;
+      if (!start) return false;
+      const d = new Date(start);
+      return d >= weekStart && d < weekEnd;
+    });
+
+    // Total de consultas
+    const total = weekEvents.length;
+
+    // Confirmadas
+    const confirmed = weekEvents.filter(ev => {
+      const status = colorMapper.getStatusByTitleOrDescription(ev);
+      return status?.hexBorder === colorMapper.statuses?.confirmado?.hexBorder;
+    }).length;
+
+    // Pendentes (sem status definido / colorId nulo)
+    const pending = weekEvents.filter(ev => !ev.colorId).length;
+
+    // Dias com evento
+    const daysSet = new Set(weekEvents.map(ev => {
+      const start = ev.start?.dateTime || ev.start?.date;
+      return start ? new Date(start).toDateString() : null;
+    }).filter(Boolean));
+
+    // Próximo evento hoje
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const todayEvents = weekEvents.filter(ev => {
+      const start = ev.start?.dateTime || ev.start?.date;
+      if (!start) return false;
+      const d = new Date(start);
+      return d >= today && d < tomorrow;
+    });
+
+    return {
+      total,
+      confirmed,
+      pending,
+      activeDays: daysSet.size,
+      todayCount: todayEvents.length,
+    };
+  }, [events, currentDate]);
+
   return (
     <div className="w-full lg:w-64 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm flex flex-col space-y-6 text-slate-700 select-none">
       
-      {/* 1. Meus Calendários */}
+      {/* 1. Métricas da Semana */}
       <div>
-        <div className="mb-2">
-          <h3 className="font-bold text-slate-800 text-sm">Meus calendários</h3>
+        <div className="mb-3">
+          <h3 className="font-bold text-slate-800 text-sm">Semana atual</h3>
+          <p className="text-[10px] text-slate-400 mt-0.5">Resumo de consultas</p>
         </div>
 
-        <div className="space-y-2">
-          <button className="w-full flex items-center justify-center space-x-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
-            </svg>
-            <span>{calendarName}</span>
-          </button>
+        <div className="grid grid-cols-2 gap-2">
+          {/* Total */}
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+              <span className="text-[10px] font-semibold text-emerald-700">Total</span>
+            </div>
+            <span className="text-2xl font-black text-emerald-700 leading-none">{weekMetrics.total}</span>
+            <span className="text-[9px] text-emerald-600/70">consultas</span>
+          </div>
 
-          <button 
-            onClick={onNewEvent}
-            className="w-full flex items-center justify-center space-x-1.5 py-2 px-3 bg-white border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-lg text-xs font-bold transition-all"
-          >
-            <Plus className="w-3.5 h-3.5 text-emerald-600" />
-            <span>+ novo calendário</span>
-          </button>
+          {/* Hoje */}
+          <div className="bg-sky-50 border border-sky-100 rounded-xl p-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />
+              <span className="text-[10px] font-semibold text-sky-700">Hoje</span>
+            </div>
+            <span className="text-2xl font-black text-sky-700 leading-none">{weekMetrics.todayCount}</span>
+            <span className="text-[9px] text-sky-600/70">agendamentos</span>
+          </div>
+
+          {/* Confirmadas */}
+          <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5 text-violet-600 flex-shrink-0" />
+              <span className="text-[10px] font-semibold text-violet-700">Confirmadas</span>
+            </div>
+            <span className="text-2xl font-black text-violet-700 leading-none">{weekMetrics.confirmed}</span>
+            <span className="text-[9px] text-violet-600/70">confirmadas</span>
+          </div>
+
+          {/* Dias ativos */}
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+              <span className="text-[10px] font-semibold text-amber-700">Dias ativos</span>
+            </div>
+            <span className="text-2xl font-black text-amber-700 leading-none">{weekMetrics.activeDays}</span>
+            <span className="text-[9px] text-amber-600/70">dias com agenda</span>
+          </div>
         </div>
       </div>
 

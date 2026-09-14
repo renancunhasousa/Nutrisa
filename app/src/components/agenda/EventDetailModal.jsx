@@ -239,14 +239,14 @@ export default function EventDetailModal({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { id: 'online', label: 'Online', hexBg: '#1bb3c8' },
                 { id: 'presencial', label: 'Presencial', hexBg: '#dc66aa' },
+                { id: 'online', label: 'Online', hexBg: '#1bb3c8' },
                 { id: 'primeira_vez', label: 'Primeira vez', hexBg: '#2ecc71' },
                 { id: 'retorno', label: 'Retorno', hexBg: '#f25c38' },
+                { id: 'pacote', label: 'Pacote', hexBg: '#767676' },
+                { id: 'permuta', label: 'Permuta', hexBg: '#8e24aa' },
                 { id: 'pessoal', label: 'Pessoal', hexBg: '#1e75bb' },
-                { id: 'encaixe', label: 'Encaixe', hexBg: '#c86422' },
-                { id: 'em_grupo', label: 'Em grupo', hexBg: '#f6821f' },
-                { id: 'pacote', label: 'Pacote', hexBg: '#767676' }
+                { id: 'antropometria', label: 'Antropometria', hexBg: '#2e7d32' }
               ].map(cat => {
                 const isSelected = selectedCategoryKey === cat.id;
                 return (

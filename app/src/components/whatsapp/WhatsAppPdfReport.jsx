@@ -48,7 +48,7 @@ export default function WhatsAppPdfReport({
             <span>Voltar ao Dashboard</span>
           </button>
           <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
-          <span className="text-xs font-extrabold text-slate-900 hidden sm:inline-block">
+          <span className="text-xs text-slate-500 font-medium hidden sm:inline">
             Relatório Executivo de Atendimento WhatsApp
           </span>
         </div>

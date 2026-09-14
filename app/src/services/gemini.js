@@ -1,79 +1,30 @@
 /**
- * Serviço centralizado de integração com modelos de Inteligência Artificial Google Gemini
- * Suporta cascata automática de fallback entre modelos caso haja limitação de cota ou indisponibilidade.
+ * Serviço centralizado de integração com modelos de Inteligência Artificial Google Gemini.
+ * Utiliza cascata automática entre modelos Gemini em caso de cota esgotada ou instabilidade.
+ * DeepSeek removido da cascata — todos os fluxos (PDF e texto) usam exclusivamente o Gemini.
  */
 
 import { sanitizeJsonString } from '../utils/formatters';
 
-const FALLBACK_MODELS = [
+const GEMINI_MODELS = [
   'gemini-3.8-flash',
-  'deepseek-flash',
-  'deepseek-chat',
-  'gemini-3.5-flash-lite',
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash'
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite'
 ];
 
 export const callGeminiWithFallback = async ({ prompt, imageBase64 = null, systemInstruction = '', jsonMode = false }) => {
   const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const deepseekApiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
 
-  if (!geminiApiKey && !deepseekApiKey) {
-    throw new Error('Chave VITE_GEMINI_API_KEY ou VITE_DEEPSEEK_API_KEY não configurada no ambiente.');
+  if (!geminiApiKey) {
+    throw new Error('Chave VITE_GEMINI_API_KEY não configurada no ambiente.');
   }
 
   let lastError = null;
 
-  for (const modelName of FALLBACK_MODELS) {
+  for (const modelName of GEMINI_MODELS) {
     try {
-      if (modelName.startsWith('deepseek')) {
-        if (!deepseekApiKey) continue;
-
-        const messages = [];
-        if (systemInstruction) {
-          messages.push({ role: 'system', content: systemInstruction });
-        }
-        messages.push({ role: 'user', content: prompt });
-
-        const body = {
-          model: modelName === 'deepseek-flash' ? 'deepseek-flash' : 'deepseek-chat',
-          messages,
-          stream: false
-        };
-        if (jsonMode) {
-          body.response_format = { type: 'json_object' };
-        }
-
-        const response = await fetch('https://api.deepseek.com/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${deepseekApiKey}`
-          },
-          body: JSON.stringify(body)
-        });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`HTTP ${response.status} (${modelName}): ${errText}`);
-        }
-
-        const data = await response.json();
-        const rawText = data?.choices?.[0]?.message?.content || '';
-        if (!rawText) throw new Error(`Resposta vazia do modelo ${modelName}`);
-
-        if (jsonMode) {
-          return JSON.parse(sanitizeJsonString(rawText));
-        }
-        return rawText;
-      }
-
-      if (!geminiApiKey) continue;
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
 
-      const contents = [];
       const parts = [];
 
       if (imageBase64) {
@@ -86,10 +37,9 @@ export const callGeminiWithFallback = async ({ prompt, imageBase64 = null, syste
       }
 
       parts.push({ text: prompt });
-      contents.push({ role: 'user', parts });
 
       const requestBody = {
-        contents,
+        contents: [{ role: 'user', parts }],
         generationConfig: {
           temperature: 0.2,
           maxOutputTokens: 2500,
@@ -116,7 +66,7 @@ export const callGeminiWithFallback = async ({ prompt, imageBase64 = null, syste
 
       const data = await response.json();
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      
+
       if (!rawText) {
         throw new Error(`Resposta vazia do modelo ${modelName}`);
       }

@@ -255,6 +255,8 @@ function AgendaViewContent() {
             onNewEvent={() => alert('Para agendar nova consulta, utilize a conversa da NutriIsa ou adicione no Google Calendar.')}
             blockedDates={blockedDates}
             onOpenBlockModal={() => setIsBlockModalOpen(true)}
+            events={events}
+            currentDate={currentDate}
           />
 
           {/* Grade Semanal WebDiet */}

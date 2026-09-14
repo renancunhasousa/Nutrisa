@@ -207,11 +207,8 @@ export default function App() {
       const saved = localStorage.getItem('nutrisa_selected_model');
       const validModels = [
         "gemini-3.8-flash",
-        "deepseek-flash",
-        "deepseek-chat",
-        "gemini-3.5-flash-lite",
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite"
+        "gemini-3.6-flash",
+        "gemini-3.5-flash-lite"
       ];
       if (saved && validModels.includes(saved)) {
         return saved;
@@ -276,7 +273,7 @@ export default function App() {
       results.gemini = 'Chave VITE_GEMINI_API_KEY ausente no .env';
     } else {
       try {
-        const pingUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`;
+        const pingUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`;
         const res = await fetch(pingUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -417,28 +414,24 @@ export default function App() {
     }
   };
 
-  // Ordem de Fallback em Camadas (Cascata Multi-Nível)
+  // Cascata de Fallback — exclusivamente modelos Gemini (DeepSeek removido)
   const getModelFallbackChain = (initialModel) => {
-    const defaultChain = [
+    const geminiChain = [
       "gemini-3.8-flash",
-      "deepseek-flash",
-      "deepseek-chat",
-      "gemini-3.5-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite"
+      "gemini-3.6-flash",
+      "gemini-3.5-flash-lite"
     ];
     // Garante que o modelo inicial seja o primeiro e sem duplicatas
-    return [initialModel, ...defaultChain.filter(m => m !== initialModel)];
+    return [initialModel, ...geminiChain.filter(m => m !== initialModel)];
   };
 
-  // Helper com cascata para chamadas de IA (Gemini e DeepSeek) na aplicação
-  const executeGeminiWithFallback = async (payload, onModelChangeText = "Processando com modelo alternativo...") => {
+  // Helper com cascata Gemini para chamadas de IA na aplicação
+  const executeGeminiWithFallback = async (payload) => {
     const geminiApiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
-    const deepseekApiKey = (import.meta.env.VITE_DEEPSEEK_API_KEY || "").trim();
 
-    if ((!geminiApiKey || geminiApiKey.includes("Sua_Chave")) && !deepseekApiKey) {
-      alert("Atenção: A chave API do Gemini (VITE_GEMINI_API_KEY) ou DeepSeek não está configurada!\n\nAcesse seu ambiente / Vercel -> Settings -> Environment Variables para configurar as chaves de IA.");
-      throw new Error("Chave de IA ausente ou inválida.");
+    if (!geminiApiKey || geminiApiKey.includes("Sua_Chave")) {
+      alert("Atenção: A chave API do Gemini (VITE_GEMINI_API_KEY) não está configurada!\n\nAcesse seu ambiente / Vercel -> Settings -> Environment Variables para configurar a chave de IA.");
+      throw new Error("Chave de IA Gemini ausente ou inválida.");
     }
 
     const modelsToTry = getModelFallbackChain(selectedModel);
@@ -456,83 +449,6 @@ export default function App() {
           );
         }
 
-        // --- EXECUÇÃO DO MODELO DE IA ---
-        // Ramo 2.1: Modelo DeepSeek
-        if (model.startsWith("deepseek")) {
-          if (!deepseekApiKey) {
-            console.warn(`[DeepSeek] Chave VITE_DEEPSEEK_API_KEY não encontrada, pulando para próximo modelo de fallback.`);
-            continue;
-          }
-
-          // Converte o payload de formato Gemini para OpenAI messages
-          let userPrompt = "";
-          if (payload.contents && Array.isArray(payload.contents)) {
-            for (const content of payload.contents) {
-              if (content.parts && Array.isArray(content.parts)) {
-                for (const part of content.parts) {
-                  if (part.text) userPrompt += (userPrompt ? "\n\n" : "") + part.text;
-                }
-              }
-            }
-          }
-
-          const deepseekBody = {
-            model: model === "deepseek-flash" ? "deepseek-flash" : "deepseek-chat",
-            messages: [
-              {
-                role: "system",
-                content: "Você é um assistente especialista em nutrição clínica e esportiva e análise de composição corporal. Responda estritamente no formato solicitado."
-              },
-              {
-                role: "user",
-                content: userPrompt || "Processe os dados fornecidos."
-              }
-            ],
-            stream: false
-          };
-
-          if (payload.generationConfig?.responseMimeType === "application/json") {
-            deepseekBody.response_format = { type: "json_object" };
-          }
-
-          const response = await fetch("https://api.deepseek.com/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${deepseekApiKey}`
-            },
-            body: JSON.stringify(deepseekBody)
-          });
-
-          if (!response.ok) {
-            const errBody = await response.text();
-            console.warn(`DeepSeek retornou status ${response.status}: ${errBody}`);
-            lastError = new Error(`DeepSeek falhou (${response.status}): ${errBody}`);
-            continue;
-          }
-
-          const dsJson = await response.json();
-          const contentText = dsJson?.choices?.[0]?.message?.content || "";
-
-          const adaptedResult = {
-            candidates: [
-              {
-                content: {
-                  parts: [{ text: contentText }]
-                }
-              }
-            ]
-          };
-
-          return { result: adaptedResult, usedModel: model };
-        }
-
-        // Ramo 2.2: Modelos Google Gemini
-        if (!geminiApiKey) {
-          console.warn(`[Gemini] Chave VITE_GEMINI_API_KEY não encontrada, pulando modelo ${model}.`);
-          continue;
-        }
-
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
         const response = await fetch(url, {
           method: "POST",
@@ -545,7 +461,7 @@ export default function App() {
           const isQuota = response.status === 429 || errBody.includes("RESOURCE_EXHAUSTED") || errBody.includes("quota");
           console.warn(`Modelo ${model} retornou status ${response.status} ${isQuota ? '(Cota Excedida / 429)' : ''}: ${errBody}`);
           lastError = new Error(`Model ${model} falhou (${response.status}): ${errBody}`);
-          continue; // Tenta o próximo da cascata
+          continue;
         }
 
         const result = await response.json();
@@ -556,7 +472,7 @@ export default function App() {
       }
     }
 
-    throw lastError || new Error("Todos os modelos da cascata falharam.");
+    throw lastError || new Error("Todos os modelos Gemini falharam.");
   };
 
   // Extracted and calculated data state
@@ -620,17 +536,17 @@ Pág 3: Histórico Comparativo de Avaliações Físicas (com variação Δ) e Gr
 Portanto, gere o campo "aiAnalysisText" como um 'Diagnóstico e Parecer Nutricional Integrado' com cerca de 850 a 1000 caracteres, profissional, encorajador, focado na saúde metabólica, escrita direta para o paciente. IMPORTANTE: Escreva este campo como um texto contínuo de um único parágrafo, sem aspas duplas internas ou com quebras de linha devidamente escapadas como \\n.
 
 REGRA RIGOROSA PARA DOBRAS CUTÂNEAS (skinfolds):
-Extraia EXCLUSIVAMENTE as dobras cutâneas que estiverem explicitamente medidas no documento anexado. NUNCA invente, presuma ou deduza dobras que não constam no laudo (ex: NÃO invente Panturrilha, Torácica, Biciptal ou Axilar se elas não foram medidas no teste). Se foram medidas apenas 3, 5 ou 7 dobras, liste APENAS essas no array skinfolds.
+Extraia EXCLUSIVAMENTE as dobras cutâneas que estiverem explicitamente medidas no documento anexado. NUNCA invente, presuma ou deduza dobras que não constam no laudo (ex: NÃO invente Panturrilha ou Axilar se não foram medidas). Se foram medidas apenas 3, 5 ou 7 dobras, liste APENAS essas no array skinfolds.
 
-REGRA RIGOROSA PARA HISTÓRICO DE AVALIAÇÕES ANTERIORES (history):
-Muitos laudos de Bioimpedância (InBody, AvaBio, Tanita, etc.) e softwares de avaliação física contêm uma seção/tabela dedicada com o histórico de testes passados ("Histórico de Composição Corporal", "Evolução", "Avaliações Anteriores" ou colunas com múltiplas datas).
-- O array "history" deve conter EXCLUSIVAMENTE as consultas ANTERIORES/PASSADAS. A consulta ATUAL (a mais recente) já é capturada em "patient" e "metrics", portanto NUNCA duplique a consulta atual dentro de "history".
-- Inspecione todas as páginas do documento procurando por datas e valores de avaliações passadas do paciente.
-- Extraia todas as avaliações passadas encontradas no array "history", ordenadas cronologicamente (da mais antiga para a mais recente).
-- Para cada avaliação anterior, crie um objeto com a chave "date" (ex: DD/MM/AAAA ou DD/MM/AA) e extraia todos os valores numéricos que estiverem disponíveis na coluna daquela data: weight, fatPercentage, fatMass, leanMass, skeletalMuscle, totalBodyWater, icw, ecw, visceralFatLevel, bmr, metabolicAge, bmi, waistHipRatio, skinfoldSum, waist, abdomen, hip, bodyDensity.
-- Se o laudo contiver 2, 3 ou 4 consultas antigas, inclua todas as datas anteriores no array "history".
-- Se algum campo específico não foi medido ou não consta naquela consulta passada, preencha-o como null.
-- Se o documento NÃO contiver nenhuma data anterior (for a primeira avaliação), retorne "history": [].
+REGRA CRÍTICA PARA HISTÓRICO COMPLETO DE AVALIAÇÕES PASSADAS (history):
+Os laudos de Bioimpedância (AvaBio, InBody, Tanita, etc.) e Adipometria possuem tabelas ou gráficos com o histórico completo de consultas passadas (frequentemente com 2, 3, 4 ou mais colunas de datas anteriores).
+- É OBRIGATÓRIO extrair TODAS as datas e avaliações anteriores presentes nos laudos para alimentar a evolução do paciente.
+- NÃO extraia apenas a última consulta passada: se houver 2, 3, 4 ou mais consultas antigas no laudo, extraia TODAS elas no array "history".
+- A consulta ATUAL (a mais recente) já é capturada em "patient" e "metrics", então "history" deve conter apenas as anteriores.
+- Ordene as avaliações passadas cronologicamente no array "history", da mais antiga para a mais recente.
+- Para o histórico (history), se houver dados antigos de Adipometria e Bioimpedância para a MESMA data, extraia ambos no formato { "adipometryValue": X, "biaValue": Y } para as métricas (ex: "fatPercentage"). Se for apenas um valor simples, pode retornar o número direto.
+- Para cada consulta passada, inclua o objeto com a data ("DD/MM/AAAA" ou "DD/MM/AA") e todos os valores numéricos encontrados naquela data. Se algum valor não estiver disponível na coluna daquela data, use null.
+- Exemplo: se o laudo tiver consultas em 10/01/2026, 15/03/2026 e a atual em 20/05/2026, o array "history" DEVE conter 2 objetos (10/01/2026 e 15/03/2026).
 
 Se algum parâmetro não for encontrado em um dos laudos, atribua null.
 Infira o equipamento de Bioimpedância utilizado (ex: InBody 270, AvaBio 380) e o Método Antropométrico (ex: Jackson & Pollock 7 dobras).
@@ -658,7 +574,7 @@ Retorne APENAS o JSON válido no seguinte formato:
     { "key": "totalBodyWater", "title": "Água Corporal Total (ACT)", "unit": "L", "biaValue": 31.2, "adipometryValue": null, "category": "Hidratação", "idealMin": 28.0, "idealMax": 36.0 },
     { "key": "icw", "title": "Água Intracelular (AIC / ICW)", "unit": "L", "biaValue": 19.5, "adipometryValue": null, "category": "Hidratação", "idealMin": 17.0, "idealMax": 22.0 },
     { "key": "ecw", "title": "Água Extracelular (AEC / ECW)", "unit": "L", "biaValue": 11.7, "adipometryValue": null, "category": "Hidratação", "idealMin": 10.0, "idealMax": 14.0 },
-    { "key": "visceralFatLevel", "title": "Nível de Gordura Visceral", "unit": "Nível", "biaValue": 5, "adipometryValue": null, "category": "Risco Metabólico", "idealMin": 1, "idealMax": 9 },
+    { "key": "visceralFatLevel", "title": "Nível de Gordura Visceral", "unit": "Nível", "biaValue": 5, "adipometryValue": null, "category": "Risco Metabólico", "idealMin": 1, idealMax: 9 },
     { "key": "bmr", "title": "Taxa Metabólica Basal (TMB)", "unit": "kcal", "biaValue": 1310, "adipometryValue": 1295, "category": "Metabolismo", "idealMin": 1200, "idealMax": 1500 },
     { "key": "metabolicAge", "title": "Idade Metabólica", "unit": "anos", "biaValue": 28, "adipometryValue": null, "category": "Metabolismo", "idealMin": 18, "idealMax": 31 },
     { "key": "bmi", "title": "Índice de Massa Corporal (IMC)", "unit": "kg/m²", "biaValue": 27.6, "adipometryValue": 27.6, "category": "Geral", "idealMin": 18.5, "idealMax": 24.9 },
@@ -688,7 +604,8 @@ Retorne APENAS o JSON válido no seguinte formato:
     "leftLeg": { "leanMass": 6.30, "leanMassRatio": 97, "fatMass": 4.80, "fatMassRatio": 118 }
   },
   "history": [
-    { "date": "DD/MM/AAAA", "weight": 67.0, "fatPercentage": 36.8, "fatMass": 24.6, "leanMass": 42.4, "skeletalMuscle": 23.4, "totalBodyWater": 30.5, "visceralFatLevel": 6, "bmr": 1288, "metabolicAge": 31, "bmi": 28.6, "waistHipRatio": 0.84, "skinfoldSum": 230.0, "waist": 86.0, "abdomen": 90.0, "hip": 104.5 }
+    { "date": "10/01/2026", "weight": { "adipometryValue": 68.5, "biaValue": 68.5 }, "fatPercentage": { "adipometryValue": 38.5, "biaValue": 39.2 }, "fatMass": { "adipometryValue": 26.4, "biaValue": 26.8 }, "leanMass": { "adipometryValue": 42.1, "biaValue": 41.7 }, "skeletalMuscle": { "adipometryValue": 23.1, "biaValue": 22.9 }, "totalBodyWater": 30.1, "visceralFatLevel": 7, "bmr": 1280, "metabolicAge": 33, "bmi": 29.2, "waistHipRatio": 0.85, "skinfoldSum": 245.0, "waist": 88.0, "abdomen": 92.0, "hip": 106.0 },
+    { "date": "15/03/2026", "weight": { "adipometryValue": 67.0, "biaValue": 67.0 }, "fatPercentage": { "adipometryValue": 36.8, "biaValue": 37.1 }, "fatMass": { "adipometryValue": 24.6, "biaValue": 24.9 }, "leanMass": { "adipometryValue": 42.4, "biaValue": 42.1 }, "skeletalMuscle": { "adipometryValue": 23.4, "biaValue": 23.1 }, "totalBodyWater": 30.5, "visceralFatLevel": 6, "bmr": 1288, "metabolicAge": 31, "bmi": 28.6, "waistHipRatio": 0.84, "skinfoldSum": 230.0, "waist": 86.0, "abdomen": 90.0, "hip": 104.5 }
   ],
   "aiAnalysisText": "Parecer clínico discursivo gerado pela IA focando em saúde metabólica, riscos e composição corporal para o paciente..."
 }`;
@@ -821,7 +738,13 @@ Retorne APENAS o JSON válido no seguinte formato:
       const prompt = `Você é um(a) nutricionista clínico(a) esportivo(a) redigindo o 'Parecer Nutricional Integrado' detalhado, de forma direta e acolhedora para o paciente.
 Com base nos dados a seguir extraídos da avaliação física:
 Nome: ${extractedData.patient?.name || "Paciente"}
-Métricas (Valores): ${JSON.stringify(extractedData.metrics.map(m => m.title + ": " + (m.biaValue || m.adipometryValue) + " " + m.unit))}
+Métricas (Valores): ${JSON.stringify(extractedData.metrics.map(m => {
+  let val = 0;
+  if (m.selected === 'custom') val = customValues[m.key] || 0;
+  else if (m.selected === 'adipometry') val = m.adipometryValue ?? m.biaValue ?? 0;
+  else val = m.biaValue ?? m.adipometryValue ?? 0;
+  return m.title + ": " + val + " " + (m.unit || "");
+}))}
 Dobras Cutâneas: ${JSON.stringify(extractedData.skinfolds)}
 Circunferências: ${JSON.stringify(extractedData.circumferences)}
 
@@ -938,6 +861,23 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
       { param: "Circunferência Quadril", unit: "cm", key: "hip", isGoodIfDown: true, getter: () => currentCircumferenceVal("quadril") }
     ];
 
+    // Helper para buscar valor histórico respeitando a fonte selecionada
+    const getPastMetricVal = (h, key) => {
+      let val = h[key];
+      if (typeof val === 'object' && val !== null) {
+        const currentMetric = extractedData.metrics?.find(m => m.key === key);
+        const source = currentMetric ? currentMetric.selected : 'adipometry';
+        if (source === 'adipometry') {
+          val = val.adipometryValue ?? val.biaValue ?? val.value;
+        } else if (source === 'bia') {
+          val = val.biaValue ?? val.adipometryValue ?? val.value;
+        } else {
+          val = val.adipometryValue ?? val.biaValue ?? val.value;
+        }
+      }
+      return val !== null && val !== undefined && !isNaN(Number(val)) ? Number(val) : null;
+    };
+
     // Colunas de datas: todas as anteriores (limitadas a até 5 para caber na folha A4 com perfeição) + atual
     const maxPastCols = 4;
     const pastDates = historyList.slice(-maxPastCols).map(h => h.date || "-");
@@ -948,11 +888,8 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
       const currentRaw = p.getter();
       const currentNum = currentRaw !== null && currentRaw !== undefined && !isNaN(Number(currentRaw)) ? Number(currentRaw) : null;
       
-      // Valores históricos passados mapeados dinamicamente
-      const pastValues = historyList.slice(-maxPastCols).map(h => {
-        const val = h[p.key];
-        return val !== null && val !== undefined && !isNaN(Number(val)) ? Number(val) : null;
-      });
+      // Valores históricos passados mapeados dinamicamente, respeitando a fonte selecionada atualmente
+      const pastValues = historyList.slice(-maxPastCols).map(h => getPastMetricVal(h, p.key));
 
       // Último valor anterior válido para cálculo do Delta (Δ)
       const lastPastValid = [...pastValues].reverse().find(v => v !== null);
@@ -976,7 +913,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
           diffText = `${delta >= 0 ? "+" : "-"}${formattedDelta}`;
         }
       } else if (currentNum !== null) {
-        diffText = "1ª Aval.";
+        diffText = "registro único";
         isGood = true;
       }
 
@@ -1004,9 +941,9 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
     const chartPoints = [
       ...historyList.slice(-maxPastCols).map(h => ({
         date: h.date || "-",
-        weight: Number(h.weight) || 0,
-        leanMass: Number(h.leanMass) || 0,
-        fatMass: Number(h.fatMass) || 0
+        weight: getPastMetricVal(h, 'weight') || 0,
+        leanMass: getPastMetricVal(h, 'leanMass') || 0,
+        fatMass: getPastMetricVal(h, 'fatMass') || 0
       })),
       {
         date: `${currentDate} (Atual)`,
@@ -1061,7 +998,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                 }`}
               >
                 <Activity className="w-3.5 h-3.5" />
-                <span>Laudo Físico</span>
+                <span>Avaliação</span>
               </button>
               <button
                 onClick={() => setAppMode('anamnese')}
@@ -1083,7 +1020,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
-                <span>WhatsApp</span>
+                <span>Atendimento</span>
               </button>
               <button
                 onClick={() => setAppMode('agenda')}
@@ -1289,14 +1226,11 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-white font-medium focus:ring-2 focus:ring-amber-400 outline-none"
                 >
                   <option value="gemini-3.8-flash">Gemini 3.8 Flash (Padrão Google - Mais Inteligente e Recente)</option>
-                  <option value="deepseek-flash">DeepSeek V4 Flash / deepseek-flash (Ultra Rápido & Econômico)</option>
-                  <option value="deepseek-chat">DeepSeek Chat / V3 (Raciocínio Avançado)</option>
-                  <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Super Rápido e Econômico)</option>
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Geração 2.5 - Cota e Fila Separadas)</option>
-                  <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Leve e Baixa Latência)</option>
+                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Alta Capacidade - Cota Separada)</option>
+                  <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Leve e Baixa Latência)</option>
                 </select>
                 <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                  🛡️ <strong>Cascata Inteligente Ativa:</strong> Se o modelo principal exceder a cota diária ou falhar, a aplicação alternará automaticamente na sequência (<em>3.8 Flash → DeepSeek V4 Flash → DeepSeek Chat → 3.5 Flash-Lite → 2.5 Flash → 2.5 Flash-Lite</em>) para garantir atendimento ininterrupto.
+                  🛡️ <strong>Cascata Inteligente Ativa:</strong> Se o modelo principal exceder a cota diária ou falhar, a aplicação alternará automaticamente na sequência (<em>3.8 Flash → 3.6 Flash → 3.5 Flash-Lite</em>) para garantir atendimento ininterrupto.
                 </p>
               </div>
 
@@ -1305,7 +1239,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   <span className="text-[10px] uppercase font-bold text-amber-400 block">Diagnóstico de Provedores</span>
                   <button
                     onClick={testApiConnection}
-                    disabled={geminiStatus === 'testing' || deepseekStatus === 'testing'}
+                    disabled={geminiStatus === 'testing'}
                     className="flex items-center gap-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-0.5 rounded border border-slate-700 transition"
                   >
                     <RefreshCw className={`w-3 h-3 ${geminiStatus === 'testing' ? 'animate-spin' : ''}`} />
@@ -1343,35 +1277,6 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                   </div>
                 </div>
 
-                {/* DeepSeek Status */}
-                <div className="flex items-center justify-between text-[11px] border-b border-slate-800/80 pb-1.5">
-                  <span className="text-slate-300 font-medium">DeepSeek (V4/Chat):</span>
-                  <div className="flex items-center gap-1.5">
-                    {deepseekStatus === 'online' && (
-                      <span className="flex items-center gap-1 text-cyan-400 font-semibold">
-                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> Online
-                      </span>
-                    )}
-                    {deepseekStatus === 'configured' && (
-                      <span className="flex items-center gap-1 text-cyan-300">
-                        <span className="w-2 h-2 rounded-full bg-cyan-500"></span> Chave Ativa
-                      </span>
-                    )}
-                    {deepseekStatus === 'testing' && (
-                      <span className="text-amber-400 animate-pulse">Testando...</span>
-                    )}
-                    {deepseekStatus === 'error' && (
-                      <span className="flex items-center gap-1 text-rose-400 font-medium">
-                        <span className="w-2 h-2 rounded-full bg-rose-500"></span> Erro / Saldo
-                      </span>
-                    )}
-                    {deepseekStatus === 'missing' && (
-                      <span className="flex items-center gap-1 text-slate-500">
-                        <span className="w-2 h-2 rounded-full bg-slate-600"></span> Sem Chave
-                      </span>
-                    )}
-                  </div>
-                </div>
 
                 {apiTestDetails && (
                   <p className="text-[9.5px] text-amber-200/80 bg-slate-900 p-1 rounded border border-slate-800 font-mono">
@@ -2085,7 +1990,7 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
           <div className="space-y-6">
             
             {/* Top Toolbar (Hidden on Print) - CLEAN LUXURY SAAS STYLE */}
-            <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap justify-between items-center gap-4 print:hidden">
+            <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap justify-between items-center gap-4 print:hidden max-w-4xl mx-auto">
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => setCurrentStep(2)}
@@ -2784,17 +2689,16 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                 </td>
                                 <td className="p-1.5 print:py-1 print:px-1.5 text-center font-bold">
                                   {row.hasHistory ? (
-                                    <span className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded font-extrabold ${
+                                    <span className={`font-bold text-xs ${
                                       row.isDown
                                         ? row.isGood
-                                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300" // Queda de Gordura/Peso (Verde)
-                                          : "bg-amber-100 text-amber-800 border border-amber-300"     // Perda de Músculo (Âmbar)
+                                          ? "text-emerald-700"
+                                          : "text-amber-700"
                                         : row.isGood
-                                          ? "bg-blue-100 text-blue-800 border border-blue-300"       // Ganho de Músculo (Azul)
-                                          : "bg-rose-100 text-rose-800 border border-rose-300"       // Ganho de Gordura (Vermelho)
+                                          ? "text-blue-700"
+                                          : "text-rose-700"
                                     }`}>
-                                      <span>{row.isDown ? "↓" : "↑"}</span>
-                                      <span>{row.diff}</span>
+                                      {row.isDown ? "↓ " : "↑ "}{row.diff}
                                     </span>
                                   ) : (
                                     <span className="text-slate-400 text-[10px] font-medium italic">
@@ -2808,21 +2712,13 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                         </table>
                       </div>
 
-                      {/* Legenda Indicativa de Cores da Variação (NO FINAL DA TABELA) */}
-                      <div className="flex flex-wrap items-center justify-end gap-2 text-[8.5px] print:text-[8px] pt-1 border-t border-slate-200/60">
-                        <span className="text-slate-500 font-semibold uppercase text-[8px]">Legenda Δ:</span>
-                        <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold">
-                          <span>↓</span><span>Redução de Gordura/Medidas</span>
-                        </span>
-                        <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 font-extrabold">
-                          <span>↑</span><span>Ganho de Músculo</span>
-                        </span>
-                        <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 font-extrabold">
-                          <span>↑</span><span>Aumento de Gordura</span>
-                        </span>
-                        <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-extrabold">
-                          <span>↓</span><span>Redução de Músculo</span>
-                        </span>
+                      {/* Legenda Indicativa de Cores da Variação */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[9px] print:text-[8px] pt-1 border-t border-slate-200/60 text-slate-500">
+                        <span className="font-semibold uppercase text-[8px] mr-1">Legenda Δ:</span>
+                        <span className="text-emerald-700 font-semibold">↓ Gordura/Medidas</span>
+                        <span className="text-blue-700 font-semibold">↑ Massa Magra</span>
+                        <span className="text-rose-700 font-semibold">↑ Gordura/Medidas</span>
+                        <span className="text-amber-700 font-semibold">↓ Massa Magra</span>
                       </div>
                     </div>
 
@@ -2831,10 +2727,10 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                       <div className="flex flex-col md:flex-row print:flex-row justify-between items-start md:items-center print:items-center gap-2 border-b border-slate-200/60 pb-2">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center">
                           <Activity className="w-4 h-4 mr-1.5 text-teal-600" />
-                          Evolução da Composição Corporal (Massa Total, Magra e Gorda)
+                          Evolução da Composição Corporal
                         </h3>
                         
-                        {/* Legenda com círculos coloridos idêntica ao design da imagem */}
+                        {/* Legenda com círculos coloridos */}
                         <div className="flex items-center space-x-4 text-[11px] font-bold">
                           <span className="flex items-center text-slate-700">
                             <span className="w-2.5 h-2.5 rounded-full bg-slate-800 mr-1.5 inline-block"></span> Peso Total
@@ -2848,34 +2744,31 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                         </div>
                       </div>
 
-                      {/* GRÁFICO RECHARTS COM GRADIENTE, CURVAS SUAVES E TOOLTIP FLUTUANTE */}
-                      <div className="bg-white p-3 print:p-1.5 rounded-xl border border-slate-200/70 shadow-2xs">
-                        <div className="h-48 print:h-40 w-full">
+                      {/* GRÁFICO RECHARTS — visível apenas na tela, oculto na impressão */}
+                      <div className="bg-white p-3 rounded-xl border border-slate-200/70 shadow-2xs print:hidden">
+                        <div className="h-48 w-full">
                           <ResponsiveContainer width="100%" height="100%">
                             <AreaChart 
                               data={pts} 
-                              margin={{ top: 15, right: 25, left: -15, bottom: 0 }}
+                              margin={{ top: 20, right: 25, left: 10, bottom: 5 }}
                             >
                               <defs>
-                                {/* Gradiente 1: Peso Total (Slate suave) */}
                                 <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#334155" stopOpacity={0.22}/>
                                   <stop offset="95%" stopColor="#334155" stopOpacity={0.01}/>
                                 </linearGradient>
-                                {/* Gradiente 2: Massa Magra (Tiffany / Teal) */}
                                 <linearGradient id="leanGrad" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.35}/>
                                   <stop offset="95%" stopColor="#14B8A6" stopOpacity={0.01}/>
                                 </linearGradient>
-                                {/* Gradiente 3: Massa Gorda (Roxo Suave / Purple) */}
                                 <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.35}/>
                                   <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.01}/>
                                 </linearGradient>
                               </defs>
-
                               <XAxis 
                                 dataKey="date" 
+                                padding={{ left: 35, right: 25 }}
                                 tickLine={false}
                                 axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
                                 tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
@@ -2887,9 +2780,8 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                 tick={{ fontSize: 10, fill: '#94a3b8' }}
                                 unit=" kg"
                               />
-
-                              {/* Linha 1: Peso Total - Com números impressos no ponto */}
                               <Area 
+                                isAnimationActive={false}
                                 type="monotone" 
                                 dataKey="weight" 
                                 name="Peso Total" 
@@ -2905,9 +2797,8 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                   </text>
                                 )}
                               />
-
-                              {/* Linha 2: Massa Magra - Com números impressos no ponto */}
                               <Area 
+                                isAnimationActive={false}
                                 type="monotone" 
                                 dataKey="leanMass" 
                                 name="Massa Magra" 
@@ -2923,9 +2814,8 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                                   </text>
                                 )}
                               />
-
-                              {/* Linha 3: Massa Gorda - Com números impressos no ponto */}
                               <Area 
+                                isAnimationActive={false}
                                 type="monotone" 
                                 dataKey="fatMass" 
                                 name="Massa Gorda" 
@@ -2944,6 +2834,145 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
                             </AreaChart>
                           </ResponsiveContainer>
                         </div>
+                      </div>
+
+                      {/* GRÁFICO SVG PURO — visível apenas na impressão/PDF, oculto na tela */}
+                      <div className="hidden print:block bg-white p-2 rounded-xl border border-slate-200/70">
+                        <svg
+                          viewBox="0 0 600 160"
+                          width="100%"
+                          height="160"
+                          xmlns="http://www.w3.org/2000/svg"
+                          style={{ display: 'block', overflow: 'visible' }}
+                        >
+                          <defs>
+                            <linearGradient id="svgWeightGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#334155" stopOpacity="0.20"/>
+                              <stop offset="95%" stopColor="#334155" stopOpacity="0.01"/>
+                            </linearGradient>
+                            <linearGradient id="svgLeanGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#14B8A6" stopOpacity="0.30"/>
+                              <stop offset="95%" stopColor="#14B8A6" stopOpacity="0.01"/>
+                            </linearGradient>
+                            <linearGradient id="svgFatGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8B5CF6" stopOpacity="0.30"/>
+                              <stop offset="95%" stopColor="#8B5CF6" stopOpacity="0.01"/>
+                            </linearGradient>
+                          </defs>
+
+                          {/* Eixo Y — linhas de grade horizontais */}
+                          {[0, 25, 50, 75, 100].map(pct => {
+                            const yPos = 20 + (pct / 100) * 110;
+                            const val = Math.round(topScale - (pct / 100) * scaleRange);
+                            return (
+                              <g key={pct}>
+                                <line x1="60" y1={yPos} x2="580" y2={yPos} stroke="#e2e8f0" strokeWidth="0.8"/>
+                                <text x="55" y={yPos + 4} fill="#94a3b8" fontSize="9" textAnchor="end" fontFamily="sans-serif">{val} kg</text>
+                              </g>
+                            );
+                          })}
+
+                          {/* Eixo X — datas */}
+                          {pts.map((p, idx) => (
+                            <text
+                              key={idx}
+                              x={getX(idx, pts.length)}
+                              y="148"
+                              fill="#64748b"
+                              fontSize="9"
+                              fontWeight="600"
+                              textAnchor="middle"
+                              fontFamily="sans-serif"
+                            >{p.date}</text>
+                          ))}
+
+                          {/* Área preenchida — Peso Total */}
+                          {weightPoints.length > 1 && (
+                            <polygon
+                              points={[
+                                ...weightPoints.map(p => `${p.x},${p.y}`),
+                                `${weightPoints[weightPoints.length-1].x},130`,
+                                `${weightPoints[0].x},130`
+                              ].join(' ')}
+                              fill="url(#svgWeightGrad)"
+                            />
+                          )}
+                          {/* Área preenchida — Massa Magra */}
+                          {leanPoints.length > 1 && (
+                            <polygon
+                              points={[
+                                ...leanPoints.map(p => `${p.x},${p.y}`),
+                                `${leanPoints[leanPoints.length-1].x},130`,
+                                `${leanPoints[0].x},130`
+                              ].join(' ')}
+                              fill="url(#svgLeanGrad)"
+                            />
+                          )}
+                          {/* Área preenchida — Massa Gorda */}
+                          {fatPoints.length > 1 && (
+                            <polygon
+                              points={[
+                                ...fatPoints.map(p => `${p.x},${p.y}`),
+                                `${fatPoints[fatPoints.length-1].x},130`,
+                                `${fatPoints[0].x},130`
+                              ].join(' ')}
+                              fill="url(#svgFatGrad)"
+                            />
+                          )}
+
+                          {/* Linha — Peso Total */}
+                          <polyline
+                            points={weightPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="none"
+                            stroke="#1e293b"
+                            strokeWidth="2"
+                            strokeLinejoin="round"
+                          />
+                          {/* Linha — Massa Magra */}
+                          <polyline
+                            points={leanPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="none"
+                            stroke="#14B8A6"
+                            strokeWidth="2"
+                            strokeLinejoin="round"
+                          />
+                          {/* Linha — Massa Gorda */}
+                          <polyline
+                            points={fatPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="none"
+                            stroke="#8B5CF6"
+                            strokeWidth="2"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* Pontos e valores — Peso Total */}
+                          {weightPoints.map((p, idx) => (
+                            <g key={idx}>
+                              <circle cx={p.x} cy={p.y} r="4" fill="#1e293b" stroke="#fff" strokeWidth="1.5"/>
+                              <text x={p.x} y={p.y - 8} fill="#0f172a" fontSize="8.5" fontWeight="800" textAnchor="middle" fontFamily="sans-serif">
+                                {p.val ? `${p.val}kg` : ""}
+                              </text>
+                            </g>
+                          ))}
+                          {/* Pontos e valores — Massa Magra */}
+                          {leanPoints.map((p, idx) => (
+                            <g key={idx}>
+                              <circle cx={p.x} cy={p.y} r="4" fill="#14B8A6" stroke="#fff" strokeWidth="1.5"/>
+                              <text x={p.x} y={p.y - 8} fill="#0f766e" fontSize="8.5" fontWeight="800" textAnchor="middle" fontFamily="sans-serif">
+                                {p.val ? `${p.val}kg` : ""}
+                              </text>
+                            </g>
+                          ))}
+                          {/* Pontos e valores — Massa Gorda */}
+                          {fatPoints.map((p, idx) => (
+                            <g key={idx}>
+                              <circle cx={p.x} cy={p.y} r="4" fill="#8B5CF6" stroke="#fff" strokeWidth="1.5"/>
+                              <text x={p.x} y={p.y + 16} fill="#7c3aed" fontSize="8.5" fontWeight="800" textAnchor="middle" fontFamily="sans-serif">
+                                {p.val ? `${p.val}kg` : ""}
+                              </text>
+                            </g>
+                          ))}
+                        </svg>
                       </div>
                     </div>
                   </>
