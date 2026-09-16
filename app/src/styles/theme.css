@@ -1,0 +1,46 @@
+/**
+ * Tokens de design e variáveis CSS globais do NutrIsa.
+ * Importado em global.css.
+ */
+
+:root {
+  /* ── Paleta principal ─────────────────────────────────────── */
+  --color-brand-teal: #0d9488;
+  --color-brand-teal-light: #ccfbf1;
+  --color-brand-amber: #d97706;
+  --color-brand-amber-light: #fef3c7;
+  --color-brand-emerald: #059669;
+
+  /* ── Superfícies ──────────────────────────────────────────── */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-border: rgba(15, 23, 42, 0.07);
+
+  /* ── Tipografia ───────────────────────────────────────────── */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ── Sombras ──────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
+
+  /* ── Animações ────────────────────────────────────────────── */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+}
+
+/* Utilitários de animação usados globalmente */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounceIn {
+  0%   { opacity: 0; transform: scale(0.85) translateY(16px); }
+  70%  { transform: scale(1.03) translateY(-3px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-fadeIn  { animation: fadeIn  0.25s var(--transition-fast) both; }
+.animate-bounce-in { animation: bounceIn 0.35s ease both; }

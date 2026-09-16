@@ -1,97 +1,37 @@
+import { timingSafeEqual } from 'node:crypto';
+import { generateContent, getModels } from '../server/ai/service.js';
+export const MAX_BODY_BYTES = 4_000_000;
+const buckets = new Map();
+function equalSecret(a, b) {
+  const left = Buffer.from(a), right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
 export default async function handler(req, res) {
-  // Configuração CORS para permitir chamadas do front-end
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  const production = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+  const expected = process.env.AI_ACCESS_TOKEN;
+  if (production && !expected) return res.status(503).json({ error: 'Configure o código de acesso de IA no servidor.' });
+  if (expected && !equalSecret(req.headers.authorization || '', 'Bearer ' + expected)) {
+    return res.status(401).json({ error: 'Informe o código de acesso nas configurações de IA.' });
   }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método não permitido. Use POST.' });
+  if (!['GET', 'POST'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST');
+    return res.status(405).json({ error: 'Método não permitido.' });
   }
-
+  if (req.method === 'GET') return res.status(200).json({ configured: Boolean(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY), models: getModels() });
+  if (!String(req.headers['content-type'] || '').startsWith('application/json')) return res.status(415).json({ error: 'Envie JSON.' });
+  if (Buffer.byteLength(JSON.stringify(req.body || {})) > MAX_BODY_BYTES) return res.status(413).json({ error: 'Arquivos muito grandes. Reduza os PDFs e tente novamente.' });
+  // Best-effort per-instance limit. Production also needs a shared edge limit.
+  const now = Date.now();
+  for (const [key, bucket] of buckets) if (now > bucket.until) buckets.delete(key);
+  const client = production ? 'clinic' : (req.socket?.remoteAddress || 'local');
+  const bucket = buckets.get(client) || { count: 0, until: now + 60_000 };
+  if (++bucket.count > 20) return res.status(429).json({ error: 'Muitas solicitações. Aguarde um minuto.' });
+  buckets.set(client, bucket);
   try {
-    const { provider, model, payload, stream = false } = req.body || {};
-
-    if (!provider || !model) {
-      return res.status(400).json({ error: 'Parâmetros "provider" e "model" são obrigatórios.' });
-    }
-
-    // --- PROVEDOR GOOGLE GEMINI ---
-    if (provider === 'gemini') {
-      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: 'Chave GEMINI_API_KEY não configurada no servidor Vercel.' });
-      }
-
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const geminiRes = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const responseText = await geminiRes.text();
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch {
-        responseData = responseText;
-      }
-
-      if (!geminiRes.ok) {
-        return res.status(geminiRes.status).json({
-          error: `Google Gemini API error (${geminiRes.status})`,
-          details: responseData
-        });
-      }
-
-      return res.status(200).json(responseData);
-    }
-
-    // --- PROVEDOR DEEPSEEK ---
-    if (provider === 'deepseek') {
-      const apiKey = process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: 'Chave DEEPSEEK_API_KEY não configurada no servidor Vercel.' });
-      }
-
-      const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const responseText = await dsRes.text();
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch {
-        responseData = responseText;
-      }
-
-      if (!dsRes.ok) {
-        return res.status(dsRes.status).json({
-          error: `DeepSeek API error (${dsRes.status})`,
-          details: responseData
-        });
-      }
-
-      return res.status(200).json(responseData);
-    }
-
-    return res.status(400).json({ error: `Provedor "${provider}" não reconhecido.` });
+    return res.status(200).json(await generateContent(req.body || {}));
   } catch (error) {
-    console.error('Erro no proxy de IA:', error);
-    return res.status(500).json({ error: 'Erro interno ao processar requisição de IA.', message: error.message });
+    return res.status(error.status || 502).json({ error: error.name === 'TimeoutError' ? 'A IA demorou demais. Tente novamente.' : error.message });
   }
 }
