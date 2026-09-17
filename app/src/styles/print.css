@@ -27,14 +27,16 @@
     height: auto !important;
     max-height: none !important;
     min-height: 297mm !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
     box-sizing: border-box !important;
-    padding: 10mm 15mm 10mm 15mm !important;
+    padding: 12mm 18mm 12mm 18mm !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    justify-content: flex-start !important;
     overflow: visible !important;
+    margin: 0 auto !important;
+    /* Sem break-inside: avoid aqui — a folha DEVE poder continuar no papel */
   }
 
   .a4-print-page:not(:last-child) {

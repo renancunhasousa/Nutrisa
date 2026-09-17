@@ -2,7 +2,7 @@ import React from 'react';
 
 import logoPlatform from '../assets/logo_new.png';
 
-import { Sparkles, Settings, Activity, Calendar, FileText, MessageSquare, Bell } from 'lucide-react';
+import { Sparkles, Settings, Activity, Calendar, FileText, MessageSquare, Bell, FileSignature } from 'lucide-react';
 
 import NotificationPopover from '../features/notificacoes/NotificationPopover.jsx';
 export default function Navbar({ settings, appMode, setAppMode }) {
@@ -68,6 +68,17 @@ return (<>      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
               >
                 <Calendar className="w-3.5 h-3.5" />
                 <span>Agenda</span>
+              </button>
+              <button
+                onClick={() => setAppMode('contratos')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  appMode === 'contratos' 
+                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <FileSignature className="w-3.5 h-3.5" />
+                <span>Contratos</span>
               </button>
             </div>
 
