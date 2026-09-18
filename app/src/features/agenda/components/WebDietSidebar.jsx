@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { Calendar, Share2, LogOut, Users, CheckCircle, Clock, TrendingUp } from 'lucide-react';
+import { Calendar, Share2, LogOut, Users, CheckCircle, Clock, TrendingUp, Plus } from 'lucide-react';
 import { colorMapper } from '../domain/calendarMapper.js';
 
 export default function WebDietSidebar({ 
   onDisconnect, 
   blockedDates = [],
   onOpenBlockModal,
+  onNewAppointment,
   events = [],
   currentDate
 }) {
@@ -76,6 +77,18 @@ export default function WebDietSidebar({
   return (
     <div className="w-full lg:w-64 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm flex flex-col space-y-6 text-slate-700 select-none">
       
+      {/* Botão Novo Agendamento Principal */}
+      {onNewAppointment && (
+        <button
+          type="button"
+          onClick={onNewAppointment}
+          className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-2 cursor-pointer active:scale-95"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Novo Agendamento</span>
+        </button>
+      )}
+
       {/* 1. Métricas da Semana */}
       <div>
         <div className="mb-3">

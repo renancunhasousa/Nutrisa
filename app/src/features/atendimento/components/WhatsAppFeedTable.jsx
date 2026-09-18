@@ -1,13 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, 
   RefreshCw, 
   Clock, 
   Eye, 
   X, 
-  ShieldCheck 
+  ShieldCheck,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Filter,
+  ArrowUpDown,
+  Check,
+  ChevronDown,
+  RotateCcw
 } from 'lucide-react';
 import { formatWaitTime, cleanPhoneNumber } from '../../../shared/utils/formatters.js';
+import { fetchCalendarPage } from '../../agenda/services/calendar.js';
+import { 
+  matchPatientNameToEvents, 
+  detectConfirmationIntent, 
+  detectCancellationIntent,
+  confirmAppointmentEvent,
+  cancelAppointmentEvent
+} from '../../agenda/services/appointmentMatcher.js';
+import { KEY_GOOGLE_TOKEN } from '../../../config/storageKeys.js';
+import { GOOGLE_CALENDAR_ID } from '../../../config/env.js';
 
 const CATEGORY_STYLES = {
   'Agendamento e Horários': 'bg-blue-50 text-blue-700 border-blue-200',
@@ -28,29 +47,318 @@ export default function WhatsAppFeedTable({
   getAttendantType
 }) {
   const [selectedChat, setSelectedChat] = useState(null);
+  const [matchedEvent, setMatchedEvent] = useState(null);
+  const [loadingEvent, setLoadingEvent] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [eventConfirmed, setEventConfirmed] = useState(false);
+  const [eventCanceled, setEventCanceled] = useState(false);
+
+  // Estados de Filtro e Ordenação rápida da tabela
+  const [feedFilter, setFeedFilter] = useState('all'); // 'all' | 'pending' | 'responded' | 'isabela' | 'secretaria' | 'agendamento' | 'confirmations' | 'cancellations'
+  const [feedSort, setFeedSort] = useState('date_desc'); // 'date_desc' | 'date_asc' | 'wait_desc' | 'name_asc' | 'name_desc'
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+
+  // Fechar menus ao clicar fora
+  useEffect(() => {
+    if (!isFilterOpen && !isSortOpen) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.feed-filter-menu') && !e.target.closest('.feed-sort-menu')) {
+        setIsFilterOpen(false);
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isFilterOpen, isSortOpen]);
+
+  // Dados processados com filtro e ordenação
+  const processedData = useMemo(() => {
+    let result = [...filteredData];
+
+    // Aplicar Filtro local
+    if (feedFilter === 'pending') {
+      result = result.filter(c => !(c.respondida === true || c.respondida === 'true' || c.status === 'respondida'));
+    } else if (feedFilter === 'responded') {
+      result = result.filter(c => (c.respondida === true || c.respondida === 'true' || c.status === 'respondida'));
+    } else if (feedFilter === 'isabela') {
+      result = result.filter(c => getAttendantType(c) === 'isabela');
+    } else if (feedFilter === 'secretaria') {
+      result = result.filter(c => getAttendantType(c) === 'secretaria');
+    } else if (feedFilter === 'agendamento') {
+      result = result.filter(c => (c.categoria || '').toLowerCase().includes('agendamento'));
+    } else if (feedFilter === 'confirmations') {
+      result = result.filter(c => detectConfirmationIntent(c.conteudo_mensagem || c.mensagem_texto || c.mensagem || ''));
+    } else if (feedFilter === 'cancellations') {
+      result = result.filter(c => detectCancellationIntent(c.conteudo_mensagem || c.mensagem_texto || c.mensagem || ''));
+    }
+
+    // Aplicar Ordenação
+    result.sort((a, b) => {
+      if (feedSort === 'date_desc') {
+        const da = new Date(a.data_envio || a.created_at || a.data || 0).getTime();
+        const db = new Date(b.data_envio || b.created_at || b.data || 0).getTime();
+        return db - da;
+      }
+      if (feedSort === 'date_asc') {
+        const da = new Date(a.data_envio || a.created_at || a.data || 0).getTime();
+        const db = new Date(b.data_envio || b.created_at || b.data || 0).getTime();
+        return da - db;
+      }
+      if (feedSort === 'wait_desc') {
+        const wa = Number(a.tempo_espera_minutos ?? a.tempo_espera ?? 0);
+        const wb = Number(b.tempo_espera_minutos ?? b.tempo_espera ?? 0);
+        return wb - wa;
+      }
+      if (feedSort === 'name_asc') {
+        const na = (a.nome_paciente || a.nome_contato || '').toLowerCase();
+        const nb = (b.nome_paciente || b.nome_contato || '').toLowerCase();
+        return na.localeCompare(nb, 'pt-BR');
+      }
+      if (feedSort === 'name_desc') {
+        const na = (a.nome_paciente || a.nome_contato || '').toLowerCase();
+        const nb = (b.nome_paciente || b.nome_contato || '').toLowerCase();
+        return nb.localeCompare(na, 'pt-BR');
+      }
+      return 0;
+    });
+
+    return result;
+  }, [filteredData, feedFilter, feedSort, getAttendantType]);
+
+  useEffect(() => {
+    if (!selectedChat) {
+      setMatchedEvent(null);
+      setEventConfirmed(false);
+      setEventCanceled(false);
+      return;
+    }
+
+    const pacienteNome = selectedChat.nome_paciente || selectedChat.nome_contato || selectedChat.contato;
+    if (!pacienteNome) return;
+
+    let isMounted = true;
+    async function loadMatchingAppointment() {
+      setLoadingEvent(true);
+      try {
+        const savedToken = localStorage.getItem(KEY_GOOGLE_TOKEN);
+        const tokenInfo = savedToken ? JSON.parse(savedToken) : null;
+        if (tokenInfo?.access_token && (!tokenInfo.expires_at || Date.now() < tokenInfo.expires_at)) {
+          const startWindow = new Date();
+          startWindow.setHours(0, 0, 0, 0);
+          const endWindow = new Date(startWindow.getTime() + 8 * 24 * 60 * 60 * 1000);
+          const events = await fetchCalendarPage(tokenInfo.access_token, GOOGLE_CALENDAR_ID, startWindow, endWindow);
+          if (isMounted) {
+            const found = matchPatientNameToEvents(pacienteNome, events, { allowConfirmed: true });
+            setMatchedEvent(found);
+            setEventConfirmed(false);
+            setEventCanceled(false);
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao cruzar agendamento do paciente:', err);
+      } finally {
+        if (isMounted) setLoadingEvent(false);
+      }
+    }
+
+    loadMatchingAppointment();
+    return () => { isMounted = false; };
+  }, [selectedChat]);
+
+  const handleConfirmAppointmentModal = async () => {
+    if (!matchedEvent) return;
+    setIsConfirming(true);
+    try {
+      const savedToken = localStorage.getItem(KEY_GOOGLE_TOKEN);
+      const tokenInfo = savedToken ? JSON.parse(savedToken) : null;
+      if (!tokenInfo?.access_token) {
+        alert('Para confirmar este agendamento, acesse a aba "Agenda" e conecte sua conta Google Calendar.');
+        return;
+      }
+      await confirmAppointmentEvent(tokenInfo.access_token, GOOGLE_CALENDAR_ID, matchedEvent);
+      setEventConfirmed(true);
+      setEventCanceled(false);
+    } catch (err) {
+      alert('Erro ao confirmar agendamento: ' + err.message);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  const handleCancelAppointmentModal = async () => {
+    if (!matchedEvent) return;
+    setIsCanceling(true);
+    try {
+      const savedToken = localStorage.getItem(KEY_GOOGLE_TOKEN);
+      const tokenInfo = savedToken ? JSON.parse(savedToken) : null;
+      if (!tokenInfo?.access_token) {
+        alert('Para desmarcar este agendamento, acesse a aba "Agenda" e conecte sua conta Google Calendar.');
+        return;
+      }
+      await cancelAppointmentEvent(tokenInfo.access_token, GOOGLE_CALENDAR_ID, matchedEvent);
+      setEventCanceled(true);
+      setEventConfirmed(false);
+    } catch (err) {
+      alert('Erro ao desmarcar agendamento: ' + err.message);
+    } finally {
+      setIsCanceling(false);
+    }
+  };
 
   return (
     <>
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
         {/* CABEÇALHO DO FEED */}
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+        <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white">
           <div>
             <h3 className="font-black text-base text-slate-900 flex items-center">
               <MessageSquare className="w-4 h-4 mr-2 text-emerald-600" />
               Feed de Conversas & Detalhes do Atendimento
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5 font-medium">
-              Mostrando {filteredData.length} de {conversations.length} conversas sincronizadas
+            <p className="text-xs text-slate-400 mt-0.5 font-medium flex items-center gap-1.5">
+              <span>Mostrando {processedData.length} de {conversations.length} conversas</span>
+              {(feedFilter !== 'all' || feedSort !== 'date_desc') && (
+                <span className="inline-flex items-center px-2 py-0.2 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  Filtro/Ordem Ativo
+                </span>
+              )}
             </p>
           </div>
 
-          <div className="flex items-center space-x-2 text-xs">
-            <span className="inline-flex items-center px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-900 font-bold border border-emerald-200 shadow-2xs">
-              👩‍⚕️ Dra. Isabela
-            </span>
-            <span className="inline-flex items-center px-3.5 py-1 rounded-full bg-purple-50 text-purple-900 font-bold border border-purple-200 shadow-2xs">
-              💼 Secretária
-            </span>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {/* BOTÃO DE FILTRO DA TABELA */}
+            <div className="relative feed-filter-menu">
+              <button
+                type="button"
+                onClick={() => { setIsFilterOpen(!isFilterOpen); setIsSortOpen(false); }}
+                className={`inline-flex items-center px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                  feedFilter !== 'all'
+                    ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+                title="Filtrar mensagens na tabela"
+              >
+                <Filter className="w-3.5 h-3.5 mr-1.5" />
+                <span>
+                  {feedFilter === 'all' ? 'Filtrar' : 
+                   feedFilter === 'pending' ? 'Aguardando' :
+                   feedFilter === 'responded' ? 'Respondidas' :
+                   feedFilter === 'isabela' ? 'Dra. Isabela' :
+                   feedFilter === 'secretaria' ? 'Secretária' :
+                   feedFilter === 'agendamento' ? 'Agendamento' :
+                   feedFilter === 'confirmations' ? 'Confirmações' :
+                   feedFilter === 'cancellations' ? 'Desmarcações' : 'Filtrar'}
+                </span>
+                <ChevronDown className="w-3 h-3 ml-1 opacity-70" />
+              </button>
+
+              {/* Menu Dropdown de Filtros */}
+              {isFilterOpen && (
+                <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-2 z-30 animate-scale-up space-y-1">
+                  <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Filtrar tabela por
+                  </div>
+                  {[
+                    { id: 'all', label: 'Todas as Conversas', icon: '🌐' },
+                    { id: 'pending', label: 'Apenas Aguardando Resposta', icon: '⏳' },
+                    { id: 'responded', label: 'Apenas Respondidas', icon: '✅' },
+                    { id: 'isabela', label: 'Apenas Dra. Isabela', icon: '👩‍⚕️' },
+                    { id: 'secretaria', label: 'Apenas Secretária', icon: '💼' },
+                    { id: 'agendamento', label: 'Agendamento & Horários', icon: '📅' },
+                    { id: 'confirmations', label: 'Confirmações Detectadas', icon: '💬' },
+                    { id: 'cancellations', label: 'Desmarcações / Remarcações', icon: '❌' }
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => { setFeedFilter(opt.id); setIsFilterOpen(false); }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                        feedFilter === opt.id 
+                          ? 'bg-emerald-50 text-emerald-900 font-bold' 
+                          : 'text-slate-700 hover:bg-slate-50 font-medium'
+                      }`}
+                    >
+                      <span className="flex items-center truncate">
+                        <span className="mr-2 text-sm">{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </span>
+                      {feedFilter === opt.id && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* BOTÃO DE ORDENAÇÃO DA TABELA */}
+            <div className="relative feed-sort-menu">
+              <button
+                type="button"
+                onClick={() => { setIsSortOpen(!isSortOpen); setIsFilterOpen(false); }}
+                className={`inline-flex items-center px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                  feedSort !== 'date_desc'
+                    ? 'bg-slate-900 text-white border-black ring-2 ring-slate-200'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+                title="Ordenar tabela de conversas"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
+                <span>
+                  {feedSort === 'date_desc' ? 'Ordenar' : 
+                   feedSort === 'date_asc' ? 'Mais Antigas' :
+                   feedSort === 'wait_desc' ? 'Maior Espera' :
+                   feedSort === 'name_asc' ? 'Paciente (A-Z)' :
+                   feedSort === 'name_desc' ? 'Paciente (Z-A)' : 'Ordenar'}
+                </span>
+                <ChevronDown className="w-3 h-3 ml-1 opacity-70" />
+              </button>
+
+              {/* Menu Dropdown de Ordenação */}
+              {isSortOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-2 z-30 animate-scale-up space-y-1">
+                  <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Ordenar tabela por
+                  </div>
+                  {[
+                    { id: 'date_desc', label: 'Mais Recentes Primeiro', icon: '🕒' },
+                    { id: 'date_asc', label: 'Mais Antigas Primeiro', icon: '⌛' },
+                    { id: 'wait_desc', label: 'Maior Tempo de Espera', icon: '⚡' },
+                    { id: 'name_asc', label: 'Nome do Paciente (A-Z)', icon: '🔤' },
+                    { id: 'name_desc', label: 'Nome do Paciente (Z-A)', icon: '🔡' }
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => { setFeedSort(opt.id); setIsSortOpen(false); }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                        feedSort === opt.id 
+                          ? 'bg-slate-100 text-slate-900 font-bold' 
+                          : 'text-slate-700 hover:bg-slate-50 font-medium'
+                      }`}
+                    >
+                      <span className="flex items-center truncate">
+                        <span className="mr-2 text-sm">{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </span>
+                      {feedSort === opt.id && <Check className="w-3.5 h-3.5 text-slate-800 shrink-0 ml-1" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* RESET SE FILTRO OU ORDEM ATIVA */}
+            {(feedFilter !== 'all' || feedSort !== 'date_desc') && (
+              <button
+                type="button"
+                onClick={() => { setFeedFilter('all'); setFeedSort('date_desc'); }}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer border border-transparent hover:border-slate-200"
+                title="Limpar filtro e ordenação da tabela"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -59,9 +367,18 @@ export default function WhatsAppFeedTable({
             <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
             Carregando conversas do Supabase...
           </div>
-        ) : filteredData.length === 0 ? (
-          <div className="py-16 text-center text-slate-400 text-xs">
-            Nenhuma conversa encontrada com os filtros selecionados.
+        ) : processedData.length === 0 ? (
+          <div className="py-16 text-center text-slate-400 text-xs space-y-2">
+            <p>Nenhuma conversa encontrada com os filtros selecionados.</p>
+            {(feedFilter !== 'all' || feedSort !== 'date_desc') && (
+              <button
+                type="button"
+                onClick={() => { setFeedFilter('all'); setFeedSort('date_desc'); }}
+                className="text-emerald-700 font-bold hover:underline cursor-pointer"
+              >
+                Restaurar exibição padrão
+              </button>
+            )}
           </div>
         ) : (
           <div className="w-full max-h-[620px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
@@ -79,7 +396,7 @@ export default function WhatsAppFeedTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filteredData.map((conv, idx) => {
+                {processedData.map((conv, idx) => {
                   const attendantType = getAttendantType(conv);
                   const isIsabela = attendantType === 'isabela';
 
@@ -319,6 +636,123 @@ export default function WhatsAppFeedTable({
                     </span>
                   )}
                 </div>
+
+                {/* CARD DE IDENTIFICAÇÃO E CONFIRMAÇÃO / DESMARCAÇÃO NA AGENDA */}
+                {eventCanceled ? (
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between text-rose-900 shadow-2xs animate-fade-in">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <XCircle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black">Consulta Desmarcada na Google Agenda!</h4>
+                        <p className="text-[11px] text-rose-700">O evento foi atualizado com [DESMARCADO] (borda vermelha na agenda). Horário liberado para remarcação.</p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-200 text-rose-900 uppercase tracking-wider">
+                      Desmarcado
+                    </span>
+                  </div>
+                ) : eventConfirmed ? (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-emerald-900 shadow-2xs animate-fade-in">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black">Consulta Confirmada com Sucesso!</h4>
+                        <p className="text-[11px] text-emerald-700">O status foi atualizado para [CONFIRMADO] no Google Calendar e na agenda.</p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-200 text-emerald-900 uppercase tracking-wider">
+                      Confirmado
+                    </span>
+                  </div>
+                ) : matchedEvent ? (() => {
+                  const isCancelDetected = detectCancellationIntent(mensagemTexto);
+                  const isConfirmDetected = detectConfirmationIntent(mensagemTexto);
+
+                  return (
+                    <div className={`p-4 rounded-2xl shadow-xs space-y-2.5 animate-fade-in border ${
+                      isCancelDetected 
+                        ? 'bg-gradient-to-br from-rose-50/90 via-orange-50/40 to-white border-rose-200' 
+                        : 'bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white border-emerald-200'
+                    }`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-2.5">
+                          <div className={`w-8 h-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs ${
+                            isCancelDetected ? 'bg-rose-600' : 'bg-emerald-600'
+                          }`}>
+                            <Calendar className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs font-black text-slate-900">
+                                {isCancelDetected ? 'Solicitação de Desmarcação / Remarcação' : 'Agendamento Localizado na Agenda'}
+                              </span>
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
+                                matchedEvent.statusKey === 'confirmado'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-slate-200 text-slate-700'
+                              }`}>
+                                {matchedEvent.statusKey === 'confirmado' ? 'Confirmado' : 'À Confirmar'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 font-medium mt-0.5 capitalize">
+                              {new Date(matchedEvent.start.dateTime || matchedEvent.start.date).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })} • {matchedEvent.summary}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {isCancelDetected ? (
+                        <div className="text-[11.5px] text-rose-900 bg-rose-100/90 px-3 py-1.5 rounded-xl font-medium flex items-center space-x-2 border border-rose-300/60">
+                          <XCircle className="w-3.5 h-3.5 text-rose-700 shrink-0" />
+                          <span>Paciente informou que não poderá comparecer ou solicitou remarcação!</span>
+                        </div>
+                      ) : isConfirmDetected ? (
+                        <div className="text-[11.5px] text-emerald-900 bg-emerald-100/90 px-3 py-1.5 rounded-xl font-medium flex items-center space-x-2 border border-emerald-300/60">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                          <span>Mensagem com intenção de confirmação de presença detectada!</span>
+                        </div>
+                      ) : null}
+
+                      {isCancelDetected ? (
+                        <button
+                          type="button"
+                          onClick={handleCancelAppointmentModal}
+                          disabled={isCanceling}
+                          className="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-black text-xs shadow-xs hover:shadow transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          <span>{isCanceling ? 'Atualizando Google Calendar...' : 'Marcar como Desmarcado na Agenda (Borda Vermelha)'}</span>
+                        </button>
+                      ) : (
+                        <div className="flex items-center space-x-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleConfirmAppointmentModal}
+                            disabled={isConfirming}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-xs shadow-xs hover:shadow transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>{isConfirming ? 'Atualizando...' : 'Confirmar Presença (Verde)'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelAppointmentModal}
+                            disabled={isCanceling}
+                            className="py-2.5 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs transition-all active:scale-[0.99] flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                            title="Desmarcar consulta no Google Calendar (Borda Vermelha)"
+                          >
+                            <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                            <span>Desmarcar</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })() : null}
 
                 {/* 1. MENSAGEM DO PACIENTE (BALÃO COM PONTA PUXADA NO CANTO SUPERIOR ESQUERDO) */}
                 <div className="space-y-1.5">

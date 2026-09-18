@@ -310,35 +310,67 @@ export function useContratos(activeModel) {
 
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiMode, setAiMode] = useState('append'); // 'append' (Adicionar ao final) ou 'replace' (Reescrever / Atualizar)
+  const [lastAiBackup, setLastAiBackup] = useState(null);
+
+  const handleUndoAi = () => {
+    if (lastAiBackup === null || !editorRef.current) return;
+    editorRef.current.innerHTML = lastAiBackup;
+    syncEditorToTemplate();
+    setLastAiBackup(null);
+  };
 
   const handleGenerateAI = async () => {
     if (!aiPrompt.trim()) return alert("Digite o que você quer que a IA gere.");
 
     setIsGeneratingAi(true);
     try {
-      const activeContent = editorRef.current?.innerText?.trim() || '';
+      const activeContent = editorRef.current?.innerHTML?.trim() || '';
+      const activeText = editorRef.current?.innerText?.trim() || '';
       const totalPages = pages.length;
       const currentPageNum = activePageIndex + 1;
 
-      const contextSection = activeContent
-        ? `\n\nCONTEÚDO ATUAL DA PÁGINA ${currentPageNum} (use como contexto para continuar ou complementar, NÃO repita o que já existe):\n---\n${activeContent}\n---`
-        : '';
+      // Guarda backup do estado atual para permitir desfazer se a usuária desejar
+      setLastAiBackup(activeContent);
 
       const pageInfo = totalPages > 1
         ? `\nO contrato possui ${totalPages} páginas no total. A nutricionista está editando a Página ${currentPageNum}.`
         : '';
 
-      const promptText = `Você é uma advogada especialista em direito da saúde e contratos de prestação de serviço nutricional.
-A nutricionista está pedindo: "${aiPrompt}"${pageInfo}${contextSection}
+      let promptText = '';
 
-Instruções:
-- O contrato já possui um cabeçalho com nome do paciente, valor, plano e dados gerais.
-- Você deve gerar APENAS O TEXTO DAS CLÁUSULAS de forma clara, direta e juridicamente segura.
-- Não crie campos como (Nome do Paciente), (Valor), etc., pois isso já estará no cabeçalho.
-- Não crie título "CONTRATO DE PRESTAÇÃO DE SERVIÇOS". Vá direto para as cláusulas.
+      if (aiMode === 'append' && activeText) {
+        promptText = `Você é uma advogada especialista em direito da saúde e contratos de prestação de serviço nutricional.
+A nutricionista deseja ADICIONAR UMA NOVA CLÁUSULA ao final da página atual do contrato.
+Instrução da nutricionista: "${aiPrompt}"${pageInfo}
+
+CLÁUSULAS JÁ EXISTENTES NESTA PÁGINA (apenas para seu contexto de coerência, NÃO repita nada disto):
+---
+${activeText}
+---
+
+Instruções obrigatórias:
+- Crie APENAS a nova cláusula ou texto complementar solicitado, sem repetir as cláusulas já existentes.
+- A cláusula deve ser juridicamente segura, clara, firme e em tom profissional.
+- Não crie título "CONTRATO DE PRESTAÇÃO DE SERVIÇOS" nem cabeçalhos com dados do paciente (já existem no topo do contrato).
+- Formate a resposta usando HTML básico adequado para o editor de texto rico (<b>, <br>, <p>, <ul>, <li>).
+- Retorne SOMENTE O HTML da nova cláusula. Sem markdown \`\`\`html.`;
+      } else {
+        // Modo 'replace' (Reescrever / Atualizar) ou se a página estiver em branco
+        const contextExisting = activeText
+          ? `\n\nCONTEÚDO ATUAL DA PÁGINA QUE DEVE SER ATUALIZADO:\n---\n${activeText}\n---\n\nInstrução específica de alteração da nutricionista:\n"${aiPrompt}"`
+          : `\n\nA nutricionista deseja criar as cláusulas do zero com base nesta instrução:\n"${aiPrompt}"`;
+
+        promptText = `Você é uma advogada especialista em direito da saúde e contratos de prestação de serviço nutricional.${pageInfo}${contextExisting}
+
+Instruções obrigatórias:
+- Se já houver conteúdo existente, PRESERVE integralmente todas as cláusulas e termos que a nutricionista NÃO pediu para alterar.
+- Modifique, atualize ou acrescente com precisão cirúrgica apenas as regras e pontos solicitados na instrução da nutricionista.
+- Não crie título "CONTRATO DE PRESTAÇÃO DE SERVIÇOS" nem campos como (Nome do Paciente), (Valor), etc., pois isso já estará no cabeçalho do documento.
 - Use linguagem acessível, mas firme em relação a direitos e deveres (atrasos, faltas, política de cancelamento).
 - Formate a resposta usando HTML básico adequado para o editor de texto rico (<b>, <br>, <p>, <ul>, <li>).
-- Retorne SOMENTE O HTML final. Sem markdown \`\`\`html.`;
+- Retorne o HTML COMPLETO da página para o editor. Sem markdown \`\`\`html.`;
+      }
 
       const response = await callGeminiWithFallback({
         prompt: promptText,
@@ -346,8 +378,15 @@ Instruções:
         jsonMode: false,
       });
 
+      const rawResult = response.text || response || '';
+      const generatedHtml = rawResult.replace(/^```html\s*/i, '').replace(/```$/i, '').trim();
+
       if (editorRef.current) {
-        editorRef.current.innerHTML = response.text || response;
+        if (aiMode === 'append' && activeContent) {
+          editorRef.current.innerHTML = `${activeContent}<br><p>${generatedHtml}</p>`;
+        } else {
+          editorRef.current.innerHTML = generatedHtml;
+        }
         syncEditorToTemplate();
       }
     } catch (error) {
@@ -375,6 +414,7 @@ Instruções:
     assinaturaBase64, setAssinaturaBase64,
     isGenerating,
     aiPrompt, setAiPrompt, isGeneratingAi, handleGenerateAI,
+    aiMode, setAiMode, lastAiBackup, handleUndoAi,
     saveTemplate, loadTemplate, handleInsertVariableBadge, syncEditorToTemplate,
     handleGerarPDF, handleGerarLink,
   };

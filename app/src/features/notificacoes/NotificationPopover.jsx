@@ -5,6 +5,8 @@ import {
   Calendar, 
   ChevronRight, 
   AlertTriangle,
+  CheckCircle2,
+  XCircle,
   X
 } from 'lucide-react';
 
@@ -13,6 +15,8 @@ export default function NotificationPopover({
   isOpen,
   onClose,
   onAction,
+  onConfirmAppointment,
+  onCancelAppointment,
   liveEnabled = true,
   onToggleLive
 }) {
@@ -136,7 +140,15 @@ export default function NotificationPopover({
             >
               {/* Ícone Categoria */}
               <div className="shrink-0 mt-0.5">
-                {notif.category === 'whatsapp' ? (
+                {notif.category === 'agenda_confirmation' ? (
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shadow-2xs border border-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  </div>
+                ) : notif.category === 'agenda_cancellation' ? (
+                  <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center font-bold text-xs shadow-2xs border border-rose-300">
+                    <XCircle className="w-4 h-4 text-rose-600" />
+                  </div>
+                ) : notif.category === 'whatsapp' ? (
                   <div className="w-8 h-8 rounded-xl bg-purple-100/70 text-purple-800 flex items-center justify-center font-bold text-xs shadow-2xs">
                     <MessageSquare className="w-4 h-4" />
                   </div>
@@ -160,7 +172,39 @@ export default function NotificationPopover({
                 <p className="text-[11px] text-slate-600 leading-snug font-normal">
                   {notif.description}
                 </p>
-                {notif.actionLabel && (
+                {notif.category === 'agenda_confirmation' && notif.event ? (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onConfirmAppointment) {
+                          onConfirmAppointment(notif.event);
+                        }
+                      }}
+                      className="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs hover:shadow-sm transition-all active:scale-95 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                      Confirmar na Agenda Agora
+                    </button>
+                  </div>
+                ) : notif.category === 'agenda_cancellation' && notif.event ? (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onCancelAppointment) {
+                          onCancelAppointment(notif.event);
+                        }
+                      }}
+                      className="inline-flex items-center px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] shadow-xs hover:shadow-sm transition-all active:scale-95 cursor-pointer"
+                    >
+                      <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                      Marcar como Desmarcado (Vermelho)
+                    </button>
+                  </div>
+                ) : notif.actionLabel && (
                   <div className="pt-1 flex items-center text-[10.5px] font-bold text-emerald-700 hover:text-emerald-900">
                     <span>{notif.actionLabel}</span>
                     <ChevronRight className="w-3 h-3 ml-0.5" />

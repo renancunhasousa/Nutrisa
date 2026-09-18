@@ -1,4 +1,4 @@
-import { fetchCalendarPage, mergeLocalEvents, updateCalendarEvent } from './services/calendar.js';
+import { fetchCalendarPage, mergeLocalEvents, updateCalendarEvent, createCalendarEvent } from './services/calendar.js';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { Calendar as CalendarIcon, RefreshCw, LogIn } from 'lucide-react';
@@ -80,6 +80,52 @@ function AgendaViewContent() {
     const savedEvent = await updateCalendarEvent(tokenInfo.access_token, calendarId, updatedEvent.id, updatedEvent);
     setEvents(prev => prev.map(e => (e.id === savedEvent.id ? savedEvent : e)));
     setSelectedEvent(savedEvent);
+  };
+
+  // Criar novo agendamento no Google Calendar
+  const handleCreateEvent = async (newEvent) => {
+    if (!tokenInfo?.access_token) throw new Error('Conecte o Google Calendar novamente para criar eventos.');
+    const createdEvent = await createCalendarEvent(tokenInfo.access_token, calendarId, newEvent);
+    setEvents(prev => [...prev, createdEvent]);
+    setSelectedEvent(null);
+  };
+
+  // Abrir modal de criação para data e horário específicos
+  const handleSlotClick = ({ date, hour = 9 }) => {
+    const start = new Date(date);
+    start.setHours(hour, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(hour + 1, 0, 0, 0);
+
+    setSelectedEvent({
+      isNew: true,
+      summary: '',
+      description: '',
+      start: { dateTime: start.toISOString() },
+      end: { dateTime: end.toISOString() },
+      categoryKey: 'online',
+      statusKey: 'a_confirmar'
+    });
+  };
+
+  // Abrir modal de criação genérico (ex: pelo botão Novo Agendamento)
+  const handleNewAppointment = () => {
+    const now = new Date();
+    const start = new Date(currentDate || now);
+    const nextHour = now.getHours() + 1;
+    start.setHours(nextHour >= 6 && nextHour <= 20 ? nextHour : 9, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(start.getHours() + 1, 0, 0, 0);
+
+    setSelectedEvent({
+      isNew: true,
+      summary: '',
+      description: '',
+      start: { dateTime: start.toISOString() },
+      end: { dateTime: end.toISOString() },
+      categoryKey: 'online',
+      statusKey: 'a_confirmar'
+    });
   };
 
   const login = useGoogleLogin({
@@ -212,7 +258,7 @@ function AgendaViewContent() {
           <WebDietSidebar 
             calendarName="Calendário Principal"
             onDisconnect={handleDisconnect}
-            onNewEvent={() => alert('Para agendar nova consulta, utilize a conversa da NutriIsa ou adicione no Google Calendar.')}
+            onNewAppointment={handleNewAppointment}
             blockedDates={blockedDates}
             onOpenBlockModal={() => setIsBlockModalOpen(true)}
             events={events}
@@ -226,6 +272,8 @@ function AgendaViewContent() {
             events={events}
             loading={loading}
             onSelectEvent={(event) => setSelectedEvent(event)}
+            onSlotClick={handleSlotClick}
+            onNewAppointment={handleNewAppointment}
             blockedDates={blockedDates}
             onToggleBlockDate={toggleBlockDate}
           />
@@ -247,6 +295,7 @@ function AgendaViewContent() {
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           onUpdateEvent={handleUpdateEvent}
+          onCreateEvent={handleCreateEvent}
           meetLink={meetLink}
           onSaveMeetLink={handleSaveMeetLink}
         />

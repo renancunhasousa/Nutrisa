@@ -3,7 +3,7 @@ import { defaultClauses } from '../domain/defaultClauses';
 import { SignaturePad } from './SignaturePad';
 import { ContratoPrintLayout } from './ContratoPrintLayout';
 import { KEY_CONTRACTS_CONFIG, KEY_CONTRACTS_PLAN_HISTORY } from '../../../config/storageKeys';
-import { FileSignature, Link as LinkIcon, Download, X, Plus, Trash2 } from 'lucide-react';
+import { FileSignature, Link as LinkIcon, X, Plus, Trash2, Printer } from 'lucide-react';
 
 const PLAN_OPTIONS = [
   { id: 'essence', label: 'Essence' },
@@ -269,21 +269,17 @@ export function ContratoGenerator({ paciente, onClose, onGenerated }) {
       </div>
 
       {/* Footer / Actions */}
-      <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 rounded-b-xl">
+      <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end items-center gap-3 rounded-b-xl">
         <button 
           onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 transition-colors"
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center shadow-2xs active:scale-95 cursor-pointer"
         >
           Cancelar
         </button>
         <button 
           onClick={handleGerarPDF}
           disabled={isGenerating || (!assinaturaBase64 && !showSignaturePad)}
-          className={`px-5 py-2 text-sm font-bold rounded-lg shadow-md flex items-center transition-colors ${
-            isGenerating || (!assinaturaBase64 && !showSignaturePad)
-            ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-            : 'bg-emerald-600 text-white hover:bg-emerald-700'
-          }`}
+          className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           {isGenerating ? (
             <span className="flex items-center">
@@ -295,8 +291,8 @@ export function ContratoGenerator({ paciente, onClose, onGenerated }) {
             </span>
           ) : (
             <>
-              <Download className="w-4 h-4 mr-1.5" />
-              Gerar PDF Final
+              <Printer className="w-4 h-4 mr-1.5" />
+              <span>Imprimir / Salvar em PDF</span>
             </>
           )}
         </button>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Search, Lock, Calendar, Clock, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Lock, Calendar, Clock, X, Plus } from 'lucide-react';
 import { colorMapper } from '../domain/calendarMapper.js';
 
 const START_HOUR = 6;
@@ -27,6 +27,8 @@ export default function WebDietWeekGrid({
   onDateChange,
   events = [],
   onSelectEvent,
+  onSlotClick,
+  onNewAppointment,
   blockedDates = [],
 }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -285,6 +287,18 @@ export default function WebDietWeekGrid({
             })}
           </div>
 
+          {/* Botão Novo Agendamento */}
+          {onNewAppointment && (
+            <button
+              type="button"
+              onClick={onNewAppointment}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm shadow-emerald-600/20 flex items-center space-x-1.5 cursor-pointer active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span> Agendar</span>
+            </button>
+          )}
+
           {/* Campo de Busca Inteligente com Localização e Salto */}
           <div ref={searchContainerRef} className="relative flex items-center">
             <input
@@ -440,8 +454,27 @@ export default function WebDietWeekGrid({
                       <div 
                         key={idx}
                         style={{ height: `${HOUR_HEIGHT}px` }}
-                        className={`border-b ${day.isBlocked ? 'border-slate-700/50' : 'border-slate-100/90 hover:bg-slate-50/50'} transition-colors`}
-                      />
+                        onClick={() => {
+                          if (!day.isBlocked && onSlotClick) {
+                            onSlotClick({ date: day.date, hour });
+                          }
+                        }}
+                        className={`border-b ${
+                          day.isBlocked 
+                            ? 'border-slate-700/50 cursor-not-allowed' 
+                            : 'border-slate-100/90 hover:bg-emerald-50/50 cursor-pointer group/slot relative'
+                        } transition-colors`}
+                        title={!day.isBlocked ? `Clique para agendar em ${day.label} às ${String(hour).padStart(2, '0')}:00` : undefined}
+                      >
+                        {!day.isBlocked && (
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity pointer-events-none">
+                            <span className="text-[10px] font-bold text-emerald-700 bg-white/95 shadow-xs border border-emerald-200 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                              <Plus className="w-2.5 h-2.5 text-emerald-600" />
+                              <span>Agendar {String(hour).padStart(2, '0')}:00</span>
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     ))}
 
                     {/* Overlay Escurecido e Bloqueio de Interações */}
@@ -477,7 +510,10 @@ export default function WebDietWeekGrid({
                       return (
                         <div
                           key={event.id}
-                          onClick={() => onSelectEvent && onSelectEvent(event)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectEvent && onSelectEvent(event);
+                          }}
                           style={{
                             top: `${top}px`,
                             height: `${height}px`,
@@ -531,15 +567,21 @@ export default function WebDietWeekGrid({
               return (
                 <div
                   key={idx}
-                  className={`min-h-[95px] p-1.5 rounded-xl border flex flex-col transition-all relative ${
+                  onClick={() => {
+                    if (!dayItem.isBlocked && onSlotClick) {
+                      onSlotClick({ date: dayItem.date, hour: 9 });
+                    }
+                  }}
+                  className={`min-h-[95px] p-1.5 rounded-xl border flex flex-col transition-all relative group/monthcell ${
                     dayItem.isBlocked
-                      ? 'bg-slate-900 border-slate-700 text-slate-400'
+                      ? 'bg-slate-900 border-slate-700 text-slate-400 cursor-not-allowed'
                       : dayItem.isToday
-                      ? 'bg-emerald-50 border-emerald-300 shadow-xs'
+                      ? 'bg-emerald-50 border-emerald-300 shadow-xs cursor-pointer hover:bg-emerald-100/30'
                       : dayItem.isCurrentMonth
-                      ? 'bg-white border-slate-200/80 hover:border-slate-300'
-                      : 'bg-slate-50/50 border-slate-100 text-slate-400 opacity-60'
+                      ? 'bg-white border-slate-200/80 hover:border-emerald-400 hover:shadow-2xs cursor-pointer'
+                      : 'bg-slate-50/50 border-slate-100 text-slate-400 opacity-60 hover:opacity-100 cursor-pointer'
                   }`}
+                  title={!dayItem.isBlocked ? 'Clique para agendar consulta neste dia' : undefined}
                 >
                   {/* Cabeçalho do dia */}
                   <div className="flex items-center justify-between mb-1">
@@ -548,6 +590,12 @@ export default function WebDietWeekGrid({
                     }`}>
                       {dayItem.dayNumber}
                     </span>
+                    {!dayItem.isBlocked && (
+                      <span className="opacity-0 group-hover/monthcell:opacity-100 text-[10px] text-emerald-600 font-bold transition-opacity flex items-center space-x-0.5">
+                        <Plus className="w-2.5 h-2.5" />
+                        <span>Agendar</span>
+                      </span>
+                    )}
                     {dayItem.isBlocked && (
                       <span className="flex items-center space-x-0.5 text-[9px] text-rose-400 font-bold uppercase">
                         <Lock className="w-2.5 h-2.5 inline" />
@@ -566,7 +614,10 @@ export default function WebDietWeekGrid({
                       return (
                         <div
                           key={event.id}
-                          onClick={() => !dayItem.isBlocked && onSelectEvent && onSelectEvent(event)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!dayItem.isBlocked && onSelectEvent) onSelectEvent(event);
+                          }}
                           style={{ backgroundColor: category.hexBg }}
                           className={`text-[10px] text-white font-medium px-1.5 py-0.5 rounded leading-tight truncate shadow-2xs ${
                             isHighlighted ? 'ring-2 ring-emerald-300 ring-offset-1 scale-105 font-bold animate-pulse' : ''

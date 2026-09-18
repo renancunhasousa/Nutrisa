@@ -1,12 +1,23 @@
 import { getAiStatus, getAiAccessToken, setAiAccessToken } from '../../shared/services/aiClient.js';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DEFAULT_NUTRITIONIST } from './defaultProfile.js';
 import { fetchConversations } from '../atendimento/services/conversations.js';
+import { fetchCalendarPage } from '../agenda/services/calendar.js';
+import { 
+  matchPatientNameToEvents, 
+  detectConfirmationIntent, 
+  detectCancellationIntent,
+  confirmAppointmentEvent,
+  cancelAppointmentEvent
+} from '../agenda/services/appointmentMatcher.js';
 import {
   KEY_NUTRITIONIST,
   KEY_SELECTED_MODEL,
   KEY_LIVE_NOTIFS,
+  KEY_GOOGLE_TOKEN,
 } from '../../config/storageKeys.js';
+import { GOOGLE_CALENDAR_ID } from '../../config/env.js';
+
 export function useAppSettings() {
   const [appNotification, setAppNotification] = useState(null);
   const [nutritionist, setNutritionist] = useState(() => {
@@ -79,7 +90,50 @@ export function useAppSettings() {
     });
   };
 
-  // Efeito para checar alertas de Mensagens Pendentes e Virada de Mês
+  const showAppNotification = useCallback((message, type = 'info', duration = 6000) => {
+    setAppNotification({ message, type });
+    if (duration > 0) {
+      setTimeout(() => setAppNotification(null), duration);
+    }
+  }, []);
+
+  const handleConfirmAppointment = useCallback(async (event) => {
+    try {
+      const savedToken = localStorage.getItem(KEY_GOOGLE_TOKEN);
+      const tokenInfo = savedToken ? JSON.parse(savedToken) : null;
+      if (!tokenInfo?.access_token) {
+        alert('Para confirmar este agendamento, acesse a aba "Agenda" e conecte sua conta Google Calendar.');
+        return false;
+      }
+      await confirmAppointmentEvent(tokenInfo.access_token, GOOGLE_CALENDAR_ID, event);
+      showAppNotification(`Consulta de ${event.summary} marcada como confirmada no Google Calendar!`, 'success');
+      setNotificationsList(prev => prev.filter(n => n.event?.id !== event.id));
+      return true;
+    } catch (err) {
+      alert('Erro ao confirmar evento na agenda: ' + err.message);
+      return false;
+    }
+  }, [showAppNotification]);
+
+  const handleCancelAppointment = useCallback(async (event) => {
+    try {
+      const savedToken = localStorage.getItem(KEY_GOOGLE_TOKEN);
+      const tokenInfo = savedToken ? JSON.parse(savedToken) : null;
+      if (!tokenInfo?.access_token) {
+        alert('Para desmarcar este agendamento, acesse a aba "Agenda" e conecte sua conta Google Calendar.');
+        return false;
+      }
+      await cancelAppointmentEvent(tokenInfo.access_token, GOOGLE_CALENDAR_ID, event);
+      showAppNotification(`Consulta de ${event.summary} marcada como [DESMARCADO] no Google Calendar!`, 'warning');
+      setNotificationsList(prev => prev.filter(n => n.event?.id !== event.id));
+      return true;
+    } catch (err) {
+      alert('Erro ao desmarcar evento na agenda: ' + err.message);
+      return false;
+    }
+  }, [showAppNotification]);
+
+  // Efeito para checar alertas de Mensagens Pendentes, Confirmações/Desmarcações e Virada de Mês
   useEffect(() => {
     async function checkSystemNotifications() {
       const items = [];
@@ -101,11 +155,87 @@ export function useAppSettings() {
         });
       }
 
-      // 2. Alerta de Mensagens Pendentes no Supabase (se o modo Ao Vivo estiver ativado)
+      // 2. Alerta de Mensagens e Confirmações do WhatsApp
       if (liveNotificationsEnabled) {
         try {
-          const convs = await fetchConversations({ limit: 100 });
+          // Checar se há eventos da Google Agenda para cruzar
+          let calendarEvents = [];
+          const savedToken = localStorage.getItem(KEY_GOOGLE_TOKEN);
+          let tokenInfo = null;
+          try {
+            tokenInfo = savedToken ? JSON.parse(savedToken) : null;
+          } catch {}
+
+          if (tokenInfo?.access_token && (!tokenInfo.expires_at || Date.now() < tokenInfo.expires_at)) {
+            try {
+              const startWindow = new Date();
+              startWindow.setHours(0, 0, 0, 0);
+              const endWindow = new Date(startWindow.getTime() + 8 * 24 * 60 * 60 * 1000);
+              calendarEvents = await fetchCalendarPage(tokenInfo.access_token, GOOGLE_CALENDAR_ID, startWindow, endWindow);
+            } catch (calErr) {
+              console.warn('Não foi possível buscar eventos da agenda para notificações:', calErr);
+            }
+          }
+
+          const convs = await fetchConversations({ limit: 40 });
           if (Array.isArray(convs)) {
+            // A. Confirmações e Desmarcações de Agendamento detectadas
+            if (calendarEvents.length > 0) {
+              const processedEvtIds = new Set();
+              for (const conv of convs) {
+                const text = conv.mensagem_texto || '';
+                const patientName = conv.nome_paciente || conv.nome_contato;
+
+                // 1. Checar se é cancelamento / remarcação
+                if (detectCancellationIntent(text)) {
+                  const matchingEvt = matchPatientNameToEvents(patientName, calendarEvents, { allowConfirmed: true });
+                  if (matchingEvt && !processedEvtIds.has(matchingEvt.id)) {
+                    processedEvtIds.add(matchingEvt.id);
+                    const evtDate = new Date(matchingEvt.start.dateTime || matchingEvt.start.date);
+                    const formattedDate = !isNaN(evtDate.getTime()) 
+                      ? evtDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                      : 'Data a definir';
+
+                    items.push({
+                      id: `cancel_${matchingEvt.id}`,
+                      category: 'agenda_cancellation',
+                      type: 'danger',
+                      title: `Desmarcação: ${patientName}`,
+                      description: `Paciente avisou no WhatsApp: "${text.length > 55 ? text.slice(0, 55) + '...' : text}". Consulta em ${formattedDate} (${matchingEvt.summary}) precisa ser liberada/remarcada.`,
+                      actionLabel: 'Marcar Desmarcado (Vermelho)',
+                      event: matchingEvt,
+                      targetMode: 'agenda',
+                      timeAgo: 'WhatsApp'
+                    });
+                  }
+                }
+                // 2. Checar se é confirmação afirmativa
+                else if (detectConfirmationIntent(text)) {
+                  const matchingEvt = matchPatientNameToEvents(patientName, calendarEvents, { allowConfirmed: false });
+                  if (matchingEvt && !processedEvtIds.has(matchingEvt.id)) {
+                    processedEvtIds.add(matchingEvt.id);
+                    const evtDate = new Date(matchingEvt.start.dateTime || matchingEvt.start.date);
+                    const formattedDate = !isNaN(evtDate.getTime()) 
+                      ? evtDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                      : 'Data a definir';
+
+                    items.push({
+                      id: `confirm_${matchingEvt.id}`,
+                      category: 'agenda_confirmation',
+                      type: 'success',
+                      title: `Confirmação: ${patientName}`,
+                      description: `Paciente confirmou no WhatsApp: "${text.length > 55 ? text.slice(0, 55) + '...' : text}". Consulta em ${formattedDate} está à confirmar.`,
+                      actionLabel: 'Confirmar na Agenda',
+                      event: matchingEvt,
+                      targetMode: 'agenda',
+                      timeAgo: 'WhatsApp'
+                    });
+                  }
+                }
+              }
+            }
+
+            // B. Mensagens Pendentes no Supabase
             const pending = convs.filter(c => !c.respondida && c.categoria !== 'Cortesia / Encerramento');
             if (pending.length > 0) {
               items.push({
@@ -121,7 +251,7 @@ export function useAppSettings() {
             }
           }
         } catch (err) {
-          console.warn('Não foi possível verificar mensagens pendentes para notificações:', err);
+          console.warn('Não foi possível verificar mensagens para notificações:', err);
         }
       }
 
@@ -133,12 +263,28 @@ export function useAppSettings() {
     return () => clearInterval(interval);
   }, [liveNotificationsEnabled]);
 
-  const showAppNotification = (message, type = 'info', duration = 6000) => {
-    setAppNotification({ message, type });
-    if (duration > 0) {
-      setTimeout(() => setAppNotification(null), duration);
-    }
+  return {
+    availableModels,
+    aiAccessToken,
+    updateAiAccessToken,
+    nutritionist,
+    setNutritionist,
+    activeModal,
+    setActiveModal,
+    selectedModel,
+    setSelectedModel,
+    geminiStatus,
+    apiTestDetails,
+    testApiConnection,
+    isNotificationOpen,
+    setIsNotificationOpen,
+    notificationsList,
+    liveNotificationsEnabled,
+    toggleLiveNotifications,
+    appNotification,
+    setAppNotification,
+    showAppNotification,
+    handleConfirmAppointment,
+    handleCancelAppointment
   };
-
-return { availableModels, aiAccessToken, updateAiAccessToken, nutritionist, setNutritionist, activeModal, setActiveModal, selectedModel, setSelectedModel, geminiStatus, apiTestDetails, testApiConnection, isNotificationOpen, setIsNotificationOpen, notificationsList, liveNotificationsEnabled, toggleLiveNotifications, appNotification, setAppNotification, showAppNotification };
 }

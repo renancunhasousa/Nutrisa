@@ -2,7 +2,7 @@ import React from 'react';
 import { useContratos } from './hooks/useContratos';
 import { SignaturePad } from './components/SignaturePad';
 import { ContratoPrintLayout } from './components/ContratoPrintLayout';
-import { Plus, Trash2, CheckCircle, List, ArrowRight, ArrowLeft, Save, FileSignature, Link as LinkIcon, Download, Sparkles, Bot, FileText, ChevronRight, PenTool, Hash, Edit3, X, FilePlus } from 'lucide-react';
+import { Plus, Trash2, ArrowRight, ArrowLeft, Save, FileSignature, Link as LinkIcon, Sparkles, Bot, FileText, X, FilePlus, Printer, RotateCcw, PlusCircle, RefreshCw } from 'lucide-react';
 
 const PLAN_OPTIONS = [
   { id: 'essence', label: 'Essence' },
@@ -17,7 +17,7 @@ export default function ContratosPage({ activeModel }) {
 
   return (
     <>
-    <div className="animate-fadeIn max-w-7xl mx-auto py-6 print:hidden">
+    <div className="animate-fadeIn max-w-7xl mx-auto print:hidden">
       {/* STEPPER PROGRESS BAR */}
       <div className="flex items-center justify-center max-w-4xl mx-auto my-6 print:hidden">
         <div onClick={() => setActiveTab('input')} className="flex items-center space-x-2.5 cursor-pointer group">
@@ -118,7 +118,10 @@ export default function ContratosPage({ activeModel }) {
           </div>
 
           <div className="flex justify-end pt-4 border-t border-slate-100">
-            <button onClick={() => setActiveTab('template')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-full font-bold text-xs tracking-wider flex items-center gap-2 shadow-sm transition-all active:scale-95">
+            <button 
+              onClick={() => setActiveTab('template')} 
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95 cursor-pointer"
+            >
               <span>Avançar para Modelos</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -147,28 +150,84 @@ export default function ContratosPage({ activeModel }) {
 
           <div className="flex flex-col h-[600px] max-w-5xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
             {/* NOVO ASSISTENTE DE IA PARA CLÁUSULAS */}
-            <div className="bg-emerald-50 border-b border-emerald-100 p-4 shrink-0">
-              <label className="flex items-center text-emerald-800 font-extrabold text-[11px] uppercase tracking-wider mb-2">
-                <Bot className="w-4 h-4 mr-1.5" /> Assistente Jurídico (IA)
-              </label>
-              <div className="flex gap-3">
+            <div className="bg-slate-50 border-b border-slate-200 p-4 shrink-0 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="flex items-center text-slate-800 font-extrabold text-[11px] uppercase tracking-wider">
+                  <Bot className="w-4 h-4 mr-1.5 text-emerald-600" /> Assistente Jurídico (IA)
+                </label>
+
+                {/* Seletores de Modo: Adicionar vs Atualizar */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => ctx.setAiMode('append')}
+                    className={`text-[11px] sm:text-xs px-3 py-1 rounded-full font-bold transition-all flex items-center border active:scale-95 whitespace-nowrap cursor-pointer ${
+                      ctx.aiMode === 'append'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-2xs'
+                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700'
+                    }`}
+                    title="Cria uma nova cláusula e adiciona ao final da página sem mexer no texto existente"
+                  >
+                    <PlusCircle className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${ctx.aiMode === 'append' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                    <span>Adicionar ao final</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => ctx.setAiMode('replace')}
+                    className={`text-[11px] sm:text-xs px-3 py-1 rounded-full font-bold transition-all flex items-center border active:scale-95 whitespace-nowrap cursor-pointer ${
+                      ctx.aiMode === 'replace'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-2xs'
+                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700'
+                    }`}
+                    title="A IA lê o conteúdo da página, preserva as cláusulas não mencionadas e atualiza o que você pedir"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${ctx.aiMode === 'replace' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                    <span>Atualizar / Reescrever</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 items-center">
                 <textarea 
                   value={ctx.aiPrompt} 
                   onChange={e => ctx.setAiPrompt(e.target.value)}
-                  placeholder="Ex: Crie uma cláusula informando que faltas sem aviso prévio de 24h serão cobradas integralmente..."
-                  className="flex-1 bg-white border border-emerald-200 rounded-xl text-sm p-3 focus:outline-none focus:border-emerald-500 resize-none shadow-sm h-14 font-medium text-slate-700"
+                  placeholder={
+                    ctx.aiMode === 'append'
+                      ? "Ex: Crie uma cláusula informando que faltas sem aviso prévio de 24h serão cobradas integralmente..."
+                      : "Ex: Atualize a cláusula de tolerância para 15 minutos e mantenha todas as demais cláusulas..."
+                  }
+                  className="flex-1 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm p-2.5 focus:outline-none focus:border-emerald-500 resize-none shadow-2xs h-12 font-medium text-slate-700"
                 ></textarea>
-                <button 
-                  onClick={ctx.handleGenerateAI}
-                  disabled={ctx.isGeneratingAi}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-6 rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center whitespace-nowrap active:scale-95"
-                >
-                  {ctx.isGeneratingAi ? (
-                    <span className="flex items-center"><Sparkles className="w-4 h-4 mr-1.5 animate-spin" /> Gerando...</span>
-                  ) : (
-                    <span className="flex items-center"><Sparkles className="w-4 h-4 mr-1.5" /> Gerar Cláusulas</span>
+                
+                <div className="flex flex-col sm:flex-row gap-1.5 shrink-0">
+                  {ctx.lastAiBackup !== null && (
+                    <button
+                      type="button"
+                      onClick={ctx.handleUndoAi}
+                      title="Desfazer a última alteração feita pela IA"
+                      className="px-3 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-2xs flex items-center justify-center transition-all cursor-pointer active:scale-95"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                      <span>Desfazer IA</span>
+                    </button>
                   )}
-                </button>
+
+                  <button 
+                    onClick={ctx.handleGenerateAI}
+                    disabled={ctx.isGeneratingAi}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 sm:py-2.5 rounded-xl shadow-xs transition-all disabled:opacity-50 flex items-center justify-center whitespace-nowrap active:scale-95 cursor-pointer"
+                  >
+                    {ctx.isGeneratingAi ? (
+                      <span className="flex items-center"><Sparkles className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Processando...</span>
+                    ) : (
+                      <span className="flex items-center">
+                        <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                        {ctx.aiMode === 'append' ? 'Adicionar Cláusula' : 'Atualizar com IA'}
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -229,9 +288,19 @@ export default function ContratosPage({ activeModel }) {
               </span>
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button onClick={() => setActiveTab('signature')} className="px-8 py-3 rounded-full font-bold text-xs text-white bg-emerald-600 flex items-center justify-center gap-2 hover:bg-emerald-500 shadow-sm transition-all active:scale-95">
-                Ir para Assinatura <ArrowRight size={14}/>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+              <button 
+                onClick={() => setActiveTab('input')} 
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center shadow-2xs active:scale-95 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Voltar aos Dados
+              </button>
+              <button 
+                onClick={() => setActiveTab('signature')} 
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95 cursor-pointer"
+              >
+                <span>Ir para Assinatura</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -272,8 +341,17 @@ export default function ContratosPage({ activeModel }) {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100">
-            <button onClick={() => setActiveTab('result')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-full font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95">
+          <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+            <button 
+              onClick={() => setActiveTab('template')} 
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center shadow-2xs active:scale-95 cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Voltar às Cláusulas
+            </button>
+            <button 
+              onClick={() => setActiveTab('result')} 
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95 cursor-pointer"
+            >
               <span>Gerar Contrato Final</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -283,17 +361,34 @@ export default function ContratosPage({ activeModel }) {
 
       {/* ABA 4: PRÉVIA E IMPRESSÃO */}
       {activeTab === 'result' && (
-        <div className="animate-fadeIn max-w-[210mm] mx-auto space-y-6">
-          <div className="flex justify-between items-center mb-6 print:hidden">
-            <button onClick={() => setActiveTab('signature')} className="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-6 py-2.5 rounded-full font-bold text-xs flex items-center shadow-sm transition-all active:scale-95">
-              <ArrowLeft className="w-4 h-4 mr-1.5" /> Editar Contrato
-            </button>
-            <button onClick={ctx.handleGerarPDF} disabled={ctx.isGenerating} className="bg-emerald-600 text-white hover:bg-emerald-500 px-8 py-2.5 rounded-full font-bold text-xs flex items-center shadow-sm transition-all active:scale-95 disabled:opacity-50">
-              <Download className="w-4 h-4 mr-2" /> {ctx.isGenerating ? 'Gerando...' : 'Imprimir / Salvar PDF'}
-            </button>
+        <div className="animate-fadeIn max-w-4xl mx-auto space-y-6">
+          {/* Top Toolbar (Hidden on Print) - CLEAN LUXURY SAAS STYLE */}
+          <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap justify-between items-center gap-4 print:hidden max-w-4xl mx-auto mb-6">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setActiveTab('signature')}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center shadow-2xs active:scale-95 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Editar Contrato
+              </button>
+              <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+                Contrato estruturado e pronto para envio ao paciente ou impressão em PDF.
+              </span>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={ctx.handleGerarPDF}
+                disabled={ctx.isGenerating}
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <Printer className="w-4 h-4 mr-1.5" />
+                <span>{ctx.isGenerating ? 'Gerando...' : 'Imprimir / Salvar em PDF'}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="print:hidden">
+          <div className="print:hidden w-full">
             <ContratoPrintLayout 
               paciente={ctx.patientData}
               plano={ctx.selectedPlan}

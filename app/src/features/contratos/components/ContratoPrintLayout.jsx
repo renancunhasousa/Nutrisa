@@ -39,7 +39,7 @@ export function ContratoPrintLayout({ paciente, plano, valor, formaPagamento, co
   }
 
   return (
-    <div className="flex flex-col space-y-8 print:block print:space-y-0">
+    <div className="w-full space-y-8 print:space-y-0">
       {pageContents.map((chunk, index) => {
         const isLastPage = index === pageContents.length - 1;
         const pageNumber = index + 1;
@@ -49,7 +49,7 @@ export function ContratoPrintLayout({ paciente, plano, valor, formaPagamento, co
           <div key={index} className={`
             a4-print-page font-sans text-[12px] leading-relaxed
             ${preview
-              ? 'block bg-white border border-slate-300 rounded-xl shadow-lg p-10 md:p-14 max-w-[210mm] mx-auto mb-8 min-h-[297mm] flex flex-col'
+              ? 'w-full bg-white border border-slate-300 rounded-none md:rounded-xl shadow-lg p-6 md:p-10 max-w-4xl mx-auto mb-8 min-h-[297mm] flex flex-col print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none'
               : 'hidden print:block print:bg-white'
             }
           `}>

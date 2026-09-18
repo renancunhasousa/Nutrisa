@@ -4,15 +4,17 @@ import { colorMapper } from '../domain/calendarMapper.js';
 
 export default function EventDetailModal(props) {
   if (!props.event) return null;
-  return <EventDetailForm key={props.event.id} {...props} />;
+  return <EventDetailForm key={props.event.id || 'new-event'} {...props} />;
 }
 function EventDetailForm({ 
   event, 
   onClose, 
   onUpdateEvent, 
+  onCreateEvent,
   meetLink = 'https://meet.google.com/bela-consultas',
   onSaveMeetLink
 }) {
+  const isNew = Boolean(event.isNew || !event.id);
 
   // Categoria inicial detectada
   const initialCategory = colorMapper.getCategoryByEvent(event);
@@ -33,7 +35,7 @@ function EventDetailForm({
   const activeCategory = colorMapper.categories[selectedCategoryKey] || initialCategory;
 
   // Estados de edição
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(isNew);
   const [summary, setSummary] = useState(event.summary || '');
   const [description, setDescription] = useState(event.description || '');
   
@@ -120,6 +122,26 @@ function EventDetailForm({
         'teste': '8'
       };
 
+      if (isNew) {
+        if (!cleanSummary) {
+          throw new Error('Por favor, informe o nome do paciente / consulta.');
+        }
+        const createPayload = {
+          summary: finalSummary,
+          description: description,
+          categoryKey: selectedCategoryKey,
+          statusKey: statusKey,
+          colorId: invertedColorIds[selectedCategoryKey] || '7',
+          start: { dateTime: newStart.toISOString() },
+          end: { dateTime: newEnd.toISOString() }
+        };
+        if (onCreateEvent) {
+          await onCreateEvent(createPayload);
+        }
+        onClose();
+        return;
+      }
+
       const updatedPayload = {
         ...event,
         statusKey: statusKey,
@@ -154,7 +176,7 @@ function EventDetailForm({
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-scale-up">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-scale-up">
         
         {/* Header com a categoria do WebDiet */}
         <div 
@@ -164,7 +186,7 @@ function EventDetailForm({
           <div className="relative z-10 space-y-1 max-w-[85%]">
             <div className="flex items-center space-x-2">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-white/25 uppercase tracking-wider">
-                {activeCategory.label}
+                {isNew ? 'Novo Agendamento' : activeCategory.label}
               </span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
                 statusKey === 'desmarcado' 
@@ -180,6 +202,7 @@ function EventDetailForm({
             {isEditing ? (
               <input
                 type="text"
+                autoFocus={isNew}
                 value={summary}
                 onChange={e => setSummary(e.target.value)}
                 placeholder="Nome do Paciente / Consulta"
@@ -455,7 +478,7 @@ function EventDetailForm({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => isNew ? onClose() : setIsEditing(false)}
                   className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar
@@ -467,7 +490,7 @@ function EventDetailForm({
                   className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
+                  <span>{saving ? 'Salvando...' : isNew ? 'Criar Agendamento' : 'Salvar Alterações'}</span>
                 </button>
               </div>
             ) : (
@@ -486,13 +509,15 @@ function EventDetailForm({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer"
-            >
-              Fechar
-            </button>
+            {!isNew && !isEditing && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Fechar
+              </button>
+            )}
           </div>
 
         </div>

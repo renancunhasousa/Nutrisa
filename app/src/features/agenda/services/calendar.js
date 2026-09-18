@@ -29,3 +29,26 @@ export async function updateCalendarEvent(accessToken, calendarId, eventId, even
   if (!response.ok) throw Object.assign(new Error('Falha ao atualizar o evento no Google Calendar (' + response.status + ').'), { status: response.status });
   return response.json();
 }
+
+export async function createCalendarEvent(accessToken, calendarId, event, fetchImpl = fetch) {
+  const body = {
+    summary: event.summary || '',
+    description: event.description || '',
+    start: event.start,
+    end: event.end,
+  };
+  if (event.colorId) {
+    body.colorId = event.colorId;
+  }
+  const response = await fetchImpl('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calendarId) + '/events', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw Object.assign(new Error(errorData?.error?.message || 'Falha ao criar o evento no Google Calendar (' + response.status + ').'), { status: response.status });
+  }
+  return response.json();
+}
+

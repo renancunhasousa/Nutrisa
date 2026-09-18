@@ -9,83 +9,56 @@ export default function Navbar({ settings, appMode, setAppMode }) {
 const { nutritionist, activeModal, setActiveModal, isNotificationOpen, setIsNotificationOpen, notificationsList, liveNotificationsEnabled, toggleLiveNotifications } = settings;
 return (<>      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-teal-900/5 sticky top-0 z-40 print:hidden transition-all shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-6">
           
           {/* 1. Left Section: Bigger Brand Logo + Navigation Tabs */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
             
             {/* Brand Logo */}
             <div className="flex items-center shrink-0 py-1">
               <img 
                 src={logoPlatform} 
                 alt="NutrIsa" 
-                className="h-14 md:h-16 w-auto object-contain transition-all hover:scale-105 drop-shadow-2xs" 
+                className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto object-contain transition-all hover:scale-105 drop-shadow-2xs" 
               />
             </div>
 
             {/* Navigation Tabs aligned to the left */}
-            <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/70 shadow-2xs">
-              <button
-                onClick={() => setAppMode('laudo')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                  appMode === 'laudo' 
-                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                <Activity className="w-3.5 h-3.5" />
-                <span>Avaliação</span>
-              </button>
-              <button
-                onClick={() => setAppMode('anamnese')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                  appMode === 'anamnese' 
-                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Anamnese</span>
-              </button>
-              <button
-                onClick={() => setAppMode('dashboard')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                  appMode === 'dashboard' 
-                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Atendimento</span>
-              </button>
-              <button
-                onClick={() => setAppMode('agenda')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                  appMode === 'agenda' 
-                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Agenda</span>
-              </button>
-              <button
-                onClick={() => setAppMode('contratos')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                  appMode === 'contratos' 
-                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                <FileSignature className="w-3.5 h-3.5" />
-                <span>Contratos</span>
-              </button>
+            <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/70 shadow-2xs gap-0.5 sm:gap-1">
+              {[
+                { id: 'laudo', label: 'Avaliação', icon: Activity },
+                { id: 'anamnese', label: 'Anamnese', icon: FileText },
+                { id: 'dashboard', label: 'Atendimento', icon: MessageSquare },
+                { id: 'agenda', label: 'Agenda', icon: Calendar },
+                { id: 'contratos', label: 'Contratos', icon: FileSignature },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = appMode === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setAppMode(tab.id)}
+                    title={tab.label}
+                    aria-label={tab.label}
+                    className={`group relative px-2.5 py-1.5 lg:px-3.5 lg:py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ease-out flex items-center justify-center cursor-pointer ${
+                      isActive 
+                        ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 border border-transparent'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 lg:w-3.5 lg:h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                    <span className="inline-block max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-out group-hover:max-w-28 group-hover:opacity-100 group-hover:ml-1.5 lg:max-w-none lg:opacity-100 lg:ml-1.5">
+                      {tab.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-
           </div>
 
           {/* 2. Right Section: Quick Action Buttons & Simple User Profile */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
             
             {/* Botão de Notificações com Popover Inteligente */}
             <div className="relative">
@@ -114,6 +87,8 @@ return (<>      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
                 liveEnabled={liveNotificationsEnabled}
                 onToggleLive={toggleLiveNotifications}
                 onClose={() => setIsNotificationOpen(false)}
+                onConfirmAppointment={settings.handleConfirmAppointment}
+                onCancelAppointment={settings.handleCancelAppointment}
                 onAction={(notif) => {
                   if (notif.targetMode) {
                     setAppMode(notif.targetMode);

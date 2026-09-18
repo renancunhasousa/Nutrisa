@@ -34,6 +34,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 | Calendário e ajustes locais | `app/src/features/agenda` |
 | Perfil e configuração da IA | `app/src/features/configuracoes` |
 | Alertas do consultório | `app/src/features/notificacoes` |
+| Contratos e termos de adesão | `app/src/features/contratos` |
 | Comunicação com a IA no servidor | `server/ai` e `api/ai.js` |
 | Estilos globais e impressão | `app/src/styles` |
 
@@ -43,7 +44,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Configuração e publicação](docs/deployment.md)
 - [Contratos de dados e persistência](docs/data-contracts.md)
 - [Roteiro de verificação](docs/testing.md)
-- [Roadmap](docs/roadmap.md) e [ideias](docs/ideas.md): propostas, não garantias de funcionalidades existentes.
+- [Roadmap Estratégico](docs/roadmap.md) e [Checklist de Tarefas](docs/tasks.md): visão de produto, matriz de impacto e tarefas de implementação.
 
 Os PDFs em `model/` são referências existentes e não são importados pela aplicação. O protótipo antigo foi preservado em `docs/reference/anamnese-prototype.jsx.txt` e não é executável nesta plataforma.
 
