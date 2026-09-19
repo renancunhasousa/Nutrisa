@@ -34,6 +34,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 | Calendário e ajustes locais | `app/src/features/agenda` |
 | Perfil e configuração da IA | `app/src/features/configuracoes` |
 | Alertas do consultório | `app/src/features/notificacoes` |
+| Demandas, to-do e follow-up | `app/src/features/tarefas` |
 | Contratos e termos de adesão | `app/src/features/contratos` |
 | Comunicação com a IA no servidor | `server/ai` e `api/ai.js` |
 | Estilos globais e impressão | `app/src/styles` |
@@ -45,6 +46,9 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Contratos de dados e persistência](docs/data-contracts.md)
 - [Roteiro de verificação](docs/testing.md)
 - [Roadmap Estratégico](docs/roadmap.md) e [Checklist de Tarefas](docs/tasks.md): visão de produto, matriz de impacto e tarefas de implementação.
+- [Plano de implementação CRM + Patient 360](docs/crm-patient360-implementation-plan.md): modelo de dados, telas, segurança, fluxos, migração e fases de execução.
+- [Especificação do Criador de Dietas](docs/diet-plan-builder-spec.md): editor em etapas, alimentos, macros, substituições, IA e relatório PDF.
+- [Central de Tarefas & Follow-up](docs/reference/tasks-module.md): demandas clínicas, sincronização da agenda com regras de prazo e follow-up no WhatsApp.
 
 Os PDFs em `model/` são referências existentes e não são importados pela aplicação. O protótipo antigo foi preservado em `docs/reference/anamnese-prototype.jsx.txt` e não é executável nesta plataforma.
 

@@ -6,16 +6,25 @@ const AnamnesePage = lazy(() => import('./features/anamnese/AnamnesePage.jsx'));
 const AtendimentoPage = lazy(() => import('./features/atendimento/AtendimentoPage.jsx'));
 const AgendaPage = lazy(() => import('./features/agenda/AgendaPage.jsx'));
 const ContratosPage = lazy(() => import('./features/contratos/ContratosPage.jsx'));
+const TarefasPage = lazy(() => import('./features/tarefas/TarefasPage.jsx'));
 const PublicSignaturePage = lazy(() => import('./features/contratos/PublicSignaturePage.jsx'));
-const MODES = ['laudo', 'anamnese', 'dashboard', 'agenda', 'contratos'];
+const MODES = ['laudo', 'anamnese', 'dashboard', 'agenda', 'tarefas', 'contratos'];
 const readMode = () => {
-  const hash = location.hash.slice(1);
-  if (hash.startsWith('sign-')) return hash; // Allow sign- routes
+  let hash = window.location.hash;
+  if (hash.startsWith('#')) hash = hash.slice(1);
+  
+  // Limpa trailing slashes e parâmetros extras para segurança
+  hash = hash.split('?')[0].replace(/\/$/, '');
+  
+  if (!hash) return 'laudo';
+  if (hash.startsWith('sign-')) return hash;
   return MODES.includes(hash) ? hash : 'laudo';
 };
+
 export default function App() {
   const settings = useAppSettings();
   const [appMode, setMode] = useState(readMode);
+
   useEffect(() => {
     const navigate = () => {
       const mode = readMode();
@@ -24,9 +33,12 @@ export default function App() {
     window.addEventListener('hashchange', navigate);
     return () => window.removeEventListener('hashchange', navigate);
   }, []);
+
   const setAppMode = mode => {
-    if (!MODES.includes(mode)) return;
-    location.hash = mode;
+    if (!MODES.includes(mode) && !mode.startsWith('sign-')) return;
+    if (window.location.hash !== `#${mode}`) {
+      window.location.hash = mode;
+    }
     setMode(mode);
   };
   const pages = {
@@ -34,6 +46,7 @@ export default function App() {
     anamnese: <AnamnesePage activeModel={settings.selectedModel} />,
     dashboard: <AtendimentoPage activeModel={settings.selectedModel} />,
     agenda: <AgendaPage />,
+    tarefas: <TarefasPage />,
     contratos: <ContratosPage activeModel={settings.selectedModel} />,
   };
 

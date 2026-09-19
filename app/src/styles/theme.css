@@ -44,3 +44,13 @@
 
 .animate-fadeIn  { animation: fadeIn  0.25s var(--transition-fast) both; }
 .animate-bounce-in { animation: bounceIn 0.35s ease both; }
+
+/* Utilitário para ocultar barra de rolagem mantendo funcionalidade */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
