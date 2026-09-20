@@ -12,6 +12,15 @@ export const TASK_CATEGORIES = {
     dotBg: 'bg-orange-500',
     defaultModule: 'laudo',
   },
+  exames: {
+    id: 'exames',
+    label: 'Exames & Documentos',
+    iconName: 'ClipboardList',
+    color: 'teal',
+    badgeBg: 'bg-teal-50 text-teal-700 border-teal-200',
+    dotBg: 'bg-teal-500',
+    defaultModule: 'laudo',
+  },
   anamnese: {
     id: 'anamnese',
     label: 'Anamnese & Laudo',

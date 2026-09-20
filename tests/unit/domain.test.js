@@ -62,3 +62,12 @@ test('local calendar overrides survive a refresh without mutating remote data', 
   assert.equal(mergeLocalEvents(remote,{'1':{summary:'Local'}})[0].summary,'Local');
   assert.equal(remote[0].summary,'Original');
 });
+
+test('task categories include exames with correct module link and properties', async () => {
+  const { TASK_CATEGORIES } = await import('../../app/src/features/tarefas/domain/taskTypes.js');
+  assert.ok(TASK_CATEGORIES.exames);
+  assert.equal(TASK_CATEGORIES.exames.id, 'exames');
+  assert.equal(TASK_CATEGORIES.exames.label, 'Exames & Documentos');
+  assert.equal(TASK_CATEGORIES.exames.defaultModule, 'laudo');
+});
+

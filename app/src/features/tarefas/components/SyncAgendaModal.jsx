@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   X,
   Salad,
+  ClipboardList,
   FileText,
   Calendar,
   CheckSquare,
@@ -14,6 +15,7 @@ import { AGENDA_SYNC_MODES } from '../services/agendaTaskSync.js';
 
 const MODE_ICONS = {
   dieta: Salad,
+  exames: ClipboardList,
   anamnese: FileText,
   retorno: Calendar,
   geral: CheckSquare,

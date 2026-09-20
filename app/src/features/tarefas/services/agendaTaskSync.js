@@ -21,6 +21,24 @@ export const AGENDA_SYNC_MODES = {
       iconBg: 'bg-orange-100 text-orange-600',
     },
   },
+  exames: {
+    id: 'exames',
+    title: 'Avaliação de Exames e Documentos',
+    taskTitle: 'Analisar Exames Laboratoriais e Documentos',
+    category: 'exames',
+    priority: 'alta',
+    dayOffset: -1, // Data da consulta - 1 dia
+    offsetBadge: 'Data da Consulta - 1 dia',
+    offsetNotice: 'Aviso: Esta opção importará os pacientes da semana criando tarefas com prazo para 1 dia antes da consulta (-1 dia), ideal para checar laudos, exames laboratoriais e bioimpedância pré-atendimento.',
+    description: 'Importa consultas com prazo para 1 dia antes (-1 dia) para avaliar exames e anexos.',
+    iconName: 'ClipboardList',
+    colorTheme: {
+      border: 'border-teal-200 hover:border-teal-400',
+      activeBorder: 'border-teal-500 ring-2 ring-teal-500/20 bg-teal-50/50',
+      badge: 'bg-teal-100 text-teal-800 border-teal-200',
+      iconBg: 'bg-teal-100 text-teal-600',
+    },
+  },
   anamnese: {
     id: 'anamnese',
     title: 'Anamnese & Laudo',

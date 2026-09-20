@@ -46,6 +46,7 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete }) {
     if (task.category === 'followup') initialIdx = 0; // Check-in adesão
     else if (task.category === 'dieta') initialIdx = 1; // Plano liberado
     else if (task.category === 'retorno') initialIdx = 2; // Retorno
+    else if (task.category === 'exames') initialIdx = 3; // Acompanhamento de Exames
     else initialIdx = 3; // Dúvidas/Exames
 
     setSelectedTemplateIndex(initialIdx);

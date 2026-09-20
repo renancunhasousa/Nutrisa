@@ -20,7 +20,7 @@ interface Task {
   title: string;           // Descrição sucinta da demanda
   patientName: string;     // Nome do paciente relacionado (opcional)
   patientPhone: string;    // Telefone com DDD para WhatsApp (opcional)
-  category: 'dieta' | 'anamnese' | 'whatsapp' | 'followup' | 'retorno' | 'geral';
+  category: 'dieta' | 'exames' | 'anamnese' | 'whatsapp' | 'followup' | 'retorno' | 'geral';
   priority: 'alta' | 'media' | 'baixa';
   dueDate: string;         // Data de vencimento no formato YYYY-MM-DD
   status: 'pending' | 'completed';
@@ -40,6 +40,7 @@ interface Task {
 | Categoria | ID | Cor / Badge | Módulo Padrão | Descrição de Uso |
 |---|---|---|---|---|
 | **Plano Alimentar** | `dieta` | Laranja Nutrição (`bg-orange-50`) | `laudo` | Elaboração, cálculo de macros ou ajuste de dietas |
+| **Exames & Documentos** | `exames` | Verde-Petróleo / Teal (`bg-teal-50`) | `laudo` | Análise de exames laboratoriais, bioimpedância e anexos |
 | **Anamnese & Laudo** | `anamnese` | Azul Claro (`bg-sky-50`) | `anamnese` | Finalizar coleta, gerar PDF ou laudo bioimpedância |
 | **WhatsApp / Dúvidas** | `whatsapp` | Verde WhatsApp (`bg-emerald-50`) | - | Dúvidas de pacientes sobre suplementos, substituições |
 | **Follow-up de Adesão** | `followup` | Roxo (`bg-purple-50`) | - | Check-in ativo (ex: 7 dias pós-consulta) |
@@ -70,12 +71,13 @@ O botão **"Importar Semana"** permite converter agendamentos da semana vigente 
 | Modo de Importação | Categoria | Regra de Prazo | Finalidade Clínica |
 |---|---|---|---|
 | **Plano Alimentar** | `dieta` | **Data da consulta + 1 dia (D+1)** | Prazos de envio e elaboração da conduta alimentar pós-consulta |
+| **Avaliação de Exames e Documentos** | `exames` | **Data da consulta - 1 dia (D-1)** | Análise prévia de exames laboratoriais, bioimpedância e anexos |
 | **Anamnese & Laudo** | `anamnese` | **Data da consulta - 1 dia (D-1)** | Preparação prévia de prontuário, questionário e laudos |
 | **Retorno & Agenda** | `retorno` | **Data da consulta - 1 dia (D-1)** | Lembrete de confirmação de presença e alinhamento de retorno |
 | **Geral / Consultório** | `geral` | **Mesma data agendada (D+0)** | Organização da sala e rotina geral do consultório no dia |
 
-- **Modal de Confirmação (`SyncAgendaModal`):** Apresenta as 4 opções com avisos destacados sobre a regra de vencimento antes de disparar a criação das tarefas.
-- **Idempotência Inteligente:** A importação avalia `calendarEventId` + `category`, impedindo duplicações indesejadas no mesmo modo, mas permitindo que a profissional crie tarefas de Anamnese (D-1) e de Plano Alimentar (D+1) para o mesmo paciente da semana.
+- **Modal de Confirmação (`SyncAgendaModal`):** Apresenta as opções com avisos destacados sobre a regra de vencimento antes de disparar a criação das tarefas.
+- **Idempotência Inteligente:** A importação avalia `calendarEventId` + `category`, impedindo duplicações indesejadas no mesmo modo, mas permitindo que a profissional crie tarefas de Anamnese (D-1), Exames (D-1) e de Plano Alimentar (D+1) para o mesmo paciente da semana.
 
 ---
 
