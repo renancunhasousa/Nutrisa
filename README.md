@@ -49,6 +49,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Plano de implementação CRM + Patient 360](docs/crm-patient360-implementation-plan.md): modelo de dados, telas, segurança, fluxos, migração e fases de execução.
 - [Especificação do Criador de Dietas](docs/diet-plan-builder-spec.md): editor em etapas, alimentos, macros, substituições, IA e relatório PDF.
 - [Central de Tarefas & Follow-up](docs/reference/tasks-module.md): demandas clínicas, sincronização da agenda com regras de prazo e follow-up no WhatsApp.
+- [Atendimento & Metas de Bonificação](docs/reference/atendimento-metrics.md): métricas de SLA, teto de intervenção médica (<= 25%) e foco em agendamentos no relatório executivo.
 
 Os PDFs em `model/` são referências existentes e não são importados pela aplicação. O protótipo antigo foi preservado em `docs/reference/anamnese-prototype.jsx.txt` e não é executável nesta plataforma.
 

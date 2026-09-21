@@ -329,8 +329,8 @@ export default function WhatsAppPdfReport({
               <ul className="list-disc list-inside space-y-1 text-slate-700 ml-1 leading-relaxed">
                 <li><strong>Meta de Resposta Rápida:</strong> Manter tempo de primeira resposta para agendamentos e dúvidas em até <strong>15 a 30 minutos</strong> (elegível para bônus individual).</li>
                 <li><strong>Distribuição de Volume:</strong> A secretária deve liderar o volume de respostas ({comparisonStats.secretaria.total} enviadas vs {comparisonStats.isabela.total} da Dra).</li>
-                <li><strong>Intervenções Clínicas ({comparisonStats.isabelaInterventions}):</strong> Meta de intervenção mínima da Dra. Isabela em assuntos administrativos.</li>
-                <li><strong>Fila Atual de Pendências:</strong> Atualmente constam <strong>{comparisonStats.secretaria.pendingCount} mensagens administrativas</strong> aguardando retorno.</li>
+                <li><strong>Intervenções em Recepção ({comparisonStats.isabelaInterventions}):</strong> Meta de intervenção da Dra. Isabela em assuntos da recepção de no máximo <strong>25% do total de mensagens</strong> ({comparisonStats.isabelaInterventionsPct || 0}% no período).</li>
+                <li><strong>Categorização de Mensagens:</strong> Foco operacional da secretária prioritariamente na categoria <strong>Agendamento e Horários</strong> ({comparisonStats.secretariaAgendamentoPct || 0}% atual).</li>
               </ul>
             </div>
           )}
@@ -539,7 +539,7 @@ export default function WhatsAppPdfReport({
             <Award className="w-3.5 h-3.5 text-teal-700 mr-1.5" /> Termo de Alinhamento de Metas & Bonificação
           </h4>
           <p className="text-[10.5px] leading-relaxed">
-            O presente relatório consolida as métricas operacionais para apuração do bônus individual da recepção. O cumprimento contínuo das metas de SLA (tempo médio &lt; 30 min, volume absorvido e intervenção clínica reduzida) valida a excelência do padrão NutrIsa de atendimento ao paciente.
+            O presente relatório consolida as métricas operacionais para apuração do bônus individual da recepção. O cumprimento contínuo das metas de SLA (tempo médio &lt; 30 min, volume absorvido, intervenção clínica &le; 25% e categorização em agendamentos) valida a excelência do padrão NutrIsa de atendimento ao paciente.
           </p>
         </div>
 

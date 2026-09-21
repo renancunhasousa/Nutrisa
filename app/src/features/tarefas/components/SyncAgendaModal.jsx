@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -12,6 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 import { AGENDA_SYNC_MODES } from '../services/agendaTaskSync.js';
+import { KEY_GOOGLE_TOKEN } from '../../../config/storageKeys.js';
 
 const MODE_ICONS = {
   dieta: Salad,
@@ -23,6 +24,18 @@ const MODE_ICONS = {
 
 export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
   const [selectedMode, setSelectedMode] = useState('dieta');
+
+  const isCalendarConnected = useMemo(() => {
+    if (!isOpen || typeof window === 'undefined') return true;
+    try {
+      const raw = localStorage.getItem(KEY_GOOGLE_TOKEN);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return Boolean(parsed?.access_token);
+    } catch {
+      return false;
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -67,6 +80,31 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Aviso prévio se a agenda não estiver conectada */}
+        {!isCalendarConnected && (
+          <div className="p-4 rounded-2xl bg-rose-50/90 border border-rose-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-xs font-bold text-rose-950">Agenda do Google não conectada</h4>
+                <p className="text-xs text-rose-800 mt-0.5 leading-relaxed">
+                  Para importar os atendimentos da semana, conecte seu Google Calendar no módulo Agenda.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                window.location.hash = 'agenda';
+              }}
+              className="shrink-0 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer w-full sm:w-auto text-center"
+            >
+              Conectar Agenda
+            </button>
+          </div>
+        )}
 
         {/* Opções de Importação */}
         <div className="space-y-3">

@@ -65,10 +65,29 @@ export default function TarefasPage() {
     try {
       const res = await syncFromAgenda(modeId);
       setIsSyncModalOpen(false);
+      const personalMsg = res.personalEventsIgnored > 0 ? `\nCompromissos pessoais desconsiderados: ${res.personalEventsIgnored}` : '';
       alert(
-        `Sincronização concluída com sucesso!\n\nFormato: ${res.modeConfig?.title || 'Agenda'}\nNovas demandas geradas: ${res.newTasksCreated}\nDemandas já existentes (ignoradas): ${res.tasksIgnored}`
+        `Sincronização concluída com sucesso!\n\nFormato: ${res.modeConfig?.title || 'Agenda'}\nNovas demandas de pacientes geradas: ${res.newTasksCreated}\nDemandas já existentes (ignoradas): ${res.tasksIgnored}${personalMsg}`
       );
     } catch (err) {
+      const isAuthIssue =
+        err.isAuthError ||
+        err.status === 401 ||
+        String(err.message).includes('401') ||
+        String(err.message).toLowerCase().includes('conecte') ||
+        String(err.message).toLowerCase().includes('agenda');
+
+      if (isAuthIssue) {
+        const goToAgenda = window.confirm(
+          `📅 Atenção: Agenda do Google não conectada!\n\n${err.message}\n\nDeseja ir para o módulo "Agenda" agora para conectar sua conta?`
+        );
+        if (goToAgenda) {
+          setIsSyncModalOpen(false);
+          window.location.hash = 'agenda';
+        }
+        return;
+      }
+
       alert(`Erro na sincronização: ${err.message}`);
     }
   };

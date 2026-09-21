@@ -1,6 +1,7 @@
 import { conversationsCsv } from './domain/conversations.js';
 import { downloadText } from '../../shared/utils/download.js';
 import { getAttendantType, isClosingOrGreetingMessage } from './domain/classification.js';
+import { calculateComparisonStats, evaluateSecretaryGoals } from './domain/metrics.js';
 import React, { useState, useEffect, useMemo } from 'react';
 
 import { fetchConversations } from './services/conversations.js';
@@ -156,51 +157,7 @@ export default function AtendimentoPage({ activeModel }) {
 
   // ESTATÍSTICAS COMPARATIVAS DRA. ISABELA vs SECRETÁRIA
   const comparisonStats = useMemo(() => {
-    const isabelaConvs = filteredData.filter(c => getAttendantType(c) === 'isabela');
-    const secretariaConvs = filteredData.filter(c => getAttendantType(c) === 'secretaria');
-
-    const getStats = (list) => {
-      const total = list.length;
-      const answeredList = list.filter(c => c.respondida && c.tempo_espera_minutos !== null && c.tempo_espera_minutos !== undefined);
-      const times = answeredList.map(c => Number(c.tempo_espera_minutos));
-      const avg = times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : 0;
-      const min = times.length > 0 ? Math.min(...times) : 0;
-      const max = times.length > 0 ? Math.max(...times) : 0;
-      const fastCount = times.filter(t => t <= 15).length;
-      const fastRate = times.length > 0 ? Math.round((fastCount / times.length) * 100) : 0;
-      const pendingCount = list.filter(c => !c.respondida).length;
-
-      const catCounts = {};
-      list.forEach(c => {
-        const cat = c.categoria || 'Outro';
-        catCounts[cat] = (catCounts[cat] || 0) + 1;
-      });
-      const topCategories = Object.entries(catCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
-
-      return { total, answeredCount: answeredList.length, avg, min, max, fastRate, pendingCount, topCategories };
-    };
-
-    // Atribuição de mensagens pendentes (Clínicas vão para Dra. Isabela, Administrativas vão para Recepção)
-    const isabelaPendingCount = filteredData.filter(c => !c.respondida && getAttendantType(c) === 'isabela').length;
-    const secretariaPendingCount = filteredData.filter(c => !c.respondida && getAttendantType(c) === 'secretaria').length;
-
-    const isabelaStats = { ...getStats(isabelaConvs), pendingCount: isabelaPendingCount };
-    const secretariaStats = { ...getStats(secretariaConvs), pendingCount: secretariaPendingCount };
-    const totalAnswered = isabelaStats.answeredCount + secretariaStats.answeredCount;
-
-    // Contagem de intervenções da Dra. Isabela em agendamentos/financeiro
-    const isabelaInterventions = isabelaConvs.filter(c => 
-      ['Agendamento e Horários', 'Pagamentos e Financeiro', 'Planos e Pacotes'].includes(c.categoria)
-    ).length;
-
-    return {
-      isabela: isabelaStats,
-      secretaria: secretariaStats,
-      totalAnswered,
-      isabelaInterventions
-    };
+    return calculateComparisonStats(filteredData, getAttendantType);
   }, [filteredData]);
 
   // DADOS PARA GRÁFICOS
@@ -372,6 +329,9 @@ export default function AtendimentoPage({ activeModel }) {
     setAiError(null);
     try {
       const topPatientThemes = categoryChartData.slice(0, 3).map(c => `${c.name} (${c.value} msgs)`).join(', ');
+      const intervPct = comparisonStats.isabelaInterventionsPct ?? 0;
+      const secAgendamentoPct = comparisonStats.secretariaAgendamentoPct ?? 0;
+      const secAgendamentoCount = comparisonStats.secretariaAgendamentoCount ?? 0;
 
       const prompt = `
 Você é o Consultor Executivo e Estratégico de Operações da clínica de nutrição "NutrIsa", liderada pela Dra. Isabela Muñoz.
@@ -382,15 +342,16 @@ DADOS CONSOLIDADOS DO PERÍODO:
 - Total de Mensagens: ${globalStats.total}
 - Taxa de Resposta: ${globalStats.responseRate}%
 - Tempo Médio Geral: ${globalStats.avgWaitMinutes} min
-- Secretária: ${comparisonStats.secretaria.total} respostas | Média: ${comparisonStats.secretaria.avg} min | Rápidas (<=15m): ${comparisonStats.secretaria.fastRate}% | Pendências: ${comparisonStats.secretaria.pendingCount}
-- Dra. Isabela: ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions}
+- Secretária: ${comparisonStats.secretaria.total} respostas | Média: ${comparisonStats.secretaria.avg} min | Rápidas (<=15m): ${comparisonStats.secretaria.fastRate}% | Agendamento e Horários: ${secAgendamentoCount} msgs (${secAgendamentoPct}% do total da secretária)
+- Dra. Isabela: ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions} (${intervPct}% do total de mensagens)
 - Temas Mais Frequentes: ${topPatientThemes}
 
 METAS E DIRETRIZES:
-1. SLA < 30 min (Meta Ouro <= 15 min).
-2. Secretária liderar o volume de mensagens.
-3. Intervenções da Dra. em agendamentos <= 2.
-4. Bônus Individual da Secretária atrelado ao cumprimento do SLA e absorção das mensagens.
+1. Tempo: SLA < 30 min (Meta Ouro <= 15 min).
+2. Volume: Secretária liderar o volume de mensagens (absorver a maior parte das conversas).
+3. Intervenção: Intervenções da Dra. Isabela em agendamentos/recepção no máximo 25% do total de mensagens (atualmente em ${intervPct}%).
+4. Categorização: Espera-se que a principal categoria de mensagens enviada pela secretária seja em relação a "Agendamento e Horários" (atualmente em ${secAgendamentoPct}%).
+5. Bônus Individual da Secretária atrelado ao cumprimento destas 4 metas (Tempo, Volume, Intervenção <= 25% e Categorização em Agendamentos).
 
 REGRAS CRÍTICAS DE LIMITE DE CARACTERES (PARA NÃO QUEBRAR O LAYOUT DO PDF A4):
 - "motivo" do atingimentoBonusSecretaria: MÁXIMO DE 250 CARACTERES.
@@ -412,8 +373,8 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
   "avaliacaoMetas": [
     { "meta": "Tempo", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: Média de 12 min registrada)" },
     { "meta": "Volume", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: Secretária absorveu 75% do fluxo)" },
-    { "meta": "Intervenção", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: 1 intervenção registrada)" },
-    { "meta": "Pendências", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: Fila de atendimento zerada)" }
+    { "meta": "Intervenção", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: Intervenções em 12% das msgs, dentro do teto de 25%)" },
+    { "meta": "Categorização", "atingido": boolean, "detalhe": "Texto de até 110 caracteres (ex: 82% das mensagens focadas em Agendamento e Horários)" }
   ],
   "temaPrincipalPacientes": {
     "tema": "Nome do tema",
@@ -450,28 +411,22 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
     setIsGeneratingAi(false);
     setAiError(null);
 
+    const goals = evaluateSecretaryGoals(comparisonStats);
     const secAvg = comparisonStats.secretaria.avg || 14;
-    const isSlaOk = secAvg <= 30;
-    const isVolOk = comparisonStats.secretaria.total >= comparisonStats.isabela.total;
-    const isIntervOk = comparisonStats.isabelaInterventions <= 3;
-    const isBonusAtingido = isSlaOk && isVolOk && isIntervOk;
+    const intervPct = comparisonStats.isabelaInterventionsPct ?? 0;
+    const secAgendamentoPct = comparisonStats.secretariaAgendamentoPct ?? 0;
 
     setAiAnalysis({
-      statusGeral: isBonusAtingido ? "Excelente" : (isSlaOk ? "Dentro da Meta" : "Atenção Necessária"),
-      statusGeralDescricao: "Avaliação integrada de tempo médio, distribuição de volume e autonomia da recepção no período.",
-      diagnosticoExecutivo: `No período avaliado, a recepção registrou tempo médio de resposta de ${secAvg} minutos (${comparisonStats.secretaria.fastRate}% das respostas em até 15 minutos). O volume de atendimento foi satisfatoriamente absorvido pela secretária, mantendo a Dra. Isabela concentrada na rotina clínica.`,
+      statusGeral: goals.isBonusAtingido ? "Excelente" : (goals.isSlaOk ? "Dentro da Meta" : "Atenção Necessária"),
+      statusGeralDescricao: "Avaliação integrada de tempo médio, distribuição de volume, taxa de intervenção e foco em agendamentos.",
+      diagnosticoExecutivo: `No período avaliado, a recepção registrou tempo médio de resposta de ${secAvg} minutos (${comparisonStats.secretaria.fastRate}% das respostas em até 15 minutos). A taxa de intervenção médica ficou em ${intervPct}% (meta <= 25%) e os atendimentos da secretária mantiveram foco em Agendamento e Horários (${secAgendamentoPct}% do volume).`,
       atingimentoBonusSecretaria: {
-        status: isBonusAtingido ? "Atingido" : (isSlaOk || isVolOk ? "Parcialmente" : "Fora da Meta"),
-        motivo: isBonusAtingido 
-          ? `Parabéns! Tempo médio de ${secAvg} min (abaixo de 30 min) e liderança no volume de atendimentos.`
-          : `Tempo médio registrado em ${secAvg} min com pendências em observação.`
+        status: goals.isBonusAtingido ? "Atingido" : (goals.isSlaOk && goals.isVolOk ? "Parcialmente" : "Fora da Meta"),
+        motivo: goals.isBonusAtingido 
+          ? `Parabéns! Tempo médio de ${secAvg} min, intervenções em ${intervPct}% (<=25%) e foco assertivo em agendamentos.`
+          : `Métricas em acompanhamento: tempo ${secAvg} min, intervenções em ${intervPct}% (meta <= 25%) e categorização em ${secAgendamentoPct}%.`
       },
-      avaliacaoMetas: [
-        { meta: "Tempo", atingido: isSlaOk, detalhe: `Média de ${secAvg} min (Meta Ouro <= 15 min)` },
-        { meta: "Volume", atingido: isVolOk, detalhe: `Secretária: ${comparisonStats.secretaria.total} msgs vs Dra: ${comparisonStats.isabela.total} msgs` },
-        { meta: "Intervenção", atingido: isIntervOk, detalhe: `${comparisonStats.isabelaInterventions} intervenções em agendamentos/valores` },
-        { meta: "Pendências", atingido: comparisonStats.secretaria.pendingCount === 0, detalhe: `${comparisonStats.secretaria.pendingCount} mensagens aguardando retorno` }
-      ],
+      avaliacaoMetas: goals.avaliacaoMetas,
       temaPrincipalPacientes: {
         tema: categoryChartData[0]?.name || "Agendamento e Horários",
         recomendacao: "Manter templates de respostas rápidas para dúvidas de horários e valores para agilizar o primeiro contato."
@@ -479,7 +434,7 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
       planoDeAcao: [
         "Priorizar retorno aos pacientes entre 08h e 10h (horário de pico).",
         "Encaminhar apenas dúvidas clínicas para o celular da Dra. Isabela.",
-        "Zerar a fila de mensagens pendentes antes de encerrar o expediente."
+        "Manter o foco da recepção na conversão e confirmação de agendamentos e horários."
       ]
     });
   };

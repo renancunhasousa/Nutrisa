@@ -25,7 +25,7 @@ export function useAgenda() {
       const saved = localStorage.getItem(KEY_GOOGLE_TOKEN);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.access_token && parsed?.expires_at && Date.now() < parsed.expires_at) return parsed;
+        if (parsed?.access_token) return parsed;
       }
       return null;
     } catch { return null; }
@@ -81,6 +81,12 @@ export function useAgenda() {
       setEvents(mergeLocalEvents(items, edits));
     } catch (error) {
       console.error('Erro ao buscar eventos:', error);
+      if (error.status === 401 || String(error.message).includes('401')) {
+        setTokenInfo(null);
+        setIsAuthenticated(false);
+        try { localStorage.removeItem(KEY_GOOGLE_TOKEN); } catch {}
+        return;
+      }
       alert(`Atenção ao sincronizar a agenda (${calendarId}):\n\n${error.message}\n\nSe você estiver logando com a conta da secretária, certifique-se de que a Dra. (${calendarId}) compartilhou a agenda dela com seu e-mail no Google Calendar.`);
     } finally {
       setLoading(false);

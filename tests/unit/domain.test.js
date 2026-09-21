@@ -71,3 +71,29 @@ test('task categories include exames with correct module link and properties', a
   assert.equal(TASK_CATEGORIES.exames.defaultModule, 'laudo');
 });
 
+test('isConsultationEvent distinguishes patient appointments from personal events in calendar indicators', async () => {
+  const { isConsultationEvent, colorMapper } = await import('../../app/src/features/agenda/domain/calendarMapper.js');
+
+  // Compromissos pessoais não devem ser considerados consultas
+  assert.equal(isConsultationEvent({ summary: 'Nazareno' }), false);
+  assert.equal(isConsultationEvent({ summary: 'Culto Nazareno' }), false);
+  assert.equal(isConsultationEvent({ summary: 'Unha' }), false);
+  assert.equal(isConsultationEvent({ summary: 'Fazer unhas' }), false);
+  assert.equal(isConsultationEvent({ summary: 'Dentista' }), false);
+  assert.equal(isConsultationEvent({ summary: 'Almoço com família' }), false);
+  assert.equal(isConsultationEvent({ summary: 'Pilates' }), false);
+  assert.equal(isConsultationEvent({ summary: 'Mariana Silva', colorId: '9' }), false, 'colorId 9 (Pessoal) não deve ser consulta');
+  assert.equal(isConsultationEvent({ summary: '[DESMARCADO] Carlos Eduardo' }), false, 'desmarcado não deve ser consulta ativa');
+
+  // Consultas legítimas de pacientes devem ser consideradas
+  assert.equal(isConsultationEvent({ summary: 'Mariana Silva' }), true);
+  assert.equal(isConsultationEvent({ summary: '[CONFIRMADO] Carlos Roberto' }), true);
+  assert.equal(isConsultationEvent({ summary: 'Consulta - João Pedro' }), true);
+  assert.equal(isConsultationEvent({ summary: 'Retorno - Beatriz Souza' }), true);
+
+  // Categorização no WebDiet
+  assert.equal(colorMapper.getCategoryByEvent({ summary: 'Nazareno' }).label, 'Pessoal');
+  assert.equal(colorMapper.getCategoryByEvent({ summary: 'Unha' }).label, 'Pessoal');
+});
+
+

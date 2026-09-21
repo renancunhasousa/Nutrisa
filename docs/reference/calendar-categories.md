@@ -54,6 +54,12 @@ O serviço `appointmentMatcher.js` analisa as mensagens recebidas do WhatsApp pa
 - Exibe banner inteligente e botões dedicados no **Modal de Atendimento WhatsApp** (`WhatsAppFeedTable`).
 - Ao acionar a ação, aplica a respectiva tag no Google Calendar via API (`updateCalendarEvent`), sincronizando a agenda em tempo real e liberando o horário para encaixes e remarcações.
 
+## Indicadores Clínicos da Agenda (`WebDietSidebar`)
+
+Os cards de indicadores semanais da barra lateral (`Total de Consultas`, `Hoje`, `Confirmadas` e `Dias Ativos`) contabilizam **exclusivamente consultas clínicas de pacientes**, filtradas através de `isConsultationEvent(event)`:
+- **Exclusão de compromissos pessoais:** Eventos com `colorId === '9'` (Blueberry/Pessoal), categoria pessoal ou termos pessoais no título/descrição (*nazareno*, *igreja*, *culto*, *unha*, *manicure*, *salão*, *médico próprio*, *dentista*, *pilates*, *academia*, *almoço*, *banco*, *bloqueio*, etc.) são mantidos visualmente na grade para organização de horário, mas **não inflacionam os indicadores de consultas**.
+- **Exclusão de cancelamentos:** Consultas com status `desmarcado` (`[DESMARCADO]`, `cancelado`, `❌`) não contam no total de atendimentos ativos da semana.
+
 ## Referências
 
 - [Documentação da API do Google Calendar — Colors](https://developers.google.com/calendar/api/v3/reference/colors/get)
@@ -61,4 +67,6 @@ O serviço `appointmentMatcher.js` analisa as mensagens recebidas do WhatsApp pa
 - [`calendarMapper.js`](../../app/src/features/agenda/domain/calendarMapper.js)
 - [`calendar.js`](../../app/src/features/agenda/services/calendar.js)
 - [`appointmentMatcher.js`](../../app/src/features/agenda/services/appointmentMatcher.js)
+- [`WebDietSidebar.jsx`](../../app/src/features/agenda/components/WebDietSidebar.jsx)
+
 

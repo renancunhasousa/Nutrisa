@@ -102,17 +102,18 @@ Métricas devem ter `metric_key`, `value`, `unit`, `measured_at`, `source` e `re
 
 Identidade lógica do plano, por exemplo “Acompanhamento para hipertrofia”.
 
-Campos: `patient_id`, `goal`, `status`, `started_at`, `ended_at`, `current_version_id`.
+Campos: `id`, `patient_id`, `consultation_id`, `goal`, `status`, `started_at`, `ended_at`, `current_version_id`.
 
 ### `meal_plan_versions`
 
-Versão concreta e auditável de uma dieta.
+Versão concreta e auditável de uma dieta. A especificação completa de editor, banco de alimentos, macros e PDF encontra-se em [Especificação do Criador de Dietas](diet-plan-builder-spec.md).
 
-Campos: `meal_plan_id`, `version_number`, `status`, `title`, `calorie_target`, `macro_targets`, `content`, `created_by`, `published_at`, `archived_at`.
+Campos: `id`, `meal_plan_id`, `version_number`, `status`, `title`, `calorie_target`, `macro_targets`, `content_snapshot`, `created_by`, `published_at`, `archived_at`.
 
 Estados: `draft`, `published`, `archived`.
 
 Uma versão publicada não deve ser editada destrutivamente. Alterações criam a próxima versão.
+
 
 ### `conversations` e `conversation_messages`
 

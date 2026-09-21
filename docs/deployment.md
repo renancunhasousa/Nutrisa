@@ -27,7 +27,7 @@ O servidor mantém compatibilidade temporária com `VITE_GEMINI_API_KEY` já exi
 
 Mantenha a raiz deste repositório como Root Directory. `vercel.json` compila `app/`, publica `app/dist` e mantém a função `api/ai.js`. Configure as variáveis acima no ambiente desejado e publique somente depois das verificações locais.
 
-Sem `AI_ACCESS_TOKEN`, a API retorna 503 em produção. Com o token configurado, informe o mesmo código no painel de configurações de IA e clique em **Testar Conexão**. O navegador guarda esse código apenas em `sessionStorage`. O teste consulta a configuração; ele não faz uma chamada paga ao Gemini.
+Sem `AI_ACCESS_TOKEN`, a API retorna 503 em produção. Com o token configurado, informe o mesmo código no painel de configurações de IA e clique em **Testar Conexão**. O navegador guarda esse código no `localStorage` local para não exigir redigitação a cada reabertura. O teste consulta a configuração; ele não faz uma chamada paga ao Gemini.
 
 O código de acesso protege apenas a API de IA: não substitui autenticação de usuários da plataforma. O limite de requisições no processo é uma proteção básica; para controle global em múltiplas instâncias, configure um limite compartilhado na infraestrutura. As políticas do Supabase e as permissões do Google continuam independentes.
 

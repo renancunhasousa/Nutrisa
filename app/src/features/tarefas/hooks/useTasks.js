@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   getTasks,
   createTask,
+  createMultipleTasks,
   updateTask,
   deleteTask,
   deleteMultipleTasks,
@@ -74,7 +75,7 @@ export function useTasks() {
     };
   }, [tasks, todayStr]);
 
-  // Lista filtrada e ordenada
+  // Lista filtrada e ordenada cronologicamente (do mais cedo pro mais tarde)
   const filteredTasks = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
 
@@ -111,14 +112,33 @@ export function useTasks() {
       // 'all'
       return true;
     }).sort((a, b) => {
-      // Ordenação: primeiro prioridade alta se for o mesmo dia, depois por data
+      // 1. Data de vencimento: do dia mais cedo para o mais tarde
       const dateA = a.dueDate || '';
       const dateB = b.dueDate || '';
       if (dateA !== dateB) {
         return dateA.localeCompare(dateB);
       }
+
+      // 2. Horário da consulta: do mais cedo para o mais tarde (ex: 08:00 antes de 09:30)
+      const timeA = a.eventTime || (a.notes && a.notes.match(/às\s*(\d{2}:\d{2})/) ? a.notes.match(/às\s*(\d{2}:\d{2})/)[1] : null);
+      const timeB = b.eventTime || (b.notes && b.notes.match(/às\s*(\d{2}:\d{2})/) ? b.notes.match(/às\s*(\d{2}:\d{2})/)[1] : null);
+
+      if (timeA && timeB) {
+        const timeDiff = timeA.localeCompare(timeB);
+        if (timeDiff !== 0) return timeDiff;
+      } else if (timeA && !timeB) {
+        return -1;
+      } else if (!timeA && timeB) {
+        return 1;
+      }
+
+      // 3. Desempate por prioridade: alta > media > baixa
       const priorityOrder = { alta: 1, media: 2, baixa: 3 };
-      return (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
+      const prioDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
+      if (prioDiff !== 0) return prioDiff;
+
+      // 4. Desempate por nome do paciente ou título
+      return (a.patientName || a.title || '').localeCompare(b.patientName || b.title || '');
     });
   }, [tasks, filterTab, categoryFilter, searchQuery, todayStr]);
 
@@ -157,7 +177,7 @@ export function useTasks() {
     try {
       const result = await syncTasksFromCalendar(tasks, 7, modeId);
       if (result.newTasks.length > 0) {
-        result.newTasks.forEach(t => createTask(t));
+        createMultipleTasks(result.newTasks);
         reloadTasks();
       }
       return result;

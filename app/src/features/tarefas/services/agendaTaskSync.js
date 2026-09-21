@@ -95,23 +95,109 @@ export const AGENDA_SYNC_MODES = {
   },
 };
 
-function extractPatientName(summary) {
+/**
+ * Limpa e extrai o nome do paciente removendo prefixos de consulta e tags.
+ */
+export function extractPatientName(summary) {
   let name = summary || '';
-  // Remove prefixos comuns
+  // Remove tags entre colchetes como [CONFIRMADO], [A CONFIRMAR], [DESMARCADO], etc.
   name = name.replace(/\[.*?\]/g, '').trim();
-  name = name.replace(/^(Consulta\s*-\s*|Retorno\s*-\s*|Primeira\sVez\s*-\s*)/i, '').trim();
+  // Remove emojis no início ou no fim
+  name = name.replace(/^[\p{Emoji}\s]+/gu, '').replace(/[\p{Emoji}\s]+$/gu, '').trim();
+  // Remove prefixos comuns de consulta/atendimento
+  name = name.replace(/^(Consulta\s*[-–—:]\s*|Retorno\s*[-–—:]\s*|Primeira\s*Vez\s*[-–—:]\s*|Online\s*[-–—:]\s*|Presencial\s*[-–—:]\s*|Encaixe\s*[-–—:]\s*|Avalia[cç][aã]o\s*[-–—:]\s*|Atendimento\s*[-–—:]\s*)/i, '').trim();
+  // Remove sufixos como (Online), (Presencial), etc.
+  name = name.replace(/\s*\((?:online|presencial|retorno|primeira\s*vez|encaixe)\)\s*$/i, '').trim();
   return name;
 }
 
-export async function syncTasksFromCalendar(existingTasks, windowDays = 7, modeId = 'dieta') {
-  const tokenRaw = localStorage.getItem(KEY_GOOGLE_TOKEN);
-  if (!tokenRaw) {
-    throw new Error('Google Calendar não está conectado. Conecte no módulo Agenda primeiro.');
+/**
+ * Avalia se um evento da agenda é realmente uma consulta/paciente ou um compromisso pessoal.
+ */
+export function isLikelyPatientAppointment(event) {
+  if (!event || !event.summary) return false;
+  if (event.status === 'cancelled') return false;
+
+  // 1. Google Calendar / WebDiet: colorId '9' é Blueberry (compromisso Pessoal)
+  if (event.colorId === '9') return false;
+
+  const rawSummary = event.summary.trim();
+  const summaryLower = rawSummary.toLowerCase();
+  const descLower = (event.description || '').toLowerCase();
+
+  // 2. Status desmarcado ou cancelado
+  if (/desmarcado|cancelado|❌/.test(summaryLower) || /desmarcado|cancelado|❌/.test(descLower)) {
+    return false;
   }
 
-  const tokenInfo = JSON.parse(tokenRaw);
+  // 3. Padrões de compromissos pessoais, vida pessoal, lazer, igreja, beleza e rotina não-clínica
+  const NON_PATIENT_PATTERNS = [
+    // Igreja / religião / espiritualidade (ex: nazareno, culto, missa, etc.)
+    /\b(nazareno|igreja|culto|missa|c[eé]lula|par[oó]quia|retiro|pastor|pastora|louvor)\b/i,
+    // Beleza / estética / autocuidado (ex: unha, manicure, cabelo, salão)
+    /\b(unha|unhas|manicure|pedicure|cabelo|sal[aã]o|sobrancelha|depila[cç][aã]o|est[eé]tica|massagem|spa|c[ií]lios|maquiagem|podologia)\b/i,
+    // Consultas médicas próprias / exames próprios
+    /\b(m[eé]dico|dentista|oftalmo|oftalmologista|gineco|ginecologista|terapia|psic[oó]log[oa]|psiquiatra|dermato|dermatologista|fisioterapia|fisio|ultrassom|laborat[oó]rio|resson[aâ]ncia|tomografia|hemograma)\b/i,
+    // Atividade física / esportes
+    /\b(academia|treino|treinar|pilates|yoga|personal|nata[cç][aã]o|crossfit|corrida|futebol|muscula[cç][aã]o|beach tennis)\b/i,
+    // Alimentação / social / lazer
+    /\b(almo[cç]o|jantar|caf[eé]|anivers[aá]rio|festa|churrasco|happy hour|cinema|teatro|show)\b/i,
+    // Viagem / deslocamento
+    /\b(viagem|viajar|v[oô]o|aeroporto|hotel|praia|estrada)\b/i,
+    // Administrativo / financeiro / casa / compras
+    /\b(banco|cart[oó]rio|mercado|compras|shopping|oficina|mec[aâ]nico|lava\s*jato|reforma|conserto|faxina|diarista)\b/i,
+    // Estudos / corporativo
+    /\b(reuni[aã]o|mentoria|curso|aula|p[oó]s|gradua[cç][aã]o|congresso|palestra|workshop|prova|estudo)\b/i,
+    // Bloqueios / folgas / feriados
+    /\b(bloqueio|bloqueado|indispon[ií]vel|folga|recesso|feriado|f[eé]rias|intervalo|fechado)\b/i,
+    // Palavras explícitas de evento pessoal
+    /\b(pessoal|particular|lembrete|compromisso)\b/i,
+  ];
+
+  for (const pattern of NON_PATIENT_PATTERNS) {
+    if (pattern.test(summaryLower)) {
+      return false;
+    }
+  }
+
+  // 4. Extração e validação do nome do paciente
+  const patientName = extractPatientName(rawSummary);
+  if (!patientName || patientName.length < 2) return false;
+
+  const patientNameLower = patientName.toLowerCase();
+  for (const pattern of NON_PATIENT_PATTERNS) {
+    if (pattern.test(patientNameLower)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export async function syncTasksFromCalendar(existingTasks, windowDays = 7, modeId = 'dieta', fetchCalendarPageImpl = fetchCalendarPage) {
+  const tokenRaw = localStorage.getItem(KEY_GOOGLE_TOKEN);
+  if (!tokenRaw) {
+    const error = new Error('A Agenda do Google não está conectada. Por favor, conecte a sua conta no módulo "Agenda" antes de sincronizar as tarefas.');
+    error.isAuthError = true;
+    error.status = 401;
+    throw error;
+  }
+
+  let tokenInfo;
+  try {
+    tokenInfo = JSON.parse(tokenRaw);
+  } catch {
+    const error = new Error('Token da Agenda corrompido ou inválido. Por favor, reconecte sua conta no módulo "Agenda".');
+    error.isAuthError = true;
+    error.status = 401;
+    throw error;
+  }
+
   if (!tokenInfo?.access_token) {
-    throw new Error('Token inválido. Reconecte o Google Calendar.');
+    const error = new Error('Acesso do Google Calendar não encontrado. Por favor, conecte sua conta no módulo "Agenda".');
+    error.isAuthError = true;
+    error.status = 401;
+    throw error;
   }
 
   const modeConfig = AGENDA_SYNC_MODES[modeId] || AGENDA_SYNC_MODES.dieta;
@@ -127,17 +213,28 @@ export async function syncTasksFromCalendar(existingTasks, windowDays = 7, modeI
   const lastDay = new Date(firstDay);
   lastDay.setDate(firstDay.getDate() + windowDays);
 
-  const events = await fetchCalendarPage(tokenInfo.access_token, GOOGLE_CALENDAR_ID, firstDay, lastDay);
+  let events;
+  try {
+    events = await fetchCalendarPageImpl(tokenInfo.access_token, GOOGLE_CALENDAR_ID, firstDay, lastDay);
+  } catch (err) {
+    if (err.status === 401 || String(err.message).includes('401')) {
+      const authError = new Error('Sessão da Agenda expirada ou não autorizada (401). Por favor, conecte novamente o Google Calendar no módulo "Agenda".');
+      authError.isAuthError = true;
+      authError.status = 401;
+      throw authError;
+    }
+    throw err;
+  }
 
   const newTasks = [];
   let tasksIgnored = 0;
+  let personalEventsIgnored = 0;
 
   for (const event of events) {
-    if (event.status === 'cancelled') continue;
-    
-    const summaryLower = (event.summary || '').toLowerCase();
-    if (summaryLower.includes('pessoal') || summaryLower.includes('feriado') || summaryLower.includes('bloqueio')) {
-       continue;
+    // Filtro rigoroso: apenas pacientes reais da clínica
+    if (!isLikelyPatientAppointment(event)) {
+      personalEventsIgnored++;
+      continue;
     }
 
     const patientName = extractPatientName(event.summary);
@@ -147,6 +244,16 @@ export async function syncTasksFromCalendar(existingTasks, windowDays = 7, modeI
     if (!eventDate) continue;
     
     const eventDateStr = eventDate.toISOString().split('T')[0];
+
+    // Extração do horário da consulta (quando o evento tem hora marcada)
+    let eventTime = null;
+    let horaFormatada = null;
+    if (event.start?.dateTime) {
+      const hours = String(eventDate.getHours()).padStart(2, '0');
+      const minutes = String(eventDate.getMinutes()).padStart(2, '0');
+      eventTime = `${hours}:${minutes}`;
+      horaFormatada = `${hours}:${minutes}`;
+    }
     
     // Cálculo do vencimento conforme o dayOffset configurado
     const dueDateObj = new Date(eventDate);
@@ -165,18 +272,53 @@ export async function syncTasksFromCalendar(existingTasks, windowDays = 7, modeI
       continue;
     }
 
+    const timeLabel = horaFormatada ? ` às ${horaFormatada}` : '';
+
     newTasks.push({
       title: modeConfig.taskTitle,
       patientName: patientName,
       category: modeConfig.category,
       priority: modeConfig.priority,
       dueDate: dueDate,
-      notes: `Importado da agenda (${modeConfig.title}). Consulta: ${eventDate.toLocaleDateString('pt-BR')}. Prazo: ${dueDateObj.toLocaleDateString('pt-BR')}.`,
+      notes: `Importado da agenda (${modeConfig.title}). Consulta: ${eventDate.toLocaleDateString('pt-BR')}${timeLabel}. Prazo: ${dueDateObj.toLocaleDateString('pt-BR')}.`,
       calendarEventId: event.id,
       eventDate: eventDateStr,
+      eventTime: eventTime,
+      eventDateTime: event.start?.dateTime || null,
       autoGenerated: true,
     });
   }
 
-  return { newTasks, newTasksCreated: newTasks.length, tasksIgnored, modeConfig };
+  // Ordenação cronológica estrita: do mais cedo para o mais tarde
+  newTasks.sort((a, b) => {
+    // 1. Data da consulta (eventDate) ou vencimento
+    const dateA = a.eventDate || a.dueDate || '';
+    const dateB = b.eventDate || b.dueDate || '';
+    if (dateA !== dateB) {
+      return dateA.localeCompare(dateB);
+    }
+
+    // 2. Horário do atendimento (mais cedo primeiro: ex: 08:00 antes de 09:30)
+    const timeA = a.eventTime || '';
+    const timeB = b.eventTime || '';
+    if (timeA && timeB) {
+      const diffTime = timeA.localeCompare(timeB);
+      if (diffTime !== 0) return diffTime;
+    } else if (timeA && !timeB) {
+      return -1;
+    } else if (!timeA && timeB) {
+      return 1;
+    }
+
+    // 3. Desempate por nome do paciente
+    return (a.patientName || '').localeCompare(b.patientName || '');
+  });
+
+  return {
+    newTasks,
+    newTasksCreated: newTasks.length,
+    tasksIgnored,
+    personalEventsIgnored,
+    modeConfig,
+  };
 }

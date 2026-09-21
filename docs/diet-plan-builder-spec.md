@@ -24,13 +24,16 @@ O módulo poderá funcionar com um paciente selecionado ou em modo rascunho. A l
 Campos iniciais:
 
 - nome do paciente;
+- identificador do paciente (`patient_id` — opcional no MVP, obrigatório quando integrado ao Patient 360);
+- identificador da consulta (`consultation_id` — opcional, vincula a dieta ao atendimento clínico);
 - objetivo: emagrecimento, hipertrofia, manutenção, performance ou personalizado;
 - calorias-alvo;
 - número de refeições;
 - observações gerais;
 - restrições e preferências conhecidas.
 
-Nesta primeira versão, o cadastro pode ser simples e local ao módulo. O campo `patient_id` deve ser opcional para permitir a futura conexão com a base central.
+Nesta primeira versão, o cadastro pode ser simples e local ao módulo. Os campos `patient_id` e `consultation_id` devem ser opcionais para permitir a criação avulsa ou rascunho sem travar na ausência do CRM.
+
 
 ## Passo 2 — Anamnese e contexto
 
@@ -189,7 +192,7 @@ Antes de publicar, exibir:
 
 Status: `rascunho`, `em_revisao`, `publicada`, `arquivada`.
 
-Uma dieta publicada não deve ser sobrescrita. Alterações criam uma nova versão.
+Uma dieta publicada não deve ser sobrescrita. Alterações criam uma nova versão (`meal_plan_versions`). A Dra. poderá navegar pelo histórico de versões e duplicar uma versão anterior do paciente para servir de base para uma nova dieta em 1 clique.
 
 ## Passo 7 — Relatório
 
@@ -210,14 +213,20 @@ O relatório deve ter um modelo de impressão separado do editor, como já ocorr
 
 ## Modelo inicial de dados
 
+O modelo adota a nomenclatura padronizada do CRM/Patient 360 (`meal_plans`):
+
 ```text
-diet_drafts
-  id, patient_id, title, objective, target_calories,
-  target_protein, target_carbs, target_fat,
+meal_plans (ou patient_diets)
+  id, patient_id, consultation_id, title, objective, target_calories,
+  target_protein, target_carbs, target_fat, current_version,
   status, anamnesis_context, notes, created_at, updated_at
 
-diet_meals
-  id, diet_id, title, time, position, notes
+meal_plan_versions
+  id, meal_plan_id, version_number, status, title,
+  published_at, created_by, content_snapshot, notes
+
+meals
+  id, meal_plan_id, title, time, position, notes
 
 diet_meal_items
   id, meal_id, food_id, quantity, unit,
@@ -231,12 +240,10 @@ foods
   household_measures, source, is_custom, is_active
 
 diet_notes
-  id, diet_id, meal_id, placement, content, position
-
-diet_versions
-  id, diet_id, version_number, status,
-  published_at, created_by, content_snapshot
+  id, meal_plan_id, meal_id, placement, content, position
 ```
+
+> **Compatibilidade:** Durante a fase independente, `patient_id` e `consultation_id` permanecem opcionais (nullable). Quando o CRM for integrado, a busca de dietas do paciente no Patient 360 será feita diretamente por `WHERE patient_id = :id`.
 
 ## Implementação sem quebrar o sistema atual
 
@@ -245,7 +252,7 @@ diet_versions
 3. Não alterar as telas atuais de avaliação, anamnese, agenda ou conversas.
 4. Reutilizar componentes visuais de laudo, cabeçalho, rodapé e impressão.
 5. Permitir exportar o relatório sem exigir CRM.
-6. Introduzir `patient_id` opcional desde o início.
+6. Introduzir `patient_id` e `consultation_id` opcionais desde o início.
 7. Depois conectar o módulo ao cadastro central e ao Patient 360.
 
 ## Ordem recomendada de entrega
@@ -264,9 +271,9 @@ diet_versions
 - substituições;
 - alimentos personalizados;
 - medidas caseiras;
-- versões e histórico;
+- versões e histórico (`meal_plan_versions`);
 - recados intermediários;
-- duplicar dieta anterior.
+- duplicar dieta anterior / carregar snapshot de versão passada.
 
 ### MVP 3
 
@@ -276,12 +283,14 @@ diet_versions
 - busca externa controlada;
 - revisão e auditoria das fontes.
 
-### Integração posterior
+### Integração posterior (Patient 360)
 
-- vincular ao `patients` do Patient 360;
-- exibir dietas na timeline;
+- vincular ao `patients` do Patient 360 via `patient_id`;
+- vincular à consulta correspondente via `consultation_id`;
+- exibir dietas e histórico de versões na aba **Dietas e Planos** do Patient 360;
+- registrar evento de "Dieta Publicada" na timeline unificada do paciente;
 - compartilhar no portal do paciente;
-- relacionar dieta à consulta e ao plano contratado.
+- relacionar dieta ao plano de acompanhamento e contrato vigente.
 
 ## Critérios de pronto
 

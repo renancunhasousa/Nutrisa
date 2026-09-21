@@ -26,6 +26,9 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete }) {
   const isCompleted = task.status === 'completed';
   const categoryConfig = TASK_CATEGORIES[task.category] || TASK_CATEGORIES.geral;
 
+  // Horário da consulta (se importado da agenda ou anotado nas notas)
+  const eventTime = task.eventTime || (task.notes && task.notes.match(/às\s*(\d{2}:\d{2})/) ? task.notes.match(/às\s*(\d{2}:\d{2})/)[1] : null);
+
   // Status de prazo
   const isOverdue = !isCompleted && task.dueDate < todayStr;
   const isToday = !isCompleted && task.dueDate === todayStr;
@@ -116,6 +119,17 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete }) {
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/70">
                 <User className="w-3 h-3 text-slate-400" />
                 <strong className="font-bold text-slate-800">{task.patientName}</strong>
+              </span>
+            )}
+
+            {/* Horário Agendado da Consulta */}
+            {eventTime && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs"
+                title={`Consulta agendada para às ${eventTime}`}
+              >
+                <Clock className="w-3 h-3 text-amber-600" />
+                <span>{eventTime}</span>
               </span>
             )}
 

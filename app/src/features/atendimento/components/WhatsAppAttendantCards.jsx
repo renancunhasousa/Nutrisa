@@ -99,8 +99,8 @@ export default function WhatsAppAttendantCards({ comparisonStats }) {
               ⏳ {comparisonStats.isabela.pendingCount} Clínicas na Fila
             </span>
             {comparisonStats.isabelaInterventions > 0 && (
-              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200" title="Mensagens de agendamento/financeiro que a Dra. Isabela respondeu diretamente">
-                ⚡ {comparisonStats.isabelaInterventions} intervenções recepção
+              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200" title="Mensagens de agendamento/financeiro que a Dra. Isabela respondeu diretamente (meta <= 25%)">
+                ⚡ {comparisonStats.isabelaInterventions} intervenções recepção {comparisonStats.isabelaInterventionsPct !== undefined ? `(${comparisonStats.isabelaInterventionsPct}%)` : ''}
               </span>
             )}
           </div>
@@ -195,6 +195,11 @@ export default function WhatsAppAttendantCards({ comparisonStats }) {
             }`}>
               ⏳ {comparisonStats.secretaria.pendingCount} Recepção na Fila
             </span>
+            {comparisonStats.secretariaAgendamentoCount !== undefined && comparisonStats.secretariaAgendamentoCount > 0 && (
+              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-900 border border-blue-200" title="Foco operacional da recepção na categoria Agendamento e Horários">
+                📅 {comparisonStats.secretariaAgendamentoPct}% agendamentos ({comparisonStats.secretariaAgendamentoCount})
+              </span>
+            )}
           </div>
         </div>
       </div>

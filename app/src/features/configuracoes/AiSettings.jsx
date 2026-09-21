@@ -21,7 +21,7 @@ return (<>      {/* PANEL 2: AI ENGINE & MODEL CONFIGURATION MODAL */}
                 <input id="ai-access" type="password" autoComplete="off" value={aiAccessToken}
                   onChange={e => updateAiAccessToken(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5" />
-                <p className="text-slate-400">Mantido apenas nesta sessão do navegador. Após informar, clique em Testar Conexão.</p>
+                <p className="text-slate-400">Salvo com segurança neste navegador. Você não precisará digitar novamente ao reabrir.</p>
                 <label className="block text-amber-200 font-bold">Modelo Ativo de Leitura e Interpretação</label>
                 <select
                   value={selectedModel}

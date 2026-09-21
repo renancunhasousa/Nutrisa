@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Calendar, Share2, LogOut, Users, CheckCircle, Clock, TrendingUp, Plus } from 'lucide-react';
-import { colorMapper } from '../domain/calendarMapper.js';
+import { colorMapper, isConsultationEvent } from '../domain/calendarMapper.js';
 
 export default function WebDietSidebar({ 
   onDisconnect, 
@@ -17,7 +17,7 @@ export default function WebDietSidebar({
 
   const statusesList = Object.values(colorMapper.statuses);
 
-  // Calcular métricas da semana atual
+  // Calcular métricas da semana atual considerando APENAS consultas clínicas de pacientes
   const weekMetrics = useMemo(() => {
     const ref = currentDate ? new Date(currentDate) : new Date();
     const weekStart = new Date(ref);
@@ -27,38 +27,40 @@ export default function WebDietSidebar({
     weekEnd.setDate(weekStart.getDate() + 7);
     weekEnd.setHours(0, 0, 0, 0);
 
-    const weekEvents = events.filter(ev => {
+    // Filtra apenas eventos da semana que sejam consultas reais de pacientes (excluindo compromissos pessoais)
+    const weekConsultations = events.filter(ev => {
       const start = ev.start?.dateTime || ev.start?.date;
       if (!start) return false;
       const d = new Date(start);
-      return d >= weekStart && d < weekEnd;
+      if (d < weekStart || d >= weekEnd) return false;
+      return isConsultationEvent(ev);
     });
 
-    // Total de consultas
-    const total = weekEvents.length;
+    // Total de consultas reais da semana
+    const total = weekConsultations.length;
 
     // Confirmadas
-    const confirmed = weekEvents.filter(ev => {
+    const confirmed = weekConsultations.filter(ev => {
       const status = colorMapper.getStatusByTitleOrDescription(ev);
       return status?.hexBorder === colorMapper.statuses?.confirmado?.hexBorder;
     }).length;
 
-    // Pendentes (sem status definido / colorId nulo)
-    const pending = weekEvents.filter(ev => colorMapper.getStatusKey(ev) === 'a_confirmar').length;
+    // Pendentes (a confirmar)
+    const pending = weekConsultations.filter(ev => colorMapper.getStatusKey(ev) === 'a_confirmar').length;
 
-    // Dias com evento
-    const daysSet = new Set(weekEvents.map(ev => {
+    // Dias com consultas
+    const daysSet = new Set(weekConsultations.map(ev => {
       const start = ev.start?.dateTime || ev.start?.date;
       return start ? new Date(start).toDateString() : null;
     }).filter(Boolean));
 
-    // Próximo evento hoje
+    // Consultas de hoje
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    const todayEvents = weekEvents.filter(ev => {
+    const todayConsultations = weekConsultations.filter(ev => {
       const start = ev.start?.dateTime || ev.start?.date;
       if (!start) return false;
       const d = new Date(start);
@@ -70,7 +72,7 @@ export default function WebDietSidebar({
       confirmed,
       pending,
       activeDays: daysSet.size,
-      todayCount: todayEvents.length,
+      todayCount: todayConsultations.length,
     };
   }, [events, currentDate]);
 

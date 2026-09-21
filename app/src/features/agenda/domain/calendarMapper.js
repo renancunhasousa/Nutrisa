@@ -72,8 +72,18 @@ export const colorMapper = {
     if (titleLower.includes('retorno') || desc.includes('retorno')) return colorMapper.categories['retorno'];
 
     // 3. Compromisso pessoal:
-    // Título vazio, ou termos comuns de tarefas pessoais (ex: almoço, médico, academia, unha, reunião, dentista)
-    const personalKeywords = ['pessoal', 'unha', 'médico', 'medico', 'dra', 'almoço', 'almoco', 'academia', 'treino', 'dentista', 'reunião', 'reuniao', 'estudo', 'folga', 'compromisso', 'banco'];
+    // Título vazio, ou termos comuns de tarefas pessoais (ex: almoço, médico, academia, unha, reunião, dentista, nazareno, etc.)
+    const personalKeywords = [
+      'pessoal', 'particular', 'lembrete', 'compromisso',
+      'nazareno', 'igreja', 'culto', 'missa', 'célula', 'celula', 'paróquia', 'paroquia', 'pastor', 'pastora',
+      'unha', 'unhas', 'manicure', 'pedicure', 'cabelo', 'salão', 'salao', 'sobrancelha', 'depilação', 'depilacao', 'estética', 'estetica', 'massagem', 'spa',
+      'médico', 'medico', 'dentista', 'oftalmo', 'gineco', 'terapia', 'psicólogo', 'psicologo', 'fisioterapia', 'fisio',
+      'dra', 'almoço', 'almoco', 'jantar', 'aniversário', 'aniversario', 'festa', 'churrasco',
+      'academia', 'treino', 'pilates', 'yoga', 'personal', 'natação', 'natacao',
+      'reunião', 'reuniao', 'mentoria', 'curso', 'aula', 'estudo', 'pós', 'pos', 'congresso',
+      'folga', 'recesso', 'feriado', 'férias', 'ferias', 'bloqueio', 'indisponível', 'indisponivel',
+      'banco', 'cartório', 'cartorio', 'mercado', 'compras', 'viagem'
+    ];
     const isPersonalKeyword = personalKeywords.some(keyword => titleLower.includes(keyword));
 
     if (!title || isPersonalKeyword) {
@@ -98,3 +108,50 @@ export const colorMapper = {
     }
   }
 };
+
+/**
+ * Valida se o evento da agenda é uma consulta clínica real de paciente
+ * (excluindo compromissos pessoais, desmarcados, bloqueios, cultos, etc.).
+ */
+export function isConsultationEvent(event) {
+  if (!event || !event.summary) return false;
+  if (event.status === 'cancelled') return false;
+
+  // 1. Google Calendar: colorId 9 = Blueberry (Pessoal no padrão WebDiet)
+  if (event.colorId === '9') return false;
+
+  // 2. Status desmarcado / cancelado não conta como consulta ativa
+  const statusKey = colorMapper.getStatusKey(event);
+  if (statusKey === 'desmarcado') return false;
+
+  // 3. Se a categoria for explicitamente Pessoal ou calculada como Pessoal
+  if (event.categoryKey === 'pessoal') return false;
+  const category = colorMapper.getCategoryByEvent(event);
+  if (category?.label === 'Pessoal') return false;
+
+  // 4. Regex abrangente de termos não-clínicos e compromissos pessoais
+  const title = (event.summary || '').toLowerCase();
+  const desc = (event.description || '').toLowerCase();
+  const text = `${title} ${desc}`;
+
+  const NON_PATIENT_PATTERNS = [
+    /\b(nazareno|igreja|culto|missa|c[eé]lula|par[oó]quia|retiro|pastor|pastora|louvor)\b/i,
+    /\b(unha|unhas|manicure|pedicure|cabelo|sal[aã]o|sobrancelha|depila[cç][aã]o|est[eé]tica|massagem|spa|c[ií]lios|maquiagem|podologia)\b/i,
+    /\b(m[eé]dico|dentista|oftalmo|oftalmologista|gineco|ginecologista|terapia|psic[oó]log[oa]|psiquiatra|dermato|dermatologista|fisioterapia|fisio|ultrassom|laborat[oó]rio|resson[aâ]ncia|tomografia|hemograma)\b/i,
+    /\b(academia|treino|treinar|pilates|yoga|personal|nata[cç][aã]o|crossfit|corrida|futebol|muscula[cç][aã]o|beach tennis)\b/i,
+    /\b(almo[cç]o|jantar|caf[eé]|anivers[aá]rio|festa|churrasco|happy hour|cinema|teatro|show)\b/i,
+    /\b(viagem|viajar|v[oô]o|aeroporto|hotel|praia|estrada)\b/i,
+    /\b(banco|cart[oó]rio|mercado|compras|shopping|oficina|mec[aâ]nico|lava\s*jato|reforma|conserto|faxina|diarista)\b/i,
+    /\b(reuni[aã]o|mentoria|curso|aula|p[oó]s|gradua[cç][aã]o|congresso|palestra|workshop|prova|estudo)\b/i,
+    /\b(bloqueio|bloqueado|indispon[ií]vel|folga|recesso|feriado|f[eé]rias|intervalo|fechado)\b/i,
+    /\b(pessoal|particular|lembrete|compromisso)\b/i,
+  ];
+
+  for (const pattern of NON_PATIENT_PATTERNS) {
+    if (pattern.test(text)) {
+      return false;
+    }
+  }
+
+  return true;
+}

@@ -90,20 +90,27 @@ Zera horários ociosos utilizando a legenda oficial de cores do WebDiet / Google
 
 ---
 
-## 🥗 Fase 4: WebDiet Clínico, Cardápios & Prescrição Timbrada
+## 🥗 Fase 4: WebDiet Clínico & Criador de Dietas (MVP 1)
 
-Acelera a montagem de condutas e receitas no pós-consulta:
+Acelera a montagem de condutas e dietas no pós-consulta sem depender de ferramentas externas:
 
-- [ ] **Cálculo Energético & Macros:**
-  - [ ] Cálculo automático de TMB e GET baseado nos dados da bioimpedância.
-  - [ ] Sugestão de divisão de macros (Proteína, Carboidrato e Lipídios) por refeição.
-- [ ] **IA Co-Piloto de Cardápio:**
-  - [ ] Geração de cardápio base combinando preferências da anamnese e metas calóricas.
-  - [ ] Tabela de substituições inteligentes para o paciente variar os pratos.
-  - [ ] Versionamento do plano alimentar (`rascunho` ➡️ `publicado` ➡️ `arquivado`).
-- [ ] **Gerador Rápido de Prescrição de Suplementos (PDF):**
-  - [ ] Interface rápida com checkboxes para suplementos padrão (Creatina, Whey, Ômega-3, Magnésio, etc.).
-  - [ ] Layout de impressão com CRN da Dra. Isabela, instruções de consumo e cupom parceiro.
+- [ ] **Criador de Dietas — Bloco 1: Motor & Banco de Alimentos:**
+  - [ ] Regras puras de cálculo de macros, calorias e conversão de medidas em `features/dietas/domain/`.
+  - [ ] Banco de dados inicial com alimentos essenciais da tabela TACO/IBGE em `features/dietas/services/`.
+  - [ ] Testes unitários para cálculos e somatórios nutricionais.
+- [ ] **Criador de Dietas — Bloco 2: Editor em Etapas (UI):**
+  - [ ] Assistente (wizard) com etapas: Paciente/Objetivo ➡️ Metas ➡️ Refeições ➡️ Revisão.
+  - [ ] Gerenciamento de refeições (adicionar, renomear, horários, duplicar e excluir).
+  - [ ] Busca inteligente de alimentos com autocomplete e adição rápida à refeição.
+  - [ ] Barra visual de acompanhamento em tempo real (Meta vs. Realizado de macros e calorias).
+- [ ] **Criador de Dietas — Bloco 3: Relatório e Impressão PDF:**
+  - [ ] Template timbrado oficial da NutrIsa em `features/dietas/report/` (cabeçalho, logo, CRN e rodapé).
+  - [ ] Tabela limpa de cardápio com horários, alimentos, porções e totais de macros.
+  - [ ] Visualização prévia e botão de exportar/imprimir PDF.
+- [ ] **Criador de Dietas — Bloco 4: Integração no Menu & Persistência:**
+  - [ ] Adicionar item "Dietas" no menu lateral do sistema (`app/src/layout`).
+  - [ ] Persistência de rascunhos com `patient_id` opcional para futura conexão com o Patient 360.
+  - [ ] Validação de build e testes de regressão (`npm test` e `npm run build`).
 
 ---
 

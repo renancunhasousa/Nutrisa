@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchConversations } from '../services/conversations.js';
 import { getAttendantType, isClosingOrGreetingMessage } from '../domain/classification.js';
+import { calculateComparisonStats } from '../domain/metrics.js';
 import { conversationsCsv } from '../domain/conversations.js';
 import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
 import { downloadText } from '../../../shared/utils/download.js';
@@ -119,30 +120,7 @@ export function useAtendimento({ activeModel }) {
   }, [filteredData]);
 
   const comparisonStats = useMemo(() => {
-    const isabelaConvs = filteredData.filter(c => getAttendantType(c) === 'isabela');
-    const secretariaConvs = filteredData.filter(c => getAttendantType(c) === 'secretaria');
-    const getStats = (list) => {
-      const total = list.length;
-      const answeredList = list.filter(c => c.respondida && c.tempo_espera_minutos != null);
-      const times = answeredList.map(c => Number(c.tempo_espera_minutos));
-      const avg = times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : 0;
-      const min = times.length > 0 ? Math.min(...times) : 0;
-      const max = times.length > 0 ? Math.max(...times) : 0;
-      const fastRate = times.length > 0 ? Math.round((times.filter(t => t <= 15).length / times.length) * 100) : 0;
-      const pendingCount = list.filter(c => !c.respondida).length;
-      const catCounts = {};
-      list.forEach(c => { const cat = c.categoria || 'Outro'; catCounts[cat] = (catCounts[cat] || 0) + 1; });
-      const topCategories = Object.entries(catCounts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-      return { total, answeredCount: answeredList.length, avg, min, max, fastRate, pendingCount, topCategories };
-    };
-    const isabelaPendingCount = filteredData.filter(c => !c.respondida && getAttendantType(c) === 'isabela').length;
-    const secretariaPendingCount = filteredData.filter(c => !c.respondida && getAttendantType(c) === 'secretaria').length;
-    const isabelaStats = { ...getStats(isabelaConvs), pendingCount: isabelaPendingCount };
-    const secretariaStats = { ...getStats(secretariaConvs), pendingCount: secretariaPendingCount };
-    const isabelaInterventions = isabelaConvs.filter(c =>
-      ['Agendamento e Horários', 'Pagamentos e Financeiro', 'Planos e Pacotes'].includes(c.categoria)
-    ).length;
-    return { isabela: isabelaStats, secretaria: secretariaStats, totalAnswered: isabelaStats.answeredCount + secretariaStats.answeredCount, isabelaInterventions };
+    return calculateComparisonStats(filteredData, getAttendantType);
   }, [filteredData]);
 
   const categoryChartData = useMemo(() => {
@@ -255,6 +233,10 @@ export function useAtendimento({ activeModel }) {
     setAiError(null);
     try {
       const topPatientThemes = categoryChartData.slice(0, 3).map(c => `${c.name} (${c.value} msgs)`).join(', ');
+      const intervPct = comparisonStats.isabelaInterventionsPct ?? 0;
+      const secAgendamentoPct = comparisonStats.secretariaAgendamentoPct ?? 0;
+      const secAgendamentoCount = comparisonStats.secretariaAgendamentoCount ?? 0;
+
       const prompt = `
 Você é o Consultor Executivo e Estratégico de Operações da clínica de nutrição "NutrIsa", liderada pela Dra. Isabela Muñoz.
 Gere um Parecer de Desempenho e Alinhamento de Atendimento WhatsApp para a secretária.
@@ -264,15 +246,16 @@ DADOS CONSOLIDADOS DO PERÍODO:
 - Total de Mensagens: ${globalStats.total}
 - Taxa de Resposta: ${globalStats.responseRate}%
 - Tempo Médio Geral: ${globalStats.avgWaitMinutes} min
-- Secretária: ${comparisonStats.secretaria.total} respostas | Média: ${comparisonStats.secretaria.avg} min | Rápidas (<=15m): ${comparisonStats.secretaria.fastRate}% | Pendências: ${comparisonStats.secretaria.pendingCount}
-- Dra. Isabela: ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions}
+- Secretária: ${comparisonStats.secretaria.total} respostas | Média: ${comparisonStats.secretaria.avg} min | Rápidas (<=15m): ${comparisonStats.secretaria.fastRate}% | Agendamento e Horários: ${secAgendamentoCount} msgs (${secAgendamentoPct}% do total da secretária)
+- Dra. Isabela: ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions} (${intervPct}% do total de mensagens)
 - Temas Mais Frequentes: ${topPatientThemes}
 
 METAS E DIRETRIZES:
-1. SLA < 30 min (Meta Ouro <= 15 min).
-2. Secretária liderar o volume de mensagens.
-3. Intervenções da Dra. em agendamentos <= 2.
-4. Bônus Individual da Secretária atrelado ao cumprimento do SLA e absorção das mensagens.
+1. Tempo: SLA < 30 min (Meta Ouro <= 15 min).
+2. Volume: Secretária liderar o volume de mensagens (absorver a maior parte das conversas).
+3. Intervenção: Intervenções da Dra. Isabela em agendamentos/recepção no máximo 25% do total de mensagens (atualmente em ${intervPct}%).
+4. Categorização: Espera-se que a principal categoria de mensagens enviada pela secretária seja em relação a "Agendamento e Horários" (atualmente em ${secAgendamentoPct}%).
+5. Bônus Individual da Secretária atrelado ao cumprimento destas 4 metas (Tempo, Volume, Intervenção <= 25% e Categorização em Agendamentos).
 
 REGRAS CRÍTICAS DE LIMITE DE CARACTERES:
 - "motivo" do atingimentoBonusSecretaria: MÁXIMO DE 250 CARACTERES.
@@ -292,7 +275,7 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
     { "meta": "Tempo", "atingido": boolean, "detalhe": "..." },
     { "meta": "Volume", "atingido": boolean, "detalhe": "..." },
     { "meta": "Intervenção", "atingido": boolean, "detalhe": "..." },
-    { "meta": "Pendências", "atingido": boolean, "detalhe": "..." }
+    { "meta": "Categorização", "atingido": boolean, "detalhe": "..." }
   ],
   "temaPrincipalPacientes": { "tema": "...", "recomendacao": "..." },
   "planoDeAcao": ["Ação 1", "Ação 2", "Ação 3"]

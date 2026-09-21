@@ -2,11 +2,23 @@ import { sanitizeJsonString } from '../utils/formatters.js';
 import { KEY_AI_ACCESS } from '../../config/storageKeys.js';
 const ACCESS_KEY = KEY_AI_ACCESS;
 export function getAiAccessToken() {
-  try { return sessionStorage.getItem(ACCESS_KEY) || ''; } catch { return ''; }
+  try {
+    return localStorage.getItem(ACCESS_KEY) || sessionStorage.getItem(ACCESS_KEY) || '';
+  } catch {
+    return '';
+  }
 }
 export function setAiAccessToken(value) {
-  if (value) sessionStorage.setItem(ACCESS_KEY, value.trim());
-  else sessionStorage.removeItem(ACCESS_KEY);
+  const trimmed = (value || '').trim();
+  try {
+    if (trimmed) {
+      localStorage.setItem(ACCESS_KEY, trimmed);
+      sessionStorage.setItem(ACCESS_KEY, trimmed);
+    } else {
+      localStorage.removeItem(ACCESS_KEY);
+      sessionStorage.removeItem(ACCESS_KEY);
+    }
+  } catch {}
 }
 async function request(options = {}) {
   const response = await fetch('/api/ai', {

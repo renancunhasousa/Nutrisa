@@ -37,6 +37,5 @@ export const KEY_CONTRACTS_PLAN_HISTORY = 'nutrisa_contracts_plan_history';
 /** Lista de tarefas e demandas clínicas (to-do da nutricionista) */
 export const KEY_TASKS = 'nutrisa_tasks';
 
-// ── sessionStorage ───────────────────────────────────────────────────────────
-/** Token de acesso à API de IA (armazenado apenas por sessão) */
+/** Token de acesso à API de IA (persistência local no dispositivo) */
 export const KEY_AI_ACCESS = 'nutrisa_ai_access';
