@@ -32,6 +32,7 @@ export default function TarefasPage() {
     syncFromAgenda,
     isSyncing,
     clearFilteredTasks,
+    patientAvatars,
   } = useTasks();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -329,6 +330,7 @@ export default function TarefasPage() {
                 onToggleStatus={toggleTaskStatus}
                 onDelete={deleteTask}
                 onEdit={handleEdit}
+                patientAvatars={patientAvatars}
               />
             ))}
           </div>

@@ -11,20 +11,53 @@ import {
   User,
   Send,
   X,
+  Edit3,
 } from 'lucide-react';
 import {
   TASK_CATEGORIES,
   WHATSAPP_TEMPLATES,
   buildWhatsAppUrl,
 } from '../domain/taskTypes.js';
+import { matchPatientAvatar } from '../services/patientAvatarService.js';
 
-export function TaskCard({ task, todayStr, onToggleStatus, onDelete }) {
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+const AVATAR_GRADIENTS = [
+  'from-emerald-500 to-teal-600',
+  'from-sky-500 to-blue-600',
+  'from-violet-500 to-purple-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+  'from-indigo-500 to-cyan-600',
+];
+
+function getGradientByName(name = '') {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+}
+
+export function TaskCard({ task, todayStr, onToggleStatus, onDelete, onEdit, patientAvatars }) {
   const [showWhatsAppPicker, setShowWhatsAppPicker] = useState(false);
   const [selectedTemplateIndex, setSelectedTemplateIndex] = useState(0);
   const [customMessage, setCustomMessage] = useState('');
+  const [imgError, setImgError] = useState(false);
 
   const isCompleted = task.status === 'completed';
   const categoryConfig = TASK_CATEGORIES[task.category] || TASK_CATEGORIES.geral;
+
+  // Busca a URL da foto do paciente (prioriza campos diretos ou faz matching com log_conversas)
+  const avatarUrl =
+    task.patientAvatar ||
+    task.photoUrl ||
+    matchPatientAvatar(patientAvatars, task.patientName, task.patientPhone);
 
   // Horário da consulta (se importado da agenda ou anotado nas notas)
   const eventTime = task.eventTime || (task.notes && task.notes.match(/às\s*(\d{2}:\d{2})/) ? task.notes.match(/às\s*(\d{2}:\d{2})/)[1] : null);
@@ -88,13 +121,13 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete }) {
           : 'border-slate-200 hover:border-emerald-300'
       } p-3.5 sm:p-4`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 sm:gap-3.5">
         {/* Checkbox redonda com microinteração */}
         <button
           type="button"
           onClick={() => onToggleStatus(task.id)}
           title={isCompleted ? 'Marcar como pendente' : 'Concluir tarefa'}
-          className="mt-0.5 shrink-0 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
+          className="mt-1 shrink-0 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
         >
           {isCompleted ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-600 fill-emerald-100" />
@@ -102,6 +135,51 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete }) {
             <Circle className="w-5 h-5 text-slate-300 hover:text-emerald-500 hover:scale-110 transition-transform" />
           )}
         </button>
+
+        {/* Avatar / Foto de Perfil do Paciente */}
+        {task.patientName ? (
+          <div
+            className="relative shrink-0 select-none group/avatar"
+            title={task.patientPhone ? `${task.patientName} (${task.patientPhone}) - Clique para WhatsApp` : task.patientName}
+            onClick={(e) => {
+              if (task.patientPhone) {
+                handleOpenWhatsApp(e);
+              }
+            }}
+          >
+            <div
+              className={`w-11 h-11 rounded-2xl overflow-hidden border-2 border-white shadow-xs transition-all duration-200 group-hover:scale-105 ${
+                avatarUrl && !imgError
+                  ? 'ring-2 ring-slate-200/90 group-hover:ring-emerald-500/70 bg-slate-100'
+                  : `bg-gradient-to-br ${getGradientByName(task.patientName)} text-white flex items-center justify-center font-bold text-xs ring-2 ring-slate-100`
+              } ${task.patientPhone ? 'cursor-pointer hover:shadow-md' : ''}`}
+            >
+              {avatarUrl && !imgError ? (
+                <img
+                  src={avatarUrl}
+                  alt={task.patientName}
+                  onError={() => setImgError(true)}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="tracking-wider text-xs font-black drop-shadow-2xs">
+                  {getInitials(task.patientName)}
+                </span>
+              )}
+            </div>
+
+            {/* Micro badge WhatsApp na foto quando houver telefone */}
+            {task.patientPhone && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center shadow-xs"
+                title="WhatsApp vinculado"
+              >
+                <span className="w-1.5 h-1.5 bg-white rounded-full" />
+              </span>
+            )}
+          </div>
+        ) : null}
 
         {/* Conteúdo Principal */}
         <div className="flex-1 min-w-0">
@@ -116,8 +194,16 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete }) {
 
             {/* Nome do Paciente */}
             {task.patientName && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/70">
-                <User className="w-3 h-3 text-slate-400" />
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/70">
+                {avatarUrl && !imgError ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="w-3.5 h-3.5 rounded-full object-cover shrink-0 ring-1 ring-slate-300"
+                  />
+                ) : (
+                  <User className="w-3 h-3 text-slate-400" />
+                )}
                 <strong className="font-bold text-slate-800">{task.patientName}</strong>
               </span>
             )}
@@ -200,8 +286,18 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete }) {
               )}
             </div>
 
-            {/* Ações Secundárias (Excluir / Editar) */}
+            {/* Ações Secundárias (Editar / Excluir) */}
             <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(task)}
+                  title="Editar demanda"
+                  className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onDelete(task.id)}

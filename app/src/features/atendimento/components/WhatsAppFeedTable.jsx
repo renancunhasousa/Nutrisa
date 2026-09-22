@@ -14,14 +14,15 @@ import {
   ArrowUpDown,
   Check,
   ChevronDown,
-  RotateCcw
+  RotateCcw,
+  Search
 } from 'lucide-react';
 import { formatWaitTime, cleanPhoneNumber } from '../../../shared/utils/formatters.js';
 import { fetchCalendarPage } from '../../agenda/services/calendar.js';
 import { 
   matchPatientNameToEvents, 
   detectConfirmationIntent, 
-  detectCancellationIntent,
+  detectCancellationIntent, 
   confirmAppointmentEvent,
   cancelAppointmentEvent
 } from '../../agenda/services/appointmentMatcher.js';
@@ -54,7 +55,8 @@ export default function WhatsAppFeedTable({
   const [eventConfirmed, setEventConfirmed] = useState(false);
   const [eventCanceled, setEventCanceled] = useState(false);
 
-  // Estados de Filtro e Ordenação rápida da tabela
+  // Estados de Filtro, Busca e Ordenação rápida da tabela
+  const [patientSearch, setPatientSearch] = useState('');
   const [feedFilter, setFeedFilter] = useState('all'); // 'all' | 'pending' | 'responded' | 'isabela' | 'secretaria' | 'agendamento' | 'confirmations' | 'cancellations'
   const [feedSort, setFeedSort] = useState('date_desc'); // 'date_desc' | 'date_asc' | 'wait_desc' | 'name_asc' | 'name_desc'
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -124,8 +126,19 @@ export default function WhatsAppFeedTable({
       return 0;
     });
 
+    // Aplicar Busca rápida local por paciente, telefone ou mensagem
+    if (patientSearch.trim()) {
+      const q = patientSearch.trim().toLowerCase();
+      result = result.filter(c => {
+        const nome = (c.nome_paciente || c.nome_contato || c.contato || '').toLowerCase();
+        const fone = (c.telefone_paciente || c.contato_jid || c.telefone || '').toLowerCase();
+        const msg = (c.conteudo_mensagem || c.mensagem_texto || c.mensagem || '').toLowerCase();
+        return nome.includes(q) || fone.includes(q) || msg.includes(q);
+      });
+    }
+
     return result;
-  }, [filteredData, feedFilter, feedSort, getAttendantType]);
+  }, [filteredData, feedFilter, feedSort, patientSearch, getAttendantType]);
 
   useEffect(() => {
     if (!selectedChat) {
@@ -219,15 +232,37 @@ export default function WhatsAppFeedTable({
             </h3>
             <p className="text-xs text-slate-400 mt-0.5 font-medium flex items-center gap-1.5">
               <span>Mostrando {processedData.length} de {conversations.length} conversas</span>
-              {(feedFilter !== 'all' || feedSort !== 'date_desc') && (
+              {(feedFilter !== 'all' || feedSort !== 'date_desc' || patientSearch.trim()) && (
                 <span className="inline-flex items-center px-2 py-0.2 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Filtro/Ordem Ativo
+                  {patientSearch.trim() ? `Busca: "${patientSearch.trim()}"` : 'Filtro/Ordem Ativo'}
                 </span>
               )}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
+            {/* CAMPO DE BUSCA POR NOME DO PACIENTE / MENSAGEM */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={patientSearch}
+                onChange={(e) => setPatientSearch(e.target.value)}
+                placeholder="Buscar paciente ou mensagem..."
+                className="pl-8.5 pr-7 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all w-44 sm:w-60 font-medium shadow-2xs"
+              />
+              {patientSearch && (
+                <button
+                  type="button"
+                  onClick={() => setPatientSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5 rounded-md cursor-pointer transition-colors"
+                  title="Limpar busca"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
             {/* BOTÃO DE FILTRO DA TABELA */}
             <div className="relative feed-filter-menu">
               <button
@@ -348,13 +383,13 @@ export default function WhatsAppFeedTable({
               )}
             </div>
 
-            {/* RESET SE FILTRO OU ORDEM ATIVA */}
-            {(feedFilter !== 'all' || feedSort !== 'date_desc') && (
+            {/* RESET SE FILTRO, BUSCA OU ORDEM ATIVA */}
+            {(feedFilter !== 'all' || feedSort !== 'date_desc' || patientSearch.trim()) && (
               <button
                 type="button"
-                onClick={() => { setFeedFilter('all'); setFeedSort('date_desc'); }}
+                onClick={() => { setFeedFilter('all'); setFeedSort('date_desc'); setPatientSearch(''); }}
                 className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer border border-transparent hover:border-slate-200"
-                title="Limpar filtro e ordenação da tabela"
+                title="Limpar busca, filtros e ordenação da tabela"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
@@ -369,11 +404,15 @@ export default function WhatsAppFeedTable({
           </div>
         ) : processedData.length === 0 ? (
           <div className="py-16 text-center text-slate-400 text-xs space-y-2">
-            <p>Nenhuma conversa encontrada com os filtros selecionados.</p>
-            {(feedFilter !== 'all' || feedSort !== 'date_desc') && (
+            <p>
+              {patientSearch.trim() 
+                ? `Nenhuma conversa encontrada para "${patientSearch.trim()}".` 
+                : 'Nenhuma conversa encontrada com os filtros selecionados.'}
+            </p>
+            {(feedFilter !== 'all' || feedSort !== 'date_desc' || patientSearch.trim()) && (
               <button
                 type="button"
-                onClick={() => { setFeedFilter('all'); setFeedSort('date_desc'); }}
+                onClick={() => { setFeedFilter('all'); setFeedSort('date_desc'); setPatientSearch(''); }}
                 className="text-emerald-700 font-bold hover:underline cursor-pointer"
               >
                 Restaurar exibição padrão

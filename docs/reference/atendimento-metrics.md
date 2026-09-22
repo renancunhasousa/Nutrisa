@@ -30,3 +30,14 @@ O relatório executivo em PDF avalia o desempenho da secretária em quatro bloco
   - Apresenta diretrizes de SLA e Termo de Alinhamento e Bonificação oficial para assinatura da Dra. Isabela.
 - **Cards de Atendentes:** [`WhatsAppAttendantCards.jsx`](file:///e:/Antigravity/NutrIsa/app/src/features/atendimento/components/WhatsAppAttendantCards.jsx)
   - Exibe badges em tempo real: percentual de intervenções da recepção no card da Dra. e percentual de foco em agendamentos no card da secretária.
+
+---
+
+## ⏰ Regra de SLA por Horário Comercial (Business Hours)
+
+Para evitar distorções nas métricas de tempo de resposta da secretária (especialmente mensagens enviadas em finais de semana ou fora do expediente), o cálculo de tempo de espera no pipeline de atendimento (`n8n` &rarr; `log_conversas.tempo_espera_minutos`) adota as seguintes diretrizes:
+
+- **Expediente Oficial:** Segunda a Sexta-feira, das **08:00 às 18:00** (Horário de Brasília, UTC-3).
+- **Noites e Madrugadas:** O cronômetro de espera é **pausado** entre as 18:00 e as 08:00 do próximo dia útil.
+- **Finais de Semana (Sábados e Domingos):** O cronômetro permanece **congelado** durante todo o sábado e domingo, iniciando a contagem apenas às 08:00 de segunda-feira.
+- **Respostas Rápidas Fora do Expediente (Dra. Isabela):** Caso ocorra atendimento em período fora de expediente em intervalo rápido (&le; 120 min), o sistema registra o tempo real decorrido para valorizar a agilidade e prontidão clínica da Dra. Isabela.

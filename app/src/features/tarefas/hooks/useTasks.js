@@ -12,6 +12,7 @@ import {
 } from '../services/taskStorage.js';
 import { getPresetDate } from '../domain/taskTypes.js';
 import { syncTasksFromCalendar } from '../services/agendaTaskSync.js';
+import { fetchPatientAvatars } from '../services/patientAvatarService.js';
 
 export function useTasks() {
   const [tasks, setTasks] = useState(() => getTasks());
@@ -19,6 +20,7 @@ export function useTasks() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [patientAvatars, setPatientAvatars] = useState(null);
 
   // Sincronização reativa com eventos locais e de outras abas
   const reloadTasks = useCallback(() => {
@@ -29,7 +31,12 @@ export function useTasks() {
     // 1. Sincronização inicial com a nuvem no carregamento
     syncTasksFromCloud().catch(err => console.error(err));
 
-    // 2. Ouvintes locais
+    // 2. Carregamento dos avatares/fotos dos pacientes
+    fetchPatientAvatars()
+      .then(avatars => setPatientAvatars(avatars))
+      .catch(err => console.warn('Erro ao carregar avatares:', err));
+
+    // 3. Ouvintes locais
     const handleUpdate = () => reloadTasks();
     window.addEventListener(TASKS_UPDATED_EVENT, handleUpdate);
     window.addEventListener('storage', handleUpdate);
@@ -205,5 +212,6 @@ export function useTasks() {
     reloadTasks,
     syncFromAgenda,
     isSyncing,
+    patientAvatars,
   };
 }
