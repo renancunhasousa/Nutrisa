@@ -23,7 +23,7 @@ return (<>      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
               <img 
                 src={logoPlatform} 
                 alt="NutrIsa" 
-                className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto object-contain transition-all hover:scale-105 drop-shadow-2xs" 
+                className="h-9 sm:h-10 md:h-11 w-auto object-contain transition-all hover:scale-105 drop-shadow-2xs" 
               />
             </div>
 
@@ -36,6 +36,7 @@ return (<>      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
                 { id: 'agenda', label: 'Agenda', icon: Calendar },
                 { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
                 { id: 'contratos', label: 'Contratos', icon: FileSignature },
+                { id: 'marketing', label: 'Marketing', icon: Sparkles },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = appMode === tab.id;
@@ -46,20 +47,19 @@ return (<>      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
                     onClick={() => setAppMode(tab.id)}
                     title={tab.label}
                     aria-label={tab.label}
-                    className={`group relative shrink-0 px-2.5 py-1.5 xl:px-3.5 xl:py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ease-out flex items-center justify-center cursor-pointer ${
+                    className={`group relative shrink-0 h-9 px-2.5 rounded-lg text-xs font-bold transition-all duration-300 ease-out flex items-center justify-center cursor-pointer ${
                       isActive 
-                        ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60' 
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 border border-transparent'
+                        ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/70 ring-1 ring-emerald-500/10' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/80 border border-transparent'
                     }`}
                   >
-                    <Icon className="w-4 h-4 xl:w-3.5 xl:h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
-                    <span className={`inline-block whitespace-nowrap transition-all duration-300 ease-out ${
-                      isActive 
-                        ? 'max-w-28 opacity-100 ml-1.5' 
-                        : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-28 group-hover:opacity-100 group-hover:ml-1.5 xl:max-w-none xl:opacity-100 xl:ml-1.5'
-                    }`}>
+                    <Icon className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                    <span className="inline-block whitespace-nowrap overflow-hidden max-w-0 opacity-0 group-hover:max-w-32 group-hover:opacity-100 group-hover:ml-2 xl:max-w-32 xl:opacity-100 xl:ml-2 transition-all duration-300 ease-out">
                       {tab.label}
                     </span>
+                    {isActive && (
+                      <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-2 h-0.5 rounded-full bg-emerald-600" />
+                    )}
                   </button>
                 );
               })}

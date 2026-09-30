@@ -1,0 +1,419 @@
+{
+  "name": "✨ [NutrIsa] Gerador Autônomo de Posts Instagram (Dra. Isabela Muñoz)",
+  "nodes": [
+    {
+      "id": "node_manual",
+      "name": "Manual_Trigger",
+      "parameters": {},
+      "position": [
+        -200,
+        100
+      ],
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1
+    },
+    {
+      "id": "node_chat",
+      "name": "Chat_Trigger",
+      "parameters": {
+        "options": {}
+      },
+      "position": [
+        -200,
+        280
+      ],
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4
+    },
+    {
+      "id": "node_webhook",
+      "name": "Webhook_Trigger",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "nutrisa-post-generator"
+      },
+      "position": [
+        -200,
+        460
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2
+    },
+    {
+      "id": "node_preparar",
+      "name": "Preparar_Parametros",
+      "parameters": {
+        "jsCode": "const input = $input.item.json.body || $input.item.json || {};\n\nconst pautas = [\n  { formato: \"autoridade\", tema: \"Por que comer pouco desacelera o metabolismo e bloqueia a queima de gordura?\", foco: \"Fisiologia e Termogênese\" },\n  { formato: \"prato\", tema: \"Estratégia de reposição de glicogênio e reparo muscular no pós-treino intenso.\", foco: \"Alimentação Esportiva e Macros\" },\n  { formato: \"ciencia\", tema: \"Treinar em jejum vs Treinar alimentado: o que a ciência do ACSM realmente diz?\", foco: \"Mito vs Evidência Científica\" },\n  { formato: \"autoridade\", tema: \"Sono de baixa qualidade: o sabotador invisível da hipertrofia e emagrecimento.\", foco: \"Hormônios e Recuperação\" },\n  { formato: \"prato\", tema: \"Café da manhã hiperproteico para saciedade e foco mental até o almoço.\", foco: \"Densidade Nutricional\" }\n];\n\nlet formato = input.formato || input.format || \"\";\nlet tema = input.tema || input.theme || input.chatInput || \"\";\n\nif (!tema) {\n  const sorteado = pautas[Math.floor(Math.random() * pautas.length)];\n  formato = sorteado.formato;\n  tema = sorteado.tema;\n}\n\nif (!formato) {\n  const formatosValidos = [\"autoridade\", \"prato\", \"ciencia\"];\n  formato = formatosValidos[Math.floor(Math.random() * formatosValidos.length)];\n}\n\nconst fotosDra = [\n  \"https://isabelamunoznutri.com.br/assets/images/isa_1.png\",\n  \"https://isabelamunoznutri.com.br/assets/images/isa_2.png\",\n  \"https://isabelamunoznutri.com.br/assets/images/isa_3.png\"\n];\n\nconst fotoSelecionada = fotosDra[Math.floor(Math.random() * fotosDra.length)];\n\nreturn [{\n  json: {\n    formato,\n    tema,\n    fotoDra: fotoSelecionada,\n    logoUrl: \"https://isabelamunoznutri.com.br/assets/images/logo_assinatura.png\",\n    instagram: \"@nutri.isabelamunoz\",\n    crm: \"Nutricionista Clínica & Esportiva de Elite | Certificação ACSM\"\n  }\n}];"
+      },
+      "position": [
+        60,
+        280
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "node_switch",
+      "name": "Configurar_Switch",
+      "parameters": {
+        "dataType": "string",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value1": "={{ $json.formato }}",
+              "value2": "autoridade"
+            },
+            {
+              "operation": "equal",
+              "value1": "={{ $json.formato }}",
+              "value2": "prato"
+            },
+            {
+              "operation": "equal",
+              "value1": "={{ $json.formato }}",
+              "value2": "ciencia"
+            }
+          ]
+        },
+        "value1": "={{ $json.formato }}"
+      },
+      "position": [
+        280,
+        280
+      ],
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3
+    },
+    {
+      "id": "node_prompt_autoridade",
+      "name": "Prompt_Autoridade",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "systemPrompt",
+              "type": "string",
+              "value": "Você é a estrategista de conteúdo da Dra. Isabela Muñoz (Nutricionista Clínica, Esportiva e certificada ACSM).\nGere os textos para um post editorial de luxo no formato 'Dra. Explica' com base no tema fornecido.\n\nRetorne ESTRITAMENTE um JSON com as seguintes chaves:\n{\n  \"badge\": \"Ex: FISIOLOGIA METABÓLICA (máx 3 palavras)\",\n  \"tagline\": \"Ex: Performance & Saúde\",\n  \"headline\": \"Título impactante em tom reflexivo/autoridade\",\n  \"destaque_dourado\": \"Termo chave da headline para ficar em dourado\",\n  \"descricao\": \"Texto conciso explicando a tese em 2 a 3 frases densas em ciência e clareza.\",\n  \"legenda_instagram\": \"Legenda completa do post com gancho, desenvolvimento, CTA para agendamento via link na bio e hashtags (#NutricaoEsportiva, #NutriIsabelaMunoz, #ACSM, #Campinas).\",\n  \"prompt_imagem_dalle\": \"Prompt em inglês para gerar fundo conceitual ou imagem caso necessário\"\n}"
+            }
+          ]
+        }
+      },
+      "position": [
+        520,
+        140
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "node_prompt_prato",
+      "name": "Prompt_Prato",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "systemPrompt",
+              "type": "string",
+              "value": "Você é a estrategista de conteúdo da Dra. Isabela Muñoz (Nutricionista Esportiva e Clínica).\nGere os dados para o post 'Prato & Performance' com detalhamento de macronutrientes.\n\nRetorne ESTRITAMENTE um JSON com as seguintes chaves:\n{\n  \"categoria\": \"Ex: Pós-Treino Estratégico\",\n  \"titulo_prato\": \"Nome do prato ou estratégia de refeição\",\n  \"subtitulo_prato\": \"Explicação clínica de 2 frases sobre os benefícios dos nutrientes escolhidos.\",\n  \"calorias\": \"Ex: 540 Kcal\",\n  \"proteinas\": \"Ex: 42g\",\n  \"carboidratos\": \"Ex: 58g\",\n  \"lipidios\": \"Ex: 14g\",\n  \"legenda_instagram\": \"Legenda completa para o Instagram com passo a passo ou dicas de substituição e hashtags.\",\n  \"prompt_imagem_dalle\": \"Close-up food photography of a high-end gourmet nutrition meal on dark rustic ceramic plate, soft moody lighting, restaurant quality, 8k.\"\n}"
+            }
+          ]
+        }
+      },
+      "position": [
+        520,
+        280
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "node_prompt_ciencia",
+      "name": "Prompt_Ciencia",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "systemPrompt",
+              "type": "string",
+              "value": "Você é a estrategista de conteúdo da Dra. Isabela Muñoz (Certificação Internacional ACSM).\nGere um post de debate científico no formato 'Ciência vs. Senso Comum'.\n\nRetorne ESTRITAMENTE um JSON com as seguintes chaves:\n{\n  \"badge\": \"American College of Sports Medicine\",\n  \"titulo_pergunta\": \"Pergunta provocativa do debate (ex: Treinar em jejum queima mais gordura?)\",\n  \"senso_comum_titulo\": \"Citação popular ou crença errônea\",\n  \"senso_comum_explicacao\": \"Por que o senso comum falha na prática.\",\n  \"ciencia_titulo\": \"A evidência científica real\",\n  \"ciencia_explicacao\": \"A explicação fisiológica que comprova a conduta correta.\",\n  \"legenda_instagram\": \"Legenda completa debatendo o mito, com embasamento do ACSM e chamada para consulta.\",\n  \"prompt_imagem_dalle\": \"Abstract clean medical biochemistry aesthetic background, dark warm gold tones, subtle DNA or science particle glow, 8k.\"\n}"
+            }
+          ]
+        }
+      },
+      "position": [
+        520,
+        420
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "openAiApi": {
+          "id": "Gx4YxHuo6BJwafiZ",
+          "name": "OpenAi account"
+        }
+      },
+      "id": "node_openai_model",
+      "name": "OpenAI_Chat_Model",
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {
+          "responseFormat": "json_object",
+          "temperature": 0.7
+        }
+      },
+      "position": [
+        720,
+        440
+      ],
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3
+    },
+    {
+      "id": "node_chain_ia",
+      "name": "Gerar_Conteudo_IA",
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.systemPrompt }}\n\nTEMA: {{ $('Preparar_Parametros').item.json.tema }}"
+      },
+      "position": [
+        780,
+        280
+      ],
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5
+    },
+    {
+      "id": "node_format_html",
+      "name": "Formatar_HTML_Final",
+      "parameters": {
+        "jsCode": "const params = $('Preparar_Parametros').first().json;\nconst rawAI = $('Gerar_Conteudo_IA').first().json.text || $('Gerar_Conteudo_IA').first().json.response || '{}';\n\nlet content = {};\ntry {\n  content = typeof rawAI === 'string' ? JSON.parse(rawAI) : rawAI;\n} catch (e) {\n  content = { erro: \"Falha no parse do JSON da IA\", raw: rawAI };\n}\n\nreturn [{\n  json: {\n    status: \"conteudo_gerado\",\n    formato: params.formato,\n    tema: params.tema,\n    fotoDra: params.fotoDra,\n    logoUrl: params.logoUrl,\n    instagram: params.instagram,\n    crm: params.crm,\n    dadosPost: content,\n    legendaFinal: content.legenda_instagram || \"Conteúdo gerado pela equipe da Dra. Isabela Muñoz.\",\n    promptImagemDalle: content.prompt_imagem_dalle || \"Athletic training nutrition aesthetics dark gold mood.\"\n  }\n}];"
+      },
+      "position": [
+        980,
+        280
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "openAiApi": {
+          "id": "Gx4YxHuo6BJwafiZ",
+          "name": "OpenAi account"
+        }
+      },
+      "id": "node_dalle",
+      "name": "Gerar_Imagem_DALL_E",
+      "parameters": {
+        "jsonBody": "={\n  \"model\": \"gpt-image-2.5-flare\",\n  \"prompt\": {{ JSON.stringify($json.promptImagemDalle) }},\n  \"n\": 1,\n  \"size\": \"1024x1024\"\n}",
+        "method": "POST",
+        "nodeCredentialType": "openAiApi",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "https://api.openai.com/v1/images/generations"
+      },
+      "position": [
+        1180,
+        280
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node_notificacao",
+      "name": "Montar_Notificacao",
+      "parameters": {
+        "jsCode": "const post = $('Formatar_HTML_Final').first().json;\nconst dalleResult = $input.item.json;\nconst imagemGeradaUrl = dalleResult.data && dalleResult.data[0] ? dalleResult.data[0].url : \"\";\n\nreturn [{\n  json: {\n    previewStatus: \"pronto_para_aprovacao\",\n    formato: post.formato,\n    tema: post.tema,\n    dadosPost: post.dadosPost,\n    fotoDraOficial: post.fotoDra,\n    imagemIaUrl: imagemGeradaUrl,\n    legendaInstagram: post.legendaFinal\n  }\n}];"
+      },
+      "position": [
+        1380,
+        280
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "node_webhook_aprovacao",
+      "name": "Webhook_Aprovacao",
+      "parameters": {
+        "options": {},
+        "responseCode": 200,
+        "responseData": "allEntries"
+      },
+      "position": [
+        1560,
+        280
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Chat_Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Preparar_Parametros",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Configurar_Switch": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Prompt_Autoridade",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Prompt_Prato",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Prompt_Ciencia",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Formatar_HTML_Final": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Gerar_Imagem_DALL_E",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Gerar_Conteudo_IA": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Formatar_HTML_Final",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Gerar_Imagem_DALL_E": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Montar_Notificacao",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Manual_Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Preparar_Parametros",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Montar_Notificacao": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Webhook_Aprovacao",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "OpenAI_Chat_Model": {
+      "ai_languageModel": [
+        [
+          {
+            "index": 0,
+            "node": "Gerar_Conteudo_IA",
+            "type": "ai_languageModel"
+          }
+        ]
+      ]
+    },
+    "Preparar_Parametros": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Configurar_Switch",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prompt_Autoridade": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Gerar_Conteudo_IA",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prompt_Ciencia": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Gerar_Conteudo_IA",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prompt_Prato": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Gerar_Conteudo_IA",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Webhook_Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Preparar_Parametros",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  }
+}

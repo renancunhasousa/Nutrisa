@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Templates Instagram - Dra. Isabela Muñoz</title>
+  
+  <!-- FONTES EXATAS DO SITE DA DRA. ISABELA MUÑOZ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Allison&family=Amiri:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* =========================================================
+       DESIGN SYSTEM OFICIAL - DRA. ISABELA MUÑOZ
+       ========================================================= */
+    :root {
+      --bg-dark: #25211D;
+      --bg-darker: #1A1714;
+      --bg-card: rgba(46, 42, 37, 0.85);
+      --bg-card-solid: #2E2A25;
+      --primary-gold: #F5E3C0;
+      --secondary-gold: #F3A950;
+      --text-main: #E1E1E1;
+      --text-muted: #A39D94;
+      --border-gold: rgba(245, 227, 192, 0.25);
+      --border-gold-strong: rgba(243, 169, 80, 0.5);
+      
+      --font-serif: 'Amiri', serif;
+      --font-sans: 'Montserrat', sans-serif;
+      --font-script: 'Allison', cursive;
+    }
+
+    .theme-marrom {
+      --bg-dark: #25211D;
+      --bg-darker: #1A1714;
+      --bg-card: rgba(46, 42, 37, 0.85);
+      --bg-card-solid: #2E2A25;
+      --primary-gold: #F5E3C0;
+      --secondary-gold: #F3A950;
+      --text-main: #E1E1E1;
+      --text-muted: #A39D94;
+      --border-gold: rgba(245, 227, 192, 0.25);
+      --border-gold-strong: rgba(243, 169, 80, 0.5);
+    }
+
+    .theme-tiffany {
+      --bg-dark: #082321;
+      --bg-darker: #051817;
+      --bg-card: rgba(13, 50, 47, 0.85);
+      --bg-card-solid: #0A2E2B;
+      --primary-gold: #5EEAD4;
+      --secondary-gold: #2DD4BF;
+      --text-main: #E6FAF7;
+      --text-muted: #99D1C9;
+      --border-gold: rgba(94, 234, 212, 0.25);
+      --border-gold-strong: rgba(20, 184, 166, 0.5);
+    }
+
+    .theme-bege {
+      --bg-dark: #FAF6EE;
+      --bg-darker: #EFE6D6;
+      --bg-card: rgba(255, 255, 255, 0.92);
+      --bg-card-solid: #FFFFFF;
+      --primary-gold: #1C1917;
+      --secondary-gold: #0D9488;
+      --text-main: #44403C;
+      --text-muted: #78716C;
+      --border-gold: rgba(13, 148, 136, 0.25);
+      --border-gold-strong: rgba(217, 119, 6, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: #110F0D;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      min-height: 100vh;
+    }
+
+    /* BARRA DE CONTROLE */
+    .controls-panel {
+      background: var(--bg-card-solid);
+      border: 1px solid var(--border-gold);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .controls-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .controls-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary-gold);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .controls-label::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--secondary-gold);
+      box-shadow: 0 0 8px var(--secondary-gold);
+    }
+
+    .controls-format-badge {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+    }
+
+    .btn-style {
+      background: rgba(245, 227, 192, 0.05);
+      color: var(--text-main);
+      border: 1px solid var(--border-gold);
+      padding: 12px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 4px;
+      outline: none;
+      width: 100%;
+    }
+
+    .btn-style .btn-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      transition: color 0.25s ease;
+    }
+
+    .btn-style .btn-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0.5px;
+      transition: color 0.25s ease;
+    }
+
+    .btn-style:hover {
+      background: rgba(245, 227, 192, 0.12);
+      border-color: var(--secondary-gold);
+      transform: translateY(-1px);
+    }
+
+    .btn-style.active {
+      background: linear-gradient(135deg, rgba(243, 169, 80, 0.25), rgba(245, 227, 192, 0.15));
+      border: 1px solid var(--secondary-gold);
+      box-shadow: 0 0 20px rgba(243, 169, 80, 0.25);
+    }
+
+    .btn-style.active .btn-title {
+      color: var(--primary-gold);
+    }
+
+    .btn-style.active .btn-subtitle {
+      color: var(--secondary-gold);
+    }
+
+    .btn-theme {
+      background: rgba(245, 227, 192, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border-gold);
+      padding: 6px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--font-sans);
+    }
+
+    .btn-theme.active, .btn-theme:hover {
+      background: rgba(245, 227, 192, 0.2);
+      border-color: var(--secondary-gold);
+      color: var(--primary-gold);
+      box-shadow: 0 0 10px rgba(243, 169, 80, 0.25);
+    }
+
+    @media (max-width: 768px) {
+      .btn-group {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* BARRA DE AÇÕES (UPLOAD / TROCA DE FOTOS) */
+    .controls-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(245, 227, 192, 0.12);
+    }
+
+    .action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(90deg, rgba(243, 169, 80, 0.25), rgba(245, 227, 192, 0.15));
+      color: var(--primary-gold);
+      border: 1px solid var(--secondary-gold);
+      padding: 9px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-sans);
+    }
+
+    .btn-action:hover {
+      background: linear-gradient(90deg, #F3A950, #F5E3C0);
+      color: #1A1714;
+      box-shadow: 0 0 16px rgba(243, 169, 80, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-action-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid rgba(245, 227, 192, 0.2);
+      padding: 9px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-sans);
+    }
+
+    .btn-action-ghost:hover {
+      color: var(--primary-gold);
+      border-color: var(--primary-gold);
+    }
+
+    .tip-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tip-text strong {
+      color: var(--secondary-gold);
+    }
+
+    /* ÁREA DO CANVAS 1080x1350 ESCALADA */
+    .canvas-wrapper {
+      position: relative;
+      width: 540px;
+      height: 675px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(243, 169, 80, 0.15);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-gold);
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .canvas-wrapper.drag-hover {
+      border: 2px dashed var(--secondary-gold) !important;
+      box-shadow: 0 0 35px rgba(243, 169, 80, 0.6) !important;
+    }
+
+    /* O POST REAL (1080 x 1350) */
+    .post-canvas {
+      width: 1080px;
+      height: 1350px;
+      transform-origin: top left;
+      transform: scale(0.5);
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      display: none;
+    }
+
+    .post-canvas.active-template {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ==============================================================
+       FORMATO 1: DRA. EXPLICA (LUXO, AUTORIDADE & FOTO REAL RECORTADA)
+       ============================================================== */
+    .template-luxo-autoridade {
+      background: radial-gradient(circle at 80% 20%, #3B332A 0%, var(--bg-dark) 70%);
+      padding: 80px;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* Textura de fundo e linhas douradas */
+    .template-luxo-autoridade::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 10% 90%, rgba(243, 169, 80, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .lux-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .lux-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(245, 227, 192, 0.08);
+      border: 1px solid var(--border-gold);
+      padding: 12px 26px;
+      border-radius: 999px;
+      color: var(--primary-gold);
+      font-weight: 700;
+      font-size: 19px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .signature-logo {
+      height: 60px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+    }
+
+    .lux-content {
+      z-index: 10;
+      max-width: 580px;
+      margin-top: 30px;
+    }
+
+    .lux-tagline {
+      font-family: var(--font-script);
+      font-size: 64px;
+      color: var(--secondary-gold);
+      line-height: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .lux-headline {
+      font-family: var(--font-serif);
+      font-size: 60px;
+      line-height: 1.18;
+      font-weight: 700;
+      color: var(--primary-gold);
+      margin-bottom: 24px;
+      letter-spacing: 0.5px;
+    }
+
+    .lux-headline .gold-gradient {
+      background: linear-gradient(90deg, #F3A950, #F5E3C0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      border-bottom: 2px solid var(--secondary-gold);
+      padding-bottom: 4px;
+    }
+
+    .lux-description {
+      font-size: 25px;
+      line-height: 1.5;
+      color: var(--text-main);
+      font-weight: 300;
+    }
+
+    /* Foto Real da Dra. Isabela */
+    .lux-photo-wrap {
+      position: absolute;
+      right: 10px;
+      bottom: 0;
+      width: 640px;
+      height: 1020px;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .lux-photo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      mask-image: linear-gradient(to top, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%),
+                  linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 15%);
+      -webkit-mask-image: linear-gradient(to top, black 85%, transparent 100%);
+    }
+
+    .lux-footer-card {
+      z-index: 10;
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 24px 34px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 620px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .lux-dra-title {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--primary-gold);
+    }
+
+    .lux-dra-sub {
+      font-size: 16px;
+      color: var(--secondary-gold);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .lux-swipe {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--primary-gold);
+      font-size: 19px;
+      font-weight: 600;
+    }
+
+    /* ==============================================================
+       FORMATO 2: PRATO & PERFORMANCE DE ELITE (ESTILO GASTRÔ/ESPORTE)
+       ============================================================== */
+    .template-prato-elite {
+      position: relative;
+      background: var(--bg-darker);
+      padding: 70px;
+      justify-content: space-between;
+    }
+
+    .dish-hero-img {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      opacity: 0.75;
+    }
+
+    .dish-gradient {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(180deg, 
+        rgba(37,33,29, 0.94) 0%, 
+        rgba(37,33,29, 0.3) 40%, 
+        rgba(26,23,20, 0.95) 85%);
+      z-index: 2;
+    }
+
+    .dish-top {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dish-category {
+      background: linear-gradient(90deg, #F3A950, #F5E3C0);
+      color: #1A1714;
+      font-weight: 800;
+      font-size: 18px;
+      padding: 10px 24px;
+      border-radius: 999px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .dish-middle {
+      position: relative;
+      z-index: 5;
+      margin-top: 50px;
+    }
+
+    .dish-headline {
+      font-family: var(--font-serif);
+      font-size: 58px;
+      font-weight: 700;
+      color: var(--primary-gold);
+      line-height: 1.15;
+      margin-bottom: 16px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    }
+
+    .dish-subheadline {
+      font-size: 24px;
+      color: var(--text-main);
+      font-weight: 400;
+      max-width: 780px;
+      line-height: 1.5;
+    }
+
+    /* HUD DOURADO DE MACRONUTRIENTES */
+    .dish-hud {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      background: rgba(37, 33, 29, 0.85);
+      border: 1px solid var(--border-gold);
+      backdrop-filter: blur(18px);
+      padding: 24px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+    }
+
+    .hud-stat {
+      text-align: center;
+      border-right: 1px solid var(--border-gold);
+      padding: 10px;
+    }
+
+    .hud-stat:last-child {
+      border-right: none;
+    }
+
+    .hud-stat .val {
+      font-family: var(--font-sans);
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--secondary-gold);
+      letter-spacing: -0.5px;
+    }
+
+    .hud-stat .lbl {
+      font-size: 15px;
+      color: var(--primary-gold);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .dish-footer {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      font-size: 20px;
+      color: var(--text-muted);
+    }
+
+    /* ==============================================================
+       FORMATO 3: CIÊNCIA vs. MITO (BASEADO NO ACSM / EVIDÊNCIAS)
+       ============================================================== */
+    .template-ciencia-evidencia {
+      background: var(--bg-dark);
+      padding: 80px;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .ciencia-header {
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .ciencia-badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border-gold);
+      background: rgba(245, 227, 192, 0.08);
+      color: var(--secondary-gold);
+      font-size: 18px;
+      font-weight: 700;
+      padding: 8px 22px;
+      border-radius: 999px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .ciencia-title {
+      font-family: var(--font-serif);
+      font-size: 54px;
+      line-height: 1.22;
+      color: var(--primary-gold);
+      font-weight: 700;
+    }
+
+    .debate-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      margin: 40px 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .debate-card {
+      padding: 34px 38px;
+      border-radius: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+    }
+
+    .debate-card.errado {
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .debate-card.certo {
+      border: 1px solid var(--border-gold-strong);
+      box-shadow: 0 10px 30px rgba(243, 169, 80, 0.1);
+    }
+
+    .debate-pill {
+      font-size: 20px;
+      font-weight: 800;
+      padding: 10px 18px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      letter-spacing: 1px;
+    }
+
+    .debate-pill.errado-bg {
+      background: rgba(239, 68, 68, 0.2);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+    }
+
+    .debate-pill.certo-bg {
+      background: rgba(243, 169, 80, 0.2);
+      color: var(--secondary-gold);
+      border: 1px solid var(--secondary-gold);
+    }
+
+    .debate-text h4 {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      color: var(--primary-gold);
+      margin-bottom: 8px;
+    }
+
+    .debate-text p {
+      font-size: 21px;
+      line-height: 1.5;
+      color: var(--text-main);
+      font-weight: 300;
+    }
+
+    .ciencia-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-gold);
+      padding-top: 26px;
+      position: relative;
+      z-index: 2;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- CONTROLES DE NAVEGAÇÃO ENTRE FORMATOS -->
+  <div class="controls-panel">
+    <div class="controls-header">
+      <span class="controls-label">Formatos do Feed</span>
+      <span class="controls-format-badge">Proporção 4:5 • 1080 × 1350 px</span>
+    </div>
+    <div class="btn-group">
+      <button class="btn-style active" onclick="switchTemplate('template-luxo-autoridade', this)">
+        <span class="btn-title">1. Dra. Isabela Explica</span>
+        <span class="btn-subtitle">Autoridade & Elegância</span>
+      </button>
+      <button class="btn-style" onclick="switchTemplate('template-prato-elite', this)">
+        <span class="btn-title">2. Prato & Performance</span>
+        <span class="btn-subtitle">Nutrição & Esporte</span>
+      </button>
+      <button class="btn-style" onclick="switchTemplate('template-ciencia-evidencia', this)">
+        <span class="btn-title">3. Ciência vs. Senso Comum</span>
+        <span class="btn-subtitle">Evidências & ACSM</span>
+      </button>
+    </div>
+
+    <!-- BARRA DE AÇÕES (TROCA DE FOTO DA DRA) -->
+    <div class="controls-actions">
+      <div class="action-buttons">
+        <label class="btn-action" title="Selecione qualquer foto da Dra. salva no seu computador">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>📷 Carregar Foto da Dra. (do seu PC)</span>
+          <input type="file" id="dra-file-input" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event, 'dra-photo')">
+        </label>
+        
+        <button type="button" class="btn-action-ghost" onclick="resetPhoto('dra-photo', './dra_isabela.png')" title="Restaurar foto oficial da Dra.">
+          ↺ Restaurar Foto Oficial
+        </button>
+      </div>
+
+      <div class="tip-text">
+        <span>💡 Dica: Você também pode <strong>arrastar e soltar</strong> uma foto da Dra. diretamente sobre o post!</span>
+      </div>
+    </div>
+
+    <!-- BARRA DE PALETAS (IDENTIDADE VISUAL) -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(245, 227, 192, 0.12);">
+      <span style="font-size: 11px; font-weight: 700; color: var(--primary-gold); text-transform: uppercase; letter-spacing: 1px;">Paleta do Post:</span>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="btn-theme active" onclick="switchTheme('theme-marrom', this)">
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#F3A950; margin-right:6px;"></span>
+          Marrom & Ouro (Site)
+        </button>
+        <button type="button" class="btn-theme" onclick="switchTheme('theme-tiffany', this)">
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#14B8A6; margin-right:6px;"></span>
+          Verde Tiffany (Plataforma)
+        </button>
+        <button type="button" class="btn-theme" onclick="switchTheme('theme-bege', this)">
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#D97706; margin-right:6px;"></span>
+          Bege Claro (Editorial)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTAINER DE PREVIEW COM TAMANHO REAL DE 1080x1350 ESCALONADO -->
+  <div class="canvas-wrapper theme-marrom">
+
+    <!-- ==============================================================
+         FORMATO 1: DRA. ISABELA EXPLICA (AUTORIDADE & ELEGÂNCIA)
+         ============================================================== -->
+    <div id="template-luxo-autoridade" class="post-canvas template-luxo-autoridade active-template">
+      
+      <div class="lux-header">
+        <div class="lux-badge">Nutrição de Precisão</div>
+        <img class="signature-logo" src="https://isabelamunoznutri.com.br/assets/images/logo_assinatura.png" alt="Dra. Isabela Muñoz">
+      </div>
+
+      <div class="lux-content">
+        <div class="lux-tagline">Performance & Saúde</div>
+        <div class="lux-headline">
+          Por que dietas radicais <span class="gold-gradient">destroem seu metabolismo</span> e sua massa muscular?
+        </div>
+        <div class="lux-description">
+          A restrição calórica sem periodização induz à perda de massa magra, desacelerando o gasto calórico diário e provocando o efeito rebote.
+        </div>
+      </div>
+
+      <!-- FOTO REAL DA DRA. ISABELA (Foto Oficial) -->
+      <div class="lux-photo-wrap">
+        <img id="dra-photo" src="./dra_isabela.png" alt="Dra. Isabela Muñoz">
+      </div>
+
+      <div class="lux-footer-card">
+        <div>
+          <div class="lux-dra-title">Isabela Muñoz</div>
+          <div class="lux-dra-sub">Nutrição Clínica, Esportiva & Performance</div>
+        </div>
+        <div class="lux-swipe">
+          <span>Deslize</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==============================================================
+         FORMATO 2: PRATO & PERFORMANCE DE ELITE
+         ============================================================== -->
+    <div id="template-prato-elite" class="post-canvas template-prato-elite">
+      
+      <!-- Imagem Gastronômica Real -->
+      <img id="dish-photo" class="dish-hero-img" src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1400&q=80" alt="Estratégia Nutricional">
+      <div class="dish-gradient"></div>
+
+      <div class="dish-top">
+        <div class="dish-category">Pós-Treino Estratégico</div>
+        <img class="signature-logo" src="https://isabelamunoznutri.com.br/assets/images/logo_assinatura.png" alt="Dra. Isabela Muñoz">
+      </div>
+
+      <div class="dish-middle">
+        <div class="dish-headline">Recuperação Muscular & Reposição de Glicogênio</div>
+        <div class="dish-subheadline">
+          A janela pós-exercício exige um balanço preciso de carboidratos de absorção equilibrada com fontes nobres de aminoácidos para acelerar a síntese proteica.
+        </div>
+      </div>
+
+      <div>
+        <div class="dish-hud">
+          <div class="hud-stat">
+            <div class="val">540</div>
+            <div class="lbl">Kcal</div>
+          </div>
+          <div class="hud-stat">
+            <div class="val">42g</div>
+            <div class="lbl">Proteína</div>
+          </div>
+          <div class="hud-stat">
+            <div class="val">58g</div>
+            <div class="lbl">Carboidratos</div>
+          </div>
+          <div class="hud-stat">
+            <div class="val">14g</div>
+            <div class="lbl">Lipídios</div>
+          </div>
+        </div>
+
+        <div class="dish-footer">
+          <span style="color: var(--primary-gold); font-weight: 600;">@nutri.isabelamunoz</span>
+          <span>Salve para sua rotina esportiva ↗</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==============================================================
+         FORMATO 3: CIÊNCIA vs. SENSO COMUM (EVIDÊNCIAS & ACSM)
+         ============================================================== -->
+    <div id="template-ciencia-evidencia" class="post-canvas template-ciencia-evidencia">
+      
+      <div class="ciencia-header">
+        <div class="ciencia-badge">American College of Sports Medicine</div>
+        <div class="ciencia-title">Treinar em jejum queima mais gordura?</div>
+      </div>
+
+      <div class="debate-cards">
+        <div class="debate-card errado">
+          <div class="debate-pill errado-bg">SENSO COMUM</div>
+          <div class="debate-text">
+            <h4>"Gasta mais gordura pura"</h4>
+            <p>A oxidação de gordura momentânea pode ser levemente superior, porém a perda de intensidade no treino reduz o gasto calórico total do dia e compromete a musculatura.</p>
+          </div>
+        </div>
+
+        <div class="debate-card certo">
+          <div class="debate-pill certo-bg">CIÊNCIA CLÍNICA</div>
+          <div class="debate-text">
+            <h4>"O balanço de 24h é soberano"</h4>
+            <p>Estar nutrido permite manter volume e carga maiores de treino. O déficit energético ao longo do dia, e não o estômago vazio durante o exercício, dita o emagrecimento real.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ciencia-footer">
+        <div>
+          <div style="font-family: var(--font-serif); font-size: 24px; color: var(--primary-gold); font-weight: 700;">Isabela Muñoz</div>
+          <div style="color: var(--secondary-gold); font-size: 16px;">Certificação Internacional ACSM</div>
+        </div>
+        <div style="font-size: 19px; font-weight: 600; color: var(--primary-gold);">
+          Envie para seu parceiro de treino ↗
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    function switchTemplate(templateId, btnElement) {
+      document.querySelectorAll('.post-canvas').forEach(el => el.classList.remove('active-template'));
+      document.querySelectorAll('.btn-style').forEach(el => el.classList.remove('active'));
+      
+      const targetCanvas = document.getElementById(templateId);
+      if (targetCanvas) {
+        targetCanvas.classList.add('active-template');
+      }
+
+      if (btnElement) {
+        btnElement.classList.add('active');
+      } else if (window.event && window.event.currentTarget) {
+        window.event.currentTarget.classList.add('active');
+      }
+    }
+
+    function switchTheme(themeClass, btn) {
+      document.querySelectorAll('.btn-theme').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const wrapper = document.querySelector('.canvas-wrapper');
+      if (wrapper) {
+        wrapper.classList.remove('theme-marrom', 'theme-tiffany', 'theme-bege');
+        wrapper.classList.add(themeClass);
+      }
+    }
+
+    function handlePhotoUpload(event, targetImgId) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.getElementById(targetImgId);
+        if (img) {
+          img.src = e.target.result;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetPhoto(targetImgId, defaultUrl) {
+      const img = document.getElementById(targetImgId);
+      if (img) img.src = defaultUrl;
+    }
+
+    // Suporte a Arrastar e Soltar (Drag & Drop de Fotos)
+    const canvasWrap = document.querySelector('.canvas-wrapper');
+    if (canvasWrap) {
+      canvasWrap.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        canvasWrap.classList.add('drag-hover');
+      });
+      canvasWrap.addEventListener('dragleave', () => {
+        canvasWrap.classList.remove('drag-hover');
+      });
+      canvasWrap.addEventListener('drop', (e) => {
+        e.preventDefault();
+        canvasWrap.classList.remove('drag-hover');
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const activeCanvas = document.querySelector('.post-canvas.active-template');
+            if (activeCanvas) {
+              const targetImg = activeCanvas.querySelector('#dra-photo') || activeCanvas.querySelector('#dish-photo');
+              if (targetImg) targetImg.src = ev.target.result;
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

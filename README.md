@@ -36,6 +36,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 | Alertas do consultório | `app/src/features/notificacoes` |
 | Demandas, to-do e follow-up | `app/src/features/tarefas` |
 | Contratos e termos de adesão | `app/src/features/contratos` |
+| Estúdio de posts e marketing para Instagram | `app/src/features/marketing` |
 | Comunicação com a IA no servidor | `server/ai` e `api/ai.js` |
 | Estilos globais e impressão | `app/src/styles` |
 
@@ -50,6 +51,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Especificação do Criador de Dietas](docs/diet-plan-builder-spec.md): editor em etapas, alimentos, macros, substituições, IA e relatório PDF.
 - [Central de Tarefas & Follow-up](docs/reference/tasks-module.md): demandas clínicas, sincronização da agenda com regras de prazo e follow-up no WhatsApp.
 - [Atendimento & Metas de Bonificação](docs/reference/atendimento-metrics.md): métricas de SLA, teto de intervenção médica (<= 25%) e foco em agendamentos no relatório executivo.
+- [Estúdio de Posts & IA (Instagram)](docs/reference/marketing-studio.md): gerador de publicações e carrosséis (1080×1350), 7 formatos clínicos, 3 paletas (marrom, tiffany, bege), pautas inteligentes (WhatsApp & Busca Web), exportação ZIP e legendas prontas com IA.
 
 Os PDFs em `model/` são referências existentes e não são importados pela aplicação. O protótipo antigo foi preservado em `docs/reference/anamnese-prototype.jsx.txt` e não é executável nesta plataforma.
 

@@ -7,8 +7,9 @@ const AtendimentoPage = lazy(() => import('./features/atendimento/AtendimentoPag
 const AgendaPage = lazy(() => import('./features/agenda/AgendaPage.jsx'));
 const ContratosPage = lazy(() => import('./features/contratos/ContratosPage.jsx'));
 const TarefasPage = lazy(() => import('./features/tarefas/TarefasPage.jsx'));
+const MarketingPage = lazy(() => import('./features/marketing/MarketingPage.jsx'));
 const PublicSignaturePage = lazy(() => import('./features/contratos/PublicSignaturePage.jsx'));
-const MODES = ['laudo', 'anamnese', 'dashboard', 'agenda', 'tarefas', 'contratos'];
+const MODES = ['laudo', 'anamnese', 'dashboard', 'agenda', 'tarefas', 'contratos', 'marketing'];
 const readMode = () => {
   let hash = window.location.hash;
   if (hash.startsWith('#')) hash = hash.slice(1);
@@ -48,6 +49,7 @@ export default function App() {
     agenda: <AgendaPage />,
     tarefas: <TarefasPage />,
     contratos: <ContratosPage activeModel={settings.selectedModel} />,
+    marketing: <MarketingPage activeModel={settings.selectedModel} />,
   };
 
   // Rota Pública (Assinatura)
