@@ -8,8 +8,9 @@ const AgendaPage = lazy(() => import('./features/agenda/AgendaPage.jsx'));
 const ContratosPage = lazy(() => import('./features/contratos/ContratosPage.jsx'));
 const TarefasPage = lazy(() => import('./features/tarefas/TarefasPage.jsx'));
 const MarketingPage = lazy(() => import('./features/marketing/MarketingPage.jsx'));
+const DietasPage = lazy(() => import('./features/dietas/DietasPage.jsx'));
 const PublicSignaturePage = lazy(() => import('./features/contratos/PublicSignaturePage.jsx'));
-const MODES = ['laudo', 'anamnese', 'dashboard', 'agenda', 'tarefas', 'contratos', 'marketing'];
+const MODES = ['laudo', 'anamnese', 'dietas', 'dashboard', 'agenda', 'tarefas', 'contratos', 'marketing'];
 const readMode = () => {
   let hash = window.location.hash;
   if (hash.startsWith('#')) hash = hash.slice(1);
@@ -45,6 +46,7 @@ export default function App() {
   const pages = {
     laudo: <AvaliacaoPage settings={settings} />,
     anamnese: <AnamnesePage activeModel={settings.selectedModel} />,
+    dietas: <DietasPage settings={settings} />,
     dashboard: <AtendimentoPage activeModel={settings.selectedModel} />,
     agenda: <AgendaPage />,
     tarefas: <TarefasPage />,

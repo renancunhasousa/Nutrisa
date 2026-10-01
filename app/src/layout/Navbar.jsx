@@ -2,7 +2,7 @@ import React from 'react';
 
 import logoPlatform from '../assets/logo_new.png';
 
-import { Sparkles, Settings, Activity, Calendar, FileText, MessageSquare, Bell, FileSignature, CheckSquare } from 'lucide-react';
+import { Sparkles, Settings, Activity, Calendar, FileText, MessageSquare, Bell, FileSignature, CheckSquare, UtensilsCrossed } from 'lucide-react';
 
 import NotificationPopover from '../features/notificacoes/NotificationPopover.jsx';
 import { useTasks } from '../features/tarefas/hooks/useTasks.js';
@@ -32,6 +32,7 @@ return (<>      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
               {[
                 { id: 'laudo', label: 'Avaliação', icon: Activity },
                 { id: 'anamnese', label: 'Anamnese', icon: FileText },
+                { id: 'dietas', label: 'Dietas', icon: UtensilsCrossed },
                 { id: 'dashboard', label: 'Atendimento', icon: MessageSquare },
                 { id: 'agenda', label: 'Agenda', icon: Calendar },
                 { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
