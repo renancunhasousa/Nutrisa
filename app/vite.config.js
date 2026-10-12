@@ -18,8 +18,9 @@ export default defineConfig(({ mode }) => {
   ]) {
     if (env[key]) process.env[key] = env[key];
   }
+  const port = Number(env.PORT) || 3000;
   return {
-    server: { host: true, port: 5173 },
+    server: { host: true, port },
     // Legacy provider keys must never be injected into browser code.
     envPrefix: ['VITE_SUPABASE_', 'VITE_GOOGLE_'],
     plugins: [react(), tailwindcss(), localApiPlugin()],

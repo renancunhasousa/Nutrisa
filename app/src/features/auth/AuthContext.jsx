@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../../shared/services/supabase.js';
-import { getGoogleOAuthOptions } from './oauth.js';
+import { cleanAuthTokensFromUrl, extractAuthErrorFromHash, getGoogleOAuthOptions } from './oauth.js';
 import { AuthStateContext } from './useAuth.js';
 
 export function AuthProvider({ children }) {
@@ -16,17 +16,27 @@ export function AuthProvider({ children }) {
       return undefined;
     }
 
+    if (typeof window !== 'undefined') {
+      const hashError = extractAuthErrorFromHash(window.location.hash);
+      if (hashError) setError(decodeURIComponent(hashError));
+    }
+
     let mounted = true;
     supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!mounted) return;
       if (sessionError) setError(sessionError.message);
       setSession(data.session ?? null);
+      if (data.session) cleanAuthTokensFromUrl();
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      if (!nextSession) setOrganizationId(null);
+      if (!nextSession) {
+        setOrganizationId(null);
+      } else {
+        cleanAuthTokensFromUrl();
+      }
     });
 
     return () => {

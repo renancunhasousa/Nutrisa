@@ -13,7 +13,7 @@ Crie `app/.env` a partir de `app/.env.example` e `.env` na raiz a partir de `.en
 - `VITE_GOOGLE_CLIENT_ID`
 - `VITE_GOOGLE_CALENDAR_ID` — se ausente, usa `primary`.
 
-O login clínico com Google usa o provedor configurado no Supabase e não adiciona segredo ao frontend. Em **Authentication → URL Configuration**, cadastre a URL exata da aplicação em produção e a URL local usada pelo Vite (por padrão, `http://localhost:5173/**`). No Google Cloud, o callback do cliente OAuth do Supabase deve ser `https://<PROJECT_REF>.supabase.co/auth/v1/callback`.
+O login clínico com Google usa o provedor configurado no Supabase e não adiciona segredo ao frontend. Em **Authentication → URL Configuration**, configure a **Site URL** (ex: `http://localhost:3000` em desenvolvimento local ou a URL oficial na Vercel/produção) e, em **Redirect URLs**, cadastre todas as origens permitidas (ex: `http://localhost:3000/**`, `http://localhost:5173/**` e `https://*.vercel.app/**`). No Google Cloud, o callback do cliente OAuth do Supabase deve ser `https://<PROJECT_REF>.supabase.co/auth/v1/callback`.
 
 ## Variáveis privadas — servidor
 
