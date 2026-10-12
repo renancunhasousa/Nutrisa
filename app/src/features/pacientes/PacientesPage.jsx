@@ -121,7 +121,12 @@ export default function PacientesPage({ onNavigate, activeModel }) {
   useEffect(() => {
     const panel = detailPanelRef.current;
     if (!panel || typeof ResizeObserver === 'undefined') return undefined;
-    const syncHeight = () => setDetailPanelHeight(panel.getBoundingClientRect().height);
+    const syncHeight = () => {
+      const rect = panel.getBoundingClientRect();
+      if (rect.height > 0) {
+        setDetailPanelHeight(Math.round(rect.height));
+      }
+    };
     syncHeight();
     const observer = new ResizeObserver(syncHeight);
     observer.observe(panel);
@@ -262,22 +267,26 @@ export default function PacientesPage({ onNavigate, activeModel }) {
         }
       />
 
-      <div className="grid min-w-0 gap-5 lg:items-stretch lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside className="min-h-0 min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:flex lg:min-h-0 lg:flex-col" style={detailPanelHeight ? { height: detailPanelHeight } : undefined} aria-label="Lista de pacientes">
-          <form role="search" className="relative mb-3" onSubmit={(event) => event.preventDefault()}>
+      <div className="grid min-w-0 gap-5 lg:items-start lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <aside
+          className="min-h-0 min-w-0 flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white p-3 shadow-sm max-h-[75vh] lg:max-h-none lg:sticky lg:top-20"
+          style={detailPanelHeight ? { height: `${detailPanelHeight}px`, maxHeight: `${detailPanelHeight}px` } : undefined}
+          aria-label="Lista de pacientes"
+        >
+          <form role="search" className="relative mb-3 shrink-0" onSubmit={(event) => event.preventDefault()}>
             <label htmlFor="patient-search" className="sr-only">Buscar paciente</label>
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input id="patient-search" name="patient-search" type="search" autoComplete="off" spellCheck="false" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, CPF, telefone ou e-mail" className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-base sm:text-sm" />
           </form>
 
-          {actionError ? <p role="alert" className="mb-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{actionError}</p> : null}
+          {actionError ? <p role="alert" className="mb-2 shrink-0 rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{actionError}</p> : null}
 
           {loading ? (
             <p className="p-4 text-sm text-slate-500">Carregando pacientes…</p>
           ) : error ? (
             <p role="alert" className="p-4 text-sm text-rose-700">{error}</p>
           ) : filteredPatients.length ? (
-            <div className="min-h-0 max-h-[65vh] space-y-1 overflow-y-auto lg:min-h-0 lg:max-h-none lg:flex-1">
+            <div className="flex-1 min-h-0 space-y-1 overflow-y-auto overscroll-contain pr-1.5 [scrollbar-width:thin] [scrollbar-color:theme(colors.slate.300)_transparent]">
               {filteredPatients.map((patient) => (
                 <div key={patient.id} className={`flex min-h-14 w-full items-center rounded-2xl ${selectedPatient?.id === patient.id ? 'bg-emerald-50 text-emerald-900' : 'hover:bg-slate-50'}`}>
                   <button type="button" onClick={() => selectPatient(patient)} aria-pressed={selectedPatient?.id === patient.id} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
@@ -306,9 +315,9 @@ export default function PacientesPage({ onNavigate, activeModel }) {
           )}
         </aside>
 
-        <section className="min-w-0 lg:h-full" aria-live="polite">
+        <section ref={detailPanelRef} className="min-w-0" aria-live="polite">
           {!selectedPatient ? (
-            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:h-full">
+            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex min-h-28 items-center gap-3 border-b border-slate-100 pb-5">
                 <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-300">
                   <UserRound className="size-6" />
@@ -332,7 +341,7 @@ export default function PacientesPage({ onNavigate, activeModel }) {
               </section>
             </article>
           ) : (
-            <article ref={detailPanelRef} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex min-w-0 items-center gap-3.5">
                   <PatientAvatar patient={selectedPatient} size="large" />
