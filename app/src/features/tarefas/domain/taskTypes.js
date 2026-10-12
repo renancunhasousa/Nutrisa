@@ -10,7 +10,7 @@ export const TASK_CATEGORIES = {
     color: 'orange',
     badgeBg: 'bg-orange-50 text-orange-700 border-orange-200',
     dotBg: 'bg-orange-500',
-    defaultModule: 'laudo',
+    defaultModule: 'dietas',
   },
   exames: {
     id: 'exames',

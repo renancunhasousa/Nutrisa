@@ -53,11 +53,11 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
       }}
     >
       <div 
-        className="app-modal-panel max-w-xl p-6 sm:p-7 relative space-y-6 overflow-y-auto"
+        className="app-modal-panel max-w-xl relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="app-modal-header -mx-6 -mt-6 flex items-start justify-between gap-4 px-6 py-4 sm:-mx-7 sm:-mt-7 sm:px-7">
+        <div className="app-modal-header flex items-start justify-between gap-4 px-6 py-4 sm:px-7">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs">
               <RefreshCw className="w-5 h-5" />
@@ -83,6 +83,7 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
         </div>
 
         {/* Aviso prévio se a agenda não estiver conectada */}
+        <div className="app-modal-body space-y-6 p-6 sm:p-7">
         {!isCalendarConnected && (
           <div className="p-4 rounded-2xl bg-rose-50/90 border border-rose-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
             <div className="flex items-start gap-3">
@@ -172,7 +173,8 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
         </div>
 
         {/* Ações */}
-        <div className="app-modal-footer -mx-6 -mb-6 flex items-center justify-end gap-3 px-6 py-4 sm:-mx-7 sm:-mb-7 sm:px-7">
+        </div>
+        <div className="app-modal-footer flex items-center justify-end gap-3 px-6 py-4 sm:px-7">
           <button
             type="button"
             onClick={onClose}

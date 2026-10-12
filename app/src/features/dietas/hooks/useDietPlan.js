@@ -313,6 +313,7 @@ export function useDietPlan() {
 
   return {
     hasActivePatient: Boolean(activePatient?.id),
+    activePatient: activePatient || null,
     plan,
     totals,
     targetComparison,

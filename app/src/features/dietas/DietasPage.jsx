@@ -19,6 +19,7 @@ import PatientContextBar from '../pacientes/components/PatientContextBar.jsx';
 export default function DietasPage({ settings = {} }) {
   const {
     hasActivePatient,
+    activePatient,
     plan,
     totals,
     targetComparison,
@@ -317,6 +318,9 @@ export default function DietasPage({ settings = {} }) {
         <DietConfigSection
           plan={plan}
           onUpdateField={updatePlanField}
+          activePatient={activePatient}
+          hasActivePatient={hasActivePatient}
+          showAppNotification={settings?.showAppNotification}
         />
       )}
 

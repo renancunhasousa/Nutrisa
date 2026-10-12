@@ -17,3 +17,19 @@ export async function createPatientEvaluation({ id, organizationId, patientId, a
   if (error) throw new Error(error.message || 'Erro ao salvar avaliação no Supabase');
   return data;
 }
+
+export async function getLatestPatientEvaluation(patientId) {
+  if (!patientId) return null;
+  const supabase = requireSupabase();
+  const { data, error } = await supabase
+    .from('physical_evaluations')
+    .select('id, patient_id, evaluation_date, status, data, notes, created_at, updated_at, weight, height, body_fat, muscle_mass')
+    .eq('patient_id', patientId)
+    .order('evaluation_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message || 'Erro ao buscar avaliação do paciente');
+  return data;
+}

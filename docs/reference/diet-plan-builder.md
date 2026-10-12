@@ -27,10 +27,12 @@ app/src/features/dietas/
 │   ├── FoodSearchModal.jsx             # Modal de busca rápida e filtro por categoria
 │   ├── CustomFoodModal.jsx             # Modal para cadastrar novo alimento com medidas caseiras
 │   ├── DietConfigSection.jsx           # Configuração de paciente e metas nutricionais (presets)
+│   ├── EvaluationEnergyImporter.jsx    # Integração clínica para puxar TMB, peso e calorias da avaliação mais recente
 │   ├── DietHistoryModal.jsx            # Histórico de modelos e dietas salvas no Supabase
 │   └── NotesSection.jsx                # Hidratação (ml/dia) e orientações complementares
 ├── domain/
 │   ├── nutritionCalculations.js        # Cálculo de calorias, macros, percentuais e metas
+│   ├── evaluationIntegration.js        # Extração de TMB, cenários calóricos e hidratação da avaliação física
 │   ├── measureConversions.js           # Conversão entre medidas caseiras e gramas
 │   └── dietValidators.js               # Sanitização de planos, refeições e itens
 ├── hooks/
@@ -101,6 +103,14 @@ Armazena o plano alimentar estruturado:
 4. **Comparativo Meta x Realizado**:
    - Status de conformidade considerado ideal entre 95% e 105% da meta;
    - Diferença ($\text{realizado} - \text{meta}$) exibida em gramas e calorias.
+5. **Calibração de Calorias pela Avaliação Física Mais Recente**:
+   - Consulta direta à tabela `public.physical_evaluations` no Supabase filtrando pelo paciente ativo;
+   - Extração automática da Taxa Metabólica Basal (TMB / BMR), peso atual e hidratação;
+   - Cenários clínicos disponíveis em 1 clique:
+     - **Manutenção**: $\text{meta} = \text{TMB}$;
+     - **Déficit Moderado**: $\text{meta} = \text{TMB} - 350\text{ kcal}$;
+     - **Superávit Moderado**: $\text{meta} = \text{TMB} + 350\text{ kcal}$;
+     - **Hidratação Recomendada**: $\text{água (ml)} = \text{peso (kg)} \times 35\text{ ml}$.
 
 ---
 

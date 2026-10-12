@@ -73,6 +73,7 @@ export default function TarefasPage() {
 
   const handleOpenNew = () => {
     setEditingTask(selectedPatient ? {
+      patientId: selectedPatient.id,
       patientName: selectedPatient.full_name,
       patientPhone: selectedPatient.whatsapp_phone || selectedPatient.phone || '',
     } : null);
@@ -408,6 +409,7 @@ export default function TarefasPage() {
                 onToggleStatus={toggleTaskStatus}
                 onDelete={deleteTask}
                 onEdit={handleEdit}
+                onLinkPatient={updateTask}
                 patientAvatars={patientAvatars}
               />
             ))}

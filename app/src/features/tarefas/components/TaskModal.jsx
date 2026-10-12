@@ -36,6 +36,7 @@ const CATEGORY_ICONS = {
 };
 
 export function TaskModal({ isOpen, onClose, onSave, initialData = null }) {
+  const [patientId, setPatientId] = useState(null);
   const [title, setTitle] = useState('');
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
@@ -48,6 +49,7 @@ export function TaskModal({ isOpen, onClose, onSave, initialData = null }) {
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
+        setPatientId(initialData.patientId || null);
         setTitle(initialData.title || '');
         setPatientName(initialData.patientName || '');
         setPatientPhone(initialData.patientPhone || '');
@@ -56,6 +58,7 @@ export function TaskModal({ isOpen, onClose, onSave, initialData = null }) {
         setDueDate(initialData.dueDate || getPresetDate(0));
         setNotes(initialData.notes || '');
       } else {
+        setPatientId(null);
         setTitle('');
         setPatientName('');
         setPatientPhone('');
@@ -77,6 +80,7 @@ export function TaskModal({ isOpen, onClose, onSave, initialData = null }) {
     if (!title.trim()) return;
 
     onSave({
+      patientId,
       title: title.trim(),
       patientName: patientName.trim(),
       patientPhone: patientPhone.trim(),
@@ -165,7 +169,10 @@ export function TaskModal({ isOpen, onClose, onSave, initialData = null }) {
                   type="text"
                   placeholder="Ex: Mariana Silva"
                   value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
+                  onChange={(e) => {
+                    setPatientName(e.target.value);
+                    setPatientId(null);
+                  }}
                   className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
                 />
               </div>
@@ -185,7 +192,10 @@ export function TaskModal({ isOpen, onClose, onSave, initialData = null }) {
                   autoComplete="tel"
                   placeholder="11999998888"
                   value={patientPhone}
-                  onChange={(e) => setPatientPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPatientPhone(e.target.value);
+                    setPatientId(null);
+                  }}
                   className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
                 />
               </div>

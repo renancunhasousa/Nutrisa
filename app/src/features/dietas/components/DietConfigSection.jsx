@@ -1,8 +1,15 @@
 import React from 'react';
 import { Apple, Beef, Droplets, Dumbbell, HeartPulse, Target, Trophy, TrendingDown, User, Wheat } from 'lucide-react';
 import { LipidIcon } from './LipidIcon.jsx';
+import { EvaluationEnergyImporter } from './EvaluationEnergyImporter.jsx';
 
-export function DietConfigSection({ plan, onUpdateField }) {
+export function DietConfigSection({ 
+  plan, 
+  onUpdateField, 
+  activePatient, 
+  hasActivePatient, 
+  showAppNotification 
+}) {
   const objectives = [
     'Emagrecimento e Definição',
     'Hipertrofia e Ganho de Massa',
@@ -135,7 +142,7 @@ export function DietConfigSection({ plan, onUpdateField }) {
       <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl font-bold text-emerald-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl font-bold text-emerald-700">
               <Target className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
@@ -160,73 +167,84 @@ export function DietConfigSection({ plan, onUpdateField }) {
           </div>
         </div>
 
+        {/* Integração Clínica: Puxar calorias da avaliação mais recente do paciente */}
+        <EvaluationEnergyImporter
+          activePatient={activePatient}
+          hasActivePatient={hasActivePatient}
+          currentTargetCalories={plan.target_calories || 1800}
+          onApplyCalories={(calories) => onUpdateField('target_calories', calories)}
+          onApplyWater={(waterMl) => onUpdateField('water_intake_ml', waterMl)}
+          currentObjective={plan.objective}
+          showAppNotification={showAppNotification}
+        />
+
         <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
           <MacroDonut calories={macroCalories} total={macroTotal} targetCalories={plan.target_calories || 1800} onTargetCaloriesChange={(value) => onUpdateField('target_calories', value)} />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {/* Hidratação */}
-          <div className="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-white to-sky-100/80 p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-sm">
-            <label className="mb-3 flex items-center gap-2 text-xs font-bold text-sky-900">
-              <Droplets className="size-4 text-sky-500" aria-hidden="true" /> Hidratação <span className="ml-auto font-semibold text-sky-600">ml</span>
-            </label>
-            <input
-              type="number"
-              step="100"
-              value={plan.water_intake_ml || 2500}
-              onChange={(e) => onUpdateField('water_intake_ml', Number(e.target.value) || 0)}
-              className="w-full rounded-xl border border-sky-200 bg-white/90 p-2.5 text-lg font-black text-sky-950 shadow-inner focus:border-sky-500 focus:outline-hidden focus:ring-2 focus:ring-sky-500/15"
-            />
-          </div>
+            {/* Hidratação */}
+            <div className="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-white to-sky-100/80 p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-sm">
+              <label className="mb-3 flex items-center gap-2 text-xs font-bold text-sky-900">
+                <Droplets className="size-4 text-sky-500" aria-hidden="true" /> Hidratação <span className="ml-auto font-semibold text-sky-600">ml</span>
+              </label>
+              <input
+                type="number"
+                step="100"
+                value={plan.water_intake_ml || 2500}
+                onChange={(e) => onUpdateField('water_intake_ml', Number(e.target.value) || 0)}
+                className="w-full rounded-xl border border-sky-200 bg-white/90 p-2.5 text-lg font-black text-sky-950 shadow-inner focus:border-sky-500 focus:outline-hidden focus:ring-2 focus:ring-sky-500/15"
+              />
+            </div>
 
-          {/* Proteína Alvo */}
-          <div className="rounded-2xl border border-rose-200/80 bg-gradient-to-br from-white to-rose-50/80 p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-sm">
-            <label className="mb-3 flex items-center gap-2 text-xs font-bold text-rose-900">
-              <Beef className="size-4 text-rose-600" aria-hidden="true" /> Proteínas <span className="ml-auto font-semibold text-rose-600">g</span>
-            </label>
-            <input
-              type="number"
-              step="5"
-              value={plan.target_protein || 120}
-              onChange={(e) => onUpdateField('target_protein', Number(e.target.value) || 0)}
-              className="w-full rounded-xl border border-rose-200 bg-white/90 p-2.5 text-lg font-black text-rose-950 shadow-inner focus:border-rose-500 focus:outline-hidden focus:ring-2 focus:ring-rose-500/15"
-            />
-            <span className="text-[10px] text-rose-600 block mt-1">
-              ≈ {((plan.target_protein || 120) * 4)} kcal
-            </span>
-          </div>
+            {/* Proteína Alvo */}
+            <div className="rounded-2xl border border-rose-200/80 bg-gradient-to-br from-white to-rose-50/80 p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-sm">
+              <label className="mb-3 flex items-center gap-2 text-xs font-bold text-rose-900">
+                <Beef className="size-4 text-rose-600" aria-hidden="true" /> Proteínas <span className="ml-auto font-semibold text-rose-600">g</span>
+              </label>
+              <input
+                type="number"
+                step="5"
+                value={plan.target_protein || 120}
+                onChange={(e) => onUpdateField('target_protein', Number(e.target.value) || 0)}
+                className="w-full rounded-xl border border-rose-200 bg-white/90 p-2.5 text-lg font-black text-rose-950 shadow-inner focus:border-rose-500 focus:outline-hidden focus:ring-2 focus:ring-rose-500/15"
+              />
+              <span className="text-[10px] text-rose-600 block mt-1">
+                ≈ {((plan.target_protein || 120) * 4)} kcal
+              </span>
+            </div>
 
-          {/* Carboidratos Alvo */}
-          <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white to-amber-50/80 p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-sm">
-            <label className="mb-3 flex items-center gap-2 text-xs font-bold text-amber-900">
-              <Wheat className="size-4 text-amber-600" aria-hidden="true" /> Carboidratos <span className="ml-auto font-semibold text-amber-600">g</span>
-            </label>
-            <input
-              type="number"
-              step="5"
-              value={plan.target_carbs || 180}
-              onChange={(e) => onUpdateField('target_carbs', Number(e.target.value) || 0)}
-              className="w-full rounded-xl border border-amber-200 bg-white/90 p-2.5 text-lg font-black text-amber-950 shadow-inner focus:border-amber-500 focus:outline-hidden focus:ring-2 focus:ring-amber-500/15"
-            />
-            <span className="text-[10px] text-amber-600 block mt-1">
-              ≈ {((plan.target_carbs || 180) * 4)} kcal
-            </span>
-          </div>
+            {/* Carboidratos Alvo */}
+            <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white to-amber-50/80 p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-sm">
+              <label className="mb-3 flex items-center gap-2 text-xs font-bold text-amber-900">
+                <Wheat className="size-4 text-amber-600" aria-hidden="true" /> Carboidratos <span className="ml-auto font-semibold text-amber-600">g</span>
+              </label>
+              <input
+                type="number"
+                step="5"
+                value={plan.target_carbs || 180}
+                onChange={(e) => onUpdateField('target_carbs', Number(e.target.value) || 0)}
+                className="w-full rounded-xl border border-amber-200 bg-white/90 p-2.5 text-lg font-black text-amber-950 shadow-inner focus:border-amber-500 focus:outline-hidden focus:ring-2 focus:ring-amber-500/15"
+              />
+              <span className="text-[10px] text-amber-600 block mt-1">
+                ≈ {((plan.target_carbs || 180) * 4)} kcal
+              </span>
+            </div>
 
-          {/* Gorduras Alvo */}
-          <div className="rounded-2xl border border-teal-200/80 bg-gradient-to-br from-white to-teal-50/80 p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-sm">
-            <label className="mb-3 flex items-center gap-2 text-xs font-bold text-teal-900">
-              <LipidIcon className="size-4 text-teal-600" aria-hidden="true" /> Gorduras <span className="ml-auto font-semibold text-teal-600">g</span>
-            </label>
-            <input
-              type="number"
-              step="2"
-              value={plan.target_fat || 55}
-              onChange={(e) => onUpdateField('target_fat', Number(e.target.value) || 0)}
-              className="w-full rounded-xl border border-teal-200 bg-white/90 p-2.5 text-lg font-black text-teal-950 shadow-inner focus:border-teal-500 focus:outline-hidden focus:ring-2 focus:ring-teal-500/15"
-            />
-            <span className="text-[10px] text-teal-600 block mt-1">
-              ≈ {((plan.target_fat || 55) * 9)} kcal
-            </span>
-          </div>
+            {/* Gorduras Alvo */}
+            <div className="rounded-2xl border border-teal-200/80 bg-gradient-to-br from-white to-teal-50/80 p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-sm">
+              <label className="mb-3 flex items-center gap-2 text-xs font-bold text-teal-900">
+                <LipidIcon className="size-4 text-teal-600" aria-hidden="true" /> Gorduras <span className="ml-auto font-semibold text-teal-600">g</span>
+              </label>
+              <input
+                type="number"
+                step="2"
+                value={plan.target_fat || 55}
+                onChange={(e) => onUpdateField('target_fat', Number(e.target.value) || 0)}
+                className="w-full rounded-xl border border-teal-200 bg-white/90 p-2.5 text-lg font-black text-teal-950 shadow-inner focus:border-teal-500 focus:outline-hidden focus:ring-2 focus:ring-teal-500/15"
+              />
+              <span className="text-[10px] text-teal-600 block mt-1">
+                ≈ {((plan.target_fat || 55) * 9)} kcal
+              </span>
+            </div>
           </div>
         </div>
 
