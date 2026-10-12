@@ -1,44 +1,70 @@
+import React, { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import Navbar from './Navbar.jsx';
 import ProfileSettings from '../features/configuracoes/ProfileSettings.jsx';
 import AiSettings from '../features/configuracoes/AiSettings.jsx';
-import React from 'react';
 
-import { AlertTriangle } from 'lucide-react';
+const SIDEBAR_COLLAPSED_KEY = 'nutrisa_sidebar_collapsed';
 
 export default function AppLayout({ children, settings, appMode, setAppMode }) {
-const { appNotification, setAppNotification } = settings;
-return (<div className="min-h-screen bg-gradient-to-br from-[#f0fbf9] via-white to-[#faf8f2] text-slate-800 flex flex-col font-sans relative overflow-x-hidden print:bg-white print:p-0">
-      {/* Background Luxury Ambient Glows (Tiffany, Dourado Suave & Branco) */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 print:hidden">
-        {/* Orbe Tiffany Superior Esquerdo */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-teal-200/25 rounded-full blur-3xl"></div>
-        {/* Orbe Dourado Suave Superior Direito */}
-        <div className="absolute top-10 -right-20 w-80 h-80 bg-amber-200/20 rounded-full blur-3xl"></div>
-        {/* Orbe Tiffany/Esmeralda Médio Central */}
-        <div className="absolute top-1/2 left-1/3 w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl"></div>
-        {/* Orbe Dourado/Champagne Inferior Direito */}
-        <div className="absolute -bottom-20 right-10 w-96 h-96 bg-yellow-100/30 rounded-full blur-3xl"></div>
+  const { appNotification, setAppNotification } = settings;
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isSidebarCollapsed));
+    } catch {}
+  }, [isSidebarCollapsed]);
+
+  return (
+    <div
+      className="app-shell relative min-h-screen min-w-0 overflow-x-clip bg-[var(--color-app-background)] font-sans text-slate-800 print:bg-white print:p-0"
+      data-sidebar-collapsed={isSidebarCollapsed ? 'true' : 'false'}
+    >
+      <div className="app-ambient fixed inset-0 z-0 overflow-hidden pointer-events-none print:hidden" aria-hidden="true">
+        <span className="app-ambient__orb app-ambient__orb--mint" />
+        <span className="app-ambient__orb app-ambient__orb--blue" />
+        <span className="app-ambient__orb app-ambient__orb--peach" />
       </div>
-      
-      <Navbar settings={settings} appMode={appMode} setAppMode={setAppMode} />
+
+      <Navbar
+        settings={settings}
+        appMode={appMode}
+        setAppMode={setAppMode}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={() => setIsSidebarCollapsed((current) => !current)}
+      />
       <ProfileSettings settings={settings} />
       <AiSettings settings={settings} />
-      {/* Global Fallback & Notification Banner */}
-      {appNotification && (
-        <div className="bg-amber-500 text-slate-950 px-4 py-2.5 shadow-md flex items-center justify-between text-xs font-semibold animate-fade-in print:hidden border-b border-amber-600">
-          <div className="max-w-7xl mx-auto w-full flex items-center space-x-2">
-            <AlertTriangle className="w-4 h-4 text-slate-950 flex-shrink-0 animate-bounce" />
-            <span>{appNotification.message}</span>
-          </div>
-          <button 
-            onClick={() => setAppNotification(null)}
-            className="text-slate-900 hover:text-black font-bold text-sm px-2"
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
-{children}
-</div>);
+      <div className={`relative z-10 transition-[margin] duration-300 ease-out ${
+        isSidebarCollapsed ? 'md:ml-24' : 'md:ml-[13.5rem] lg:ml-64'
+      }`}>
+        {appNotification ? (
+          <div className="mx-3 mt-3 flex items-center justify-between gap-2 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-xs font-semibold text-amber-950 shadow-sm backdrop-blur-xl sm:mx-5 print:hidden">
+            <div className="mx-auto flex w-full max-w-7xl min-w-0 items-start gap-2 sm:items-center">
+              <AlertTriangle className="size-4 shrink-0 text-amber-700" />
+              <span>{appNotification.message}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAppNotification(null)}
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl font-bold text-amber-800 hover:bg-amber-100 hover:text-amber-950"
+              aria-label="Fechar aviso"
+            >
+              ×
+            </button>
+          </div>
+        ) : null}
+
+        {children}
+      </div>
+    </div>
+  );
 }

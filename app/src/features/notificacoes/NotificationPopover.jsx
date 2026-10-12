@@ -15,6 +15,7 @@ export default function NotificationPopover({
   isOpen,
   onClose,
   onAction,
+  onDismiss,
   onConfirmAppointment,
   onCancelAppointment,
   liveEnabled = true,
@@ -58,7 +59,7 @@ export default function NotificationPopover({
   return (
     <div 
       ref={popoverRef}
-      className="absolute right-0 top-12 w-80 sm:w-[350px] bg-white rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-slate-100/80 z-50 animate-scale-up overflow-hidden text-slate-800 font-sans"
+      className="fixed left-3 right-3 top-20 z-50 w-auto overflow-hidden rounded-[28px] border border-white/85 bg-white/92 font-sans text-slate-800 shadow-[0_20px_50px_rgba(33,65,86,0.14)] backdrop-blur-2xl animate-scale-up sm:absolute sm:left-auto sm:right-0 sm:top-14 sm:w-[350px]"
     >
       
       {/* 1. CABEÇALHO COM TOGGLE AO VIVO E BOTÃO DE FECHAR */}
@@ -165,9 +166,25 @@ export default function NotificationPopover({
 
               {/* Informações da Notificação */}
               <div className="flex-1 min-w-0 space-y-0.5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <h4 className="font-black text-xs text-slate-900 tracking-tight truncate leading-tight">{notif.title}</h4>
-                  <span className="text-[9px] text-slate-400 font-medium whitespace-nowrap ml-1">{notif.timeAgo || 'Hoje'}</span>
+                  <div className="flex items-center gap-1 shrink-0 -mt-1 -mr-1">
+                    <span className="text-[9px] text-slate-400 font-medium whitespace-nowrap">{notif.timeAgo || 'Hoje'}</span>
+                    {onDismiss && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onDismiss(notif);
+                        }}
+                        title="Limpar esta notificação"
+                        aria-label={`Limpar notificação: ${notif.title}`}
+                        className="w-6 h-6 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors active:scale-90 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-snug font-normal">
                   {notif.description}
@@ -214,13 +231,6 @@ export default function NotificationPopover({
             </div>
           ))
         )}
-      </div>
-
-      {/* 3. RODAPÉ SUTIL */}
-      <div className="py-3.5 border-t border-slate-100 text-center bg-white">
-        <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">
-          FIM DAS NOTIFICAÇÕES
-        </span>
       </div>
 
     </div>

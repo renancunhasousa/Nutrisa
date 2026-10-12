@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Search,
@@ -14,8 +14,13 @@ import { TaskCard } from './components/TaskCard.jsx';
 import { TaskModal } from './components/TaskModal.jsx';
 import { SyncAgendaModal } from './components/SyncAgendaModal.jsx';
 import { TASK_CATEGORIES } from './domain/taskTypes.js';
+import { useAuth } from '../auth/useAuth.js';
+import { usePatient } from '../pacientes/usePatient.js';
+import PageHeader from '../../shared/ui/PageHeader.jsx';
 
 export default function TarefasPage() {
+  const { organizationId } = useAuth();
+  const { selectedPatient } = usePatient();
   const {
     filteredTasks,
     metrics,
@@ -27,20 +32,50 @@ export default function TarefasPage() {
     searchQuery,
     setSearchQuery,
     createTask,
+    updateTask,
     deleteTask,
     toggleTaskStatus,
     syncFromAgenda,
     isSyncing,
     clearFilteredTasks,
     patientAvatars,
-  } = useTasks();
+  } = useTasks({ organizationId });
+
+  // Filtro de paciente ativo apenas quando explicitamente encaminhado pela tela de pacientes
+  const [activePatientFilter, setActivePatientFilter] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('nutrisa_tasks_patient_filter');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.name) return parsed.name;
+      }
+    } catch {}
+    return null;
+  });
+
+  useEffect(() => {
+    if (activePatientFilter) {
+      setSearchQuery(activePatientFilter);
+    }
+  }, [activePatientFilter, setSearchQuery]);
+
+  const handleClearPatientFilter = () => {
+    setActivePatientFilter(null);
+    try {
+      sessionStorage.removeItem('nutrisa_tasks_patient_filter');
+    } catch {}
+    setSearchQuery('');
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
   const handleOpenNew = () => {
-    setEditingTask(null);
+    setEditingTask(selectedPatient ? {
+      patientName: selectedPatient.full_name,
+      patientPhone: selectedPatient.whatsapp_phone || selectedPatient.phone || '',
+    } : null);
     setIsModalOpen(true);
   };
 
@@ -50,9 +85,8 @@ export default function TarefasPage() {
   };
 
   const handleSaveModal = (data) => {
-    if (editingTask) {
-      // Edição
-      createTask(data); // simplificado ou update
+    if (editingTask?.id) {
+      updateTask(editingTask.id, data);
     } else {
       createTask(data);
     }
@@ -94,130 +128,152 @@ export default function TarefasPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-12">
-      {/* 1. Header do Módulo & Métricas Principais */}
-      <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              Minha Rotina & Pacientes
-            </h1>
-            <p className="text-xs text-slate-500 font-medium mt-1 max-w-2xl leading-relaxed">
-              Substitua o bloco de notas do celular: não perca nenhuma anamnese, entrega de plano ou contato de pós-consulta.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+    <div className="w-full min-w-0 space-y-6 animate-fadeIn pb-12">
+      {/* 1. Header do Módulo */}
+      <PageHeader
+        category="Rotina operacional"
+        title="Minha Rotina & Tarefas"
+        description="Não perca nenhuma anamnese, entrega de plano ou contato de pós-consulta."
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={handleOpenSyncModal}
               disabled={isSyncing}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-emerald-500' : 'text-slate-400'}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-emerald-500' : 'text-slate-500'}`} />
               <span>{isSyncing ? 'Sincronizando...' : 'Importar Semana'}</span>
             </button>
 
             <button
               type="button"
               onClick={handleOpenNew}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 transition-all hover:scale-102 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nova Demanda</span>
-          </button>
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nova Demanda</span>
+            </button>
           </div>
-        </div>
+        }
+      />
 
-        {/* Cards de Métricas em Destaque */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
-          {/* Hoje / Atrasadas */}
+      {/* Cards de Métricas em Destaque */}
+      <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-xs overflow-x-auto">
+        <div className="grid grid-cols-5 gap-3 sm:gap-4 min-w-[680px] lg:min-w-0">
+          {/* Atrasadas */}
           <div
             onClick={() => setFilterTab('today')}
-            className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+            className={`min-w-0 p-4 rounded-2xl border transition-all cursor-pointer ${
               filterTab === 'today'
-                ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-500/20 shadow-xs'
-                : 'bg-slate-50/70 border-slate-200/60 hover:bg-amber-50/30'
+                ? 'bg-white border-slate-300 ring-2 ring-slate-400/20 shadow-xs'
+                : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-xs'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
-                Atenção Hoje
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500 truncate">
+                Atrasadas
               </span>
-              <Flame className="w-4 h-4 text-amber-500" />
+              <Flame className="w-4 h-4 text-rose-500 shrink-0" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">{metrics.todayTotal}</span>
-              {metrics.overdue > 0 && (
-                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-200">
-                  {metrics.overdue} atrasada{metrics.overdue > 1 ? 's' : ''}
-                </span>
-              )}
+              <span className="text-2xl font-black text-rose-600">
+                {metrics.overdue}
+              </span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">Vencem hoje ou pendentes</p>
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate">Necessitam de atenção</p>
+          </div>
+
+          {/* Para Hoje */}
+          <div
+            onClick={() => setFilterTab('today')}
+            className={`min-w-0 p-4 rounded-2xl border transition-all cursor-pointer ${
+              filterTab === 'today'
+                ? 'bg-white border-slate-300 ring-2 ring-slate-400/20 shadow-xs'
+                : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-xs'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500 truncate">
+                Hoje
+              </span>
+              <Calendar className="w-4 h-4 text-amber-500 shrink-0" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-black text-amber-500">
+                {metrics.todayTotal}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate">Demandas do dia</p>
           </div>
 
           {/* Próximas */}
           <div
             onClick={() => setFilterTab('upcoming')}
-            className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+            className={`min-w-0 p-4 rounded-2xl border transition-all cursor-pointer ${
               filterTab === 'upcoming'
-                ? 'bg-sky-50/70 border-sky-300 ring-2 ring-sky-500/20 shadow-xs'
-                : 'bg-slate-50/70 border-slate-200/60 hover:bg-sky-50/30'
+                ? 'bg-white border-slate-300 ring-2 ring-slate-400/20 shadow-xs'
+                : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-xs'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-sky-900 uppercase tracking-wider">
-                Próximos Dias
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500 truncate">
+                Próximas
               </span>
-              <Calendar className="w-4 h-4 text-sky-500" />
+              <Calendar className="w-4 h-4 text-sky-500 shrink-0" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">{metrics.upcoming}</span>
+              <span className="text-2xl font-black text-sky-600">
+                {metrics.upcoming}
+              </span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">Programadas no radar</p>
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate">Programadas no radar</p>
           </div>
 
           {/* Total Ativo */}
           <div
             onClick={() => setFilterTab('all')}
-            className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+            className={`min-w-0 p-4 rounded-2xl border transition-all cursor-pointer ${
               filterTab === 'all'
-                ? 'bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-                : 'bg-slate-50/70 border-slate-200/60 hover:bg-emerald-50/30'
+                ? 'bg-white border-slate-300 ring-2 ring-slate-400/20 shadow-xs'
+                : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-xs'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500 truncate">
                 Total Pendente
               </span>
-              <ListTodo className="w-4 h-4 text-emerald-600" />
+              <ListTodo className="w-4 h-4 text-slate-900 shrink-0" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">{metrics.pending}</span>
+              <span className="text-2xl font-black text-slate-900">
+                {metrics.pending}
+              </span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">Todas as pendências ativas</p>
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate">Todas as pendências</p>
           </div>
 
           {/* Concluídas */}
           <div
             onClick={() => setFilterTab('completed')}
-            className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+            className={`min-w-0 p-4 rounded-2xl border transition-all cursor-pointer ${
               filterTab === 'completed'
-                ? 'bg-purple-50/70 border-purple-300 ring-2 ring-purple-500/20 shadow-xs'
-                : 'bg-slate-50/70 border-slate-200/60 hover:bg-purple-50/30'
+                ? 'bg-white border-slate-300 ring-2 ring-slate-400/20 shadow-xs'
+                : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-xs'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-purple-900 uppercase tracking-wider">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500 truncate">
                 Concluídas
               </span>
-              <CheckCircle2 className="w-4 h-4 text-purple-600" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">{metrics.completed}</span>
+              <span className="text-2xl font-black text-emerald-600">
+                {metrics.completed}
+              </span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">Demandas finalizadas</p>
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate">Demandas finalizadas</p>
           </div>
         </div>
       </div>
@@ -225,16 +281,38 @@ export default function TarefasPage() {
       {/* 2. Barra de Ferramentas (Busca e Filtro por Categoria) */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Campo de Busca Rápida */}
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Buscar por paciente ou demanda..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-500 font-medium transition-all"
-            />
+          {/* Campo de Busca Rápida e Filtro por Paciente Ativo */}
+          <div className="flex flex-1 flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Buscar por paciente ou demanda..."
+                value={searchQuery}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (activePatientFilter && val !== activePatientFilter) {
+                    setActivePatientFilter(null);
+                    try {
+                      sessionStorage.removeItem('nutrisa_tasks_patient_filter');
+                    } catch {}
+                  }
+                }}
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-500 font-medium transition-all"
+              />
+            </div>
+            {activePatientFilter ? (
+              <button
+                type="button"
+                onClick={handleClearPatientFilter}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:bg-emerald-700 cursor-pointer active:scale-95"
+                title="Limpar filtro e exibir todas as demandas"
+              >
+                <span>Paciente: {activePatientFilter}</span>
+                <span className="text-[10px] opacity-85">✕ Limpar</span>
+              </button>
+            ) : null}
           </div>
 
           {/* Contador de Demandas Filtradas */}

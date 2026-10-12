@@ -1,183 +1,262 @@
-import React from 'react';
-
+import React, { useState } from 'react';
+import {
+  Bell,
+  ChevronDown,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
+  Settings,
+  Sparkles,
+} from 'lucide-react';
 import logoPlatform from '../assets/logo_new.png';
-
-import { Sparkles, Settings, Activity, Calendar, FileText, MessageSquare, Bell, FileSignature, CheckSquare, UtensilsCrossed } from 'lucide-react';
-
 import NotificationPopover from '../features/notificacoes/NotificationPopover.jsx';
 import { useTasks } from '../features/tarefas/hooks/useTasks.js';
+import MobileNavigation from './MobileNavigation.jsx';
+import { getModeLabel, NAV_ITEMS } from './navigationItems.js';
+import { useAuth } from '../features/auth/useAuth.js';
 
-export default function Navbar({ settings, appMode, setAppMode }) {
-const { nutritionist, activeModal, setActiveModal, isNotificationOpen, setIsNotificationOpen, notificationsList, liveNotificationsEnabled, toggleLiveNotifications } = settings;
-const { metrics: taskMetrics } = useTasks();
+const getNotificationDismissalKey = (notification) =>
+  `${notification.id}|${notification.title}|${notification.description}`;
 
-return (<>      {/* Top Navbar - Clean SaaS / CRM Style - Hidden on Print */}
-      <header className="bg-white/85 backdrop-blur-xl border-b border-slate-200/80 sticky top-0 z-40 print:hidden transition-all shadow-xs">
-        <div className="max-w-[1560px] mx-auto px-3 sm:px-4 md:px-6 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-4 md:gap-6">
-          
-          {/* 1. Left Section: Brand Logo + Navigation Tabs */}
-          <div className="flex items-center gap-3 sm:gap-4 md:gap-5 min-w-0 flex-1">
-            
-            {/* Brand Logo */}
-            <div className="flex items-center shrink-0 py-1">
-              <img 
-                src={logoPlatform} 
-                alt="NutrIsa" 
-                className="h-8 sm:h-9 w-auto object-contain transition-all hover:scale-105 drop-shadow-2xs" 
-              />
-            </div>
+const getInitials = (name = '') => {
+  const relevantNames = name
+    .replace(/^(dra?\.?|nutri\.?)/i, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
 
-            {/* Navigation Tabs aligned to the left */}
-            <nav className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/70 shadow-2xs gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar">
-              {[
-                { id: 'laudo', label: 'Avaliação', icon: Activity },
-                { id: 'anamnese', label: 'Anamnese', icon: FileText },
-                { id: 'dietas', label: 'Dietas', icon: UtensilsCrossed },
-                { id: 'dashboard', label: 'Atendimento', icon: MessageSquare },
-                { id: 'agenda', label: 'Agenda', icon: Calendar },
-                { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
-                { id: 'contratos', label: 'Contratos', icon: FileSignature },
-                { id: 'marketing', label: 'Marketing', icon: Sparkles },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = appMode === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setAppMode(tab.id)}
-                    title={tab.label}
-                    aria-label={tab.label}
-                    className={`relative shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center cursor-pointer ${
-                      isActive 
-                        ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/80 font-bold' 
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/70 border border-transparent'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                    
-                    {/* Exibe o nome completo das 8 features em telas desktop (lg e acima) */}
-                    <span className="ml-1.5 whitespace-nowrap hidden lg:inline-block">
-                      {tab.label}
-                    </span>
+  return relevantNames.slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'NI';
+};
 
-                    {/* Em telas menores (< lg), exibe o nome da aba ativa para economizar espaço */}
-                    {isActive && (
-                      <span className="ml-1.5 whitespace-nowrap inline-block lg:hidden font-bold">
-                        {tab.label}
-                      </span>
-                    )}
+export default function Navbar({
+  settings,
+  appMode,
+  setAppMode,
+  isSidebarCollapsed = false,
+  onToggleSidebar,
+}) {
+  const { signOut } = useAuth();
+  const {
+    nutritionist,
+    activeModal,
+    setActiveModal,
+    isNotificationOpen,
+    setIsNotificationOpen,
+    notificationsList,
+    liveNotificationsEnabled,
+    toggleLiveNotifications,
+  } = settings;
+  const { metrics: taskMetrics } = useTasks();
+  const [dismissedNotificationKeys, setDismissedNotificationKeys] = useState(() => new Set());
 
-                    {isActive && (
-                      <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-2.5 h-0.5 rounded-full bg-emerald-600" />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
+  const taskNotifications = taskMetrics.todayTotal > 0 ? [{
+    id: 'tasks_today',
+    title: `Você tem ${taskMetrics.todayTotal} demanda(s) pendente(s) hoje`,
+    description: 'Clique aqui para abrir a central de tarefas e organizar o follow-up de seus pacientes.',
+    timeAgo: 'Agora',
+    category: 'tasks',
+    targetMode: 'tarefas',
+  }] : [];
+  const allNotifications = [...taskNotifications, ...notificationsList];
+  const visibleNotifications = allNotifications.filter(
+    (notification) => !dismissedNotificationKeys.has(getNotificationDismissalKey(notification)),
+  );
+  const userFirstName = nutritionist.name?.replace(/^(dra?\.?\s*)/i, '').split(' ')[0] || 'Nutricionista';
 
-          {/* 2. Right Section: Quick Action Buttons & Simple User Profile */}
-          <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0 relative z-10 pl-2 sm:pl-3 border-l border-slate-200/90">
-            
-            {/* Botão de Notificações com Popover Inteligente */}
-            <div className="relative">
-              <button 
+  const dismissNotification = (notification) => {
+    const dismissalKey = getNotificationDismissalKey(notification);
+    setDismissedNotificationKeys((currentKeys) => {
+      if (currentKeys.has(dismissalKey)) return currentKeys;
+      const nextKeys = new Set(currentKeys);
+      nextKeys.add(dismissalKey);
+      return nextKeys;
+    });
+  };
+
+  const navigateTo = (mode) => {
+    setAppMode(mode);
+    setIsNotificationOpen(false);
+  };
+
+  const openSettings = (modal) => {
+    setActiveModal(activeModal === modal ? null : modal);
+  };
+
+  return (
+    <>
+      <aside className={`app-sidebar fixed inset-y-4 left-4 z-40 hidden flex-col overflow-hidden rounded-[1.75rem] border border-white/75 bg-white/70 shadow-[0_20px_55px_rgba(33,65,86,0.10)] backdrop-blur-2xl transition-[width] duration-300 ease-out md:flex print:hidden ${
+        isSidebarCollapsed ? 'w-20' : 'w-[12.5rem] lg:w-[15rem]'
+      }`}>
+        <div className={`flex h-20 shrink-0 items-center border-b border-slate-200/55 ${
+          isSidebarCollapsed ? 'justify-center px-2' : 'justify-between gap-2 px-4 lg:px-5'
+        }`}>
+          {isSidebarCollapsed ? null : (
+            <img src={logoPlatform} alt="NutrIsa" className="h-11 lg:h-12 min-w-0 max-w-[9rem] lg:max-w-[10.5rem] object-contain object-left drop-shadow-2xs" />
+          )}
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            aria-controls="primary-sidebar-navigation"
+            aria-expanded={!isSidebarCollapsed}
+            aria-label={isSidebarCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+            title={isSidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
+            className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200/70 bg-white/65 text-slate-500 transition-colors hover:border-emerald-200 hover:bg-white hover:text-emerald-700"
+          >
+            {isSidebarCollapsed ? <PanelLeftOpen className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />}
+          </button>
+        </div>
+
+        <nav id="primary-sidebar-navigation" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-5 no-scrollbar" aria-label="Navegação principal">
+          {isSidebarCollapsed ? null : (
+            <p className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">Consultório</p>
+          )}
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = appMode === item.id;
+            const badge = item.id === 'tarefas' && taskMetrics.todayTotal > 0 ? taskMetrics.todayTotal : null;
+
+            return (
+              <button
+                key={item.id}
                 type="button"
-                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                title="Notificações e Alertas do Consultório"
-                className={`p-2 rounded-xl transition-all relative border cursor-pointer ${
-                  isNotificationOpen 
-                    ? 'bg-slate-100 text-slate-900 border-slate-300' 
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border-transparent'
+                onClick={() => navigateTo(item.id)}
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={isSidebarCollapsed ? `${item.label}${badge ? `, ${badge} tarefas pendentes` : ''}` : undefined}
+                title={isSidebarCollapsed ? item.label : undefined}
+                className={`group relative flex min-h-11 w-full items-center rounded-2xl text-left text-sm font-semibold transition-all duration-200 ${
+                  isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+                } ${
+                  isActive
+                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50/80 text-emerald-800 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.14),0_6px_18px_rgba(16,185,129,0.08)]'
+                    : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
                 }`}
               >
-                <Bell className="w-4 h-4" />
-                {(() => {
-                  const totalNotifs = notificationsList.length + (taskMetrics.todayTotal > 0 ? 1 : 0);
-                  if (totalNotifs === 0) return null;
-                  return (
-                    <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-rose-500 text-white text-[9px] font-black rounded-full ring-2 ring-white flex items-center justify-center animate-pulse">
-                      {totalNotifs}
-                    </span>
-                  );
-                })()}
+                <span className={`flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                  isActive ? 'bg-white/85 text-emerald-700 shadow-2xs' : 'text-slate-500 group-hover:bg-white/80'
+                }`}>
+                  <Icon className="size-[18px]" strokeWidth={1.9} />
+                </span>
+                {isSidebarCollapsed ? null : <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+                {badge ? (
+                  <span className={`flex items-center justify-center rounded-full bg-rose-500 font-black text-white ${
+                    isSidebarCollapsed
+                      ? 'absolute right-0.5 top-0.5 min-w-4 px-1 text-[9px] leading-4 ring-2 ring-white/80'
+                      : 'min-w-5 px-1.5 text-[10px] leading-5'
+                  }`}>
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                ) : null}
+                {isActive ? <span className="absolute inset-y-3 left-0 w-0.5 rounded-full bg-emerald-500" /> : null}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="shrink-0 space-y-1 border-t border-slate-200/55 p-3">
+          <button
+            type="button"
+            onClick={() => openSettings('ai')}
+            aria-pressed={activeModal === 'ai'}
+            aria-label={isSidebarCollapsed ? 'Configurar inteligência artificial' : undefined}
+            title={isSidebarCollapsed ? 'Configurar IA' : undefined}
+            className={`flex min-h-11 w-full items-center rounded-2xl text-sm font-semibold transition-colors ${
+              isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+            } ${
+              activeModal === 'ai' ? 'bg-amber-50 text-amber-800' : 'text-slate-600 hover:bg-white/75 hover:text-slate-900'
+            }`}
+          >
+            <span className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><Sparkles className="size-[17px]" /></span>
+            {isSidebarCollapsed ? null : <span>Configurar IA</span>}
+          </button>
+          <button
+            type="button"
+            onClick={() => openSettings('profile')}
+            aria-pressed={activeModal === 'profile'}
+            aria-label={isSidebarCollapsed ? 'Abrir configurações' : undefined}
+            title={isSidebarCollapsed ? 'Configurações' : undefined}
+            className={`flex min-h-11 w-full items-center rounded-2xl text-sm font-semibold transition-colors ${
+              isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+            } ${
+              activeModal === 'profile' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-white/75 hover:text-slate-900'
+            }`}
+          >
+            <span className="flex size-8 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><Settings className="size-[17px]" /></span>
+            {isSidebarCollapsed ? null : <span>Configurações</span>}
+          </button>
+        </div>
+      </aside>
+
+      <header className={`sticky top-0 z-30 px-3 pt-3 transition-[margin] duration-300 ease-out md:px-5 md:pt-4 print:hidden ${
+        isSidebarCollapsed ? 'md:ml-24' : 'md:ml-[13.5rem] lg:ml-64'
+      }`}>
+        <div className="flex h-16 min-w-0 items-center gap-2 rounded-2xl border border-white/80 bg-white/70 px-3 shadow-[0_12px_36px_rgba(33,65,86,0.07)] backdrop-blur-2xl sm:px-4 md:ml-auto md:w-fit md:border-transparent md:bg-transparent md:px-0 md:shadow-none md:backdrop-blur-none">
+          <img src={logoPlatform} alt="NutrIsa" className="h-8 w-auto shrink-0 object-contain md:hidden" />
+          <span className="min-w-0 flex-1 truncate px-1 text-center text-sm font-extrabold text-slate-800 sm:text-left md:hidden">{getModeLabel(appMode)}</span>
+
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                title="Notificações e alertas do consultório"
+                aria-label="Notificações e alertas do consultório"
+                aria-expanded={isNotificationOpen}
+                className={`relative flex size-11 items-center justify-center rounded-2xl border transition-all ${
+                  isNotificationOpen
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-slate-200/65 bg-white/55 text-slate-600 hover:border-emerald-200 hover:bg-white/90 hover:text-emerald-700'
+                }`}
+              >
+                <Bell className="size-[18px]" strokeWidth={1.9} />
+                {visibleNotifications.length > 0 ? (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white ring-2 ring-white">
+                    {visibleNotifications.length > 9 ? '9+' : visibleNotifications.length}
+                  </span>
+                ) : null}
               </button>
 
-              {/* Modal Dropdown de Notificações */}
               <NotificationPopover
                 isOpen={isNotificationOpen}
-                notifications={[
-                  ...(taskMetrics.todayTotal > 0 ? [{
-                    id: 'tasks_today',
-                    title: `Você tem ${taskMetrics.todayTotal} demanda(s) pendente(s) hoje`,
-                    description: 'Clique aqui para abrir a central de tarefas e organizar o follow-up de seus pacientes.',
-                    timeAgo: 'Agora',
-                    category: 'tasks',
-                    targetMode: 'tarefas',
-                  }] : []),
-                  ...notificationsList
-                ]}
+                notifications={visibleNotifications}
                 liveEnabled={liveNotificationsEnabled}
                 onToggleLive={toggleLiveNotifications}
                 onClose={() => setIsNotificationOpen(false)}
+                onDismiss={dismissNotification}
                 onConfirmAppointment={settings.handleConfirmAppointment}
                 onCancelAppointment={settings.handleCancelAppointment}
-                onAction={(notif) => {
-                  if (notif.targetMode) {
-                    setAppMode(notif.targetMode);
-                  }
+                onAction={(notification) => {
+                  if (notification.targetMode) navigateTo(notification.targetMode);
                 }}
               />
             </div>
 
-            {/* Configuração de IA */}
-            <button 
-              onClick={() => setActiveModal(activeModal === 'ai' ? null : 'ai')}
-              title="Configurações de Inteligência Artificial"
-              className={`p-2 rounded-xl transition-all border ${
-                activeModal === 'ai'
-                  ? 'bg-amber-50 text-amber-700 border-amber-300 ring-2 ring-amber-300/40'
-                  : 'text-slate-500 hover:text-amber-700 hover:bg-amber-50/80 border-transparent hover:border-amber-200'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-            </button>
+            <button type="button" onClick={signOut} className="flex size-11 items-center justify-center rounded-2xl border border-slate-200/65 bg-white/55 text-slate-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700" title="Sair do sistema" aria-label="Sair do sistema"><LogOut className="size-[18px]" /></button>
 
-            {/* Configuração do Perfil */}
-            <button 
-              onClick={() => setActiveModal(activeModal === 'profile' ? null : 'profile')}
-              title="Configurações da Clínica e Perfil"
-              className={`p-2 rounded-xl transition-all border ${
-                activeModal === 'profile'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-300/40'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border-transparent'
-              }`}
+            <button
+              type="button"
+              onClick={() => openSettings('profile')}
+              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200/65 bg-white/55 p-1 pr-1.5 text-left transition hover:border-emerald-200 hover:bg-white/90 sm:pr-3"
+              title={`Perfil conectado: ${nutritionist.name}`}
+              aria-label={`Abrir perfil de ${nutritionist.name}`}
             >
-              <Settings className="w-4 h-4" />
-            </button>
-
-            {/* Divisor Vertical */}
-            <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
-
-            {/* Simple User Profile: Apenas Nome e Foto */}
-            <div 
-              onClick={() => setActiveModal(activeModal === 'profile' ? null : 'profile')}
-              className="flex items-center space-x-2.5 pl-1 py-1 pr-2 rounded-xl hover:bg-slate-100/80 cursor-pointer transition-all border border-transparent hover:border-slate-200/80"
-              title="Perfil: Dra. Isabela Muñoz"
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-bold text-xs flex items-center justify-center shadow-xs ring-2 ring-white shrink-0">
-                IM
-              </div>
-              <span className="text-xs font-bold text-slate-800 hidden sm:inline">
-                {nutritionist.name.split(' ')[0] + ' ' + (nutritionist.name.split(' ')[1] || '')}
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-[11px] font-extrabold text-white shadow-sm ring-1 ring-white/80">{getInitials(nutritionist.name)}</span>
+              <span className="hidden min-w-0 sm:block">
+                <span className="block max-w-28 truncate text-xs font-extrabold text-slate-800 lg:max-w-40">Dra. {userFirstName}</span>
+                <span className="hidden max-w-40 truncate text-[10px] font-medium text-slate-500 lg:block">{nutritionist.crn || 'Nutricionista'}</span>
               </span>
-            </div>
-
+              <ChevronDown className="hidden size-3.5 text-slate-400 sm:block" />
+            </button>
           </div>
-
         </div>
       </header>
 
-</>);
+      <MobileNavigation
+        appMode={appMode}
+        setAppMode={setAppMode}
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
+        taskCount={taskMetrics.todayTotal}
+      />
+    </>
+  );
 }

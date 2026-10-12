@@ -8,7 +8,8 @@ Este documento define a arquitetura, regras de domínio nutricional, contratos d
 
 Permitir que a nutricionista monte planos alimentares completos e personalizados com:
 - **Painel unificado e monitoramento de macronutrientes em tempo real**: comparação instantânea entre metas estabelecidas (calorias, proteína, carboidratos, gorduras) e o total acumulado pelos alimentos prescritos;
-- **Base de Alimentos TACO / IBGE Integrada**: tabela brasileira oficial com mais de 70 alimentos básicos cadastrados e suporte a medidas caseiras (colheres de sopa, xícaras, conchas, fatias, unidades);
+- **Catálogo nutricional integrado**: alimentos oficiais, preparações e itens verificados da clínica são consultados em `public.product_catalog`, com fallback local TACO;
+- **Cadastro rápido integrado**: “Criar alimento” persiste no mesmo catálogo da tela **Cadastros**, marca o item como verificado/disponível e o insere na refeição atual;
 - **Sincronização Nuvem (Supabase) + Funcionamento Offline**: dados sincronizados na tabela `public.foods` e `public.plano_alimentar`, com fallback instantâneo e auto-save em cache local (`localStorage`);
 - **Impressão e Laudo PDF no Padrão NutrIsa**: página A4 diagramada para entrega direta ao paciente, com logo, dados do consultório, cabeçalho clínico, orientações de hidratação e assinatura digital.
 
@@ -48,24 +49,24 @@ app/src/features/dietas/
 
 ## 3. Modelo de Dados e Persistência no Supabase
 
-### 3.1. Tabela `public.foods`
-Armazena a biblioteca de alimentos compartilhada (TACO + alimentos personalizados cadastrados pela Dra.):
+### 3.1. Tabela `public.product_catalog`
+É a fonte principal da busca de alimentos. A tabela legada `public.foods` permanece apenas durante a transição e como fallback remoto para ambientes ainda não migrados.
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `id` | `UUID` (PK) | Identificador único (`gen_random_uuid()`) |
+| `id` | `UUID` (PK) | Identificador único |
 | `name` | `TEXT` | Nome do alimento (ex: 'Peito de frango grelhado') |
-| `category` | `TEXT` | Categoria nutricional (ex: 'Carnes e Ovos', 'Frutas', etc.) |
+| `item_type` / `food_group` | `TEXT` | Tipo do item e grupo alimentar |
 | `calories` | `NUMERIC` | Calorias base por 100g |
 | `protein` | `NUMERIC` | Proteínas (g) por 100g |
 | `carbs` | `NUMERIC` | Carboidratos (g) por 100g |
 | `fat` | `NUMERIC` | Gorduras (g) por 100g |
 | `fiber` | `NUMERIC` | Fibras (g) por 100g |
-| `portion_base_grams` | `NUMERIC` | Base de referência (padrão: 100g) |
+| `reference_quantity` / `reference_unit` | `NUMERIC` / `TEXT` | Base à qual os nutrientes se referem |
 | `household_measures` | `JSONB` | Array de medidas: `[{"name": "Colher de sopa", "grams": 25}]` |
-| `source` | `TEXT` | Origem do dado ('TACO', 'IBGE', 'Personalizado') |
-| `is_custom` | `BOOLEAN` | `true` se cadastrado manualmente pela nutricionista |
-| `is_active` | `BOOLEAN` | Status de ativação |
+| `official_source` | `TEXT` | Origem oficial ou clínica do dado |
+| `verification_status` | `TEXT` | `draft` ou `verified` |
+| `is_available_for_diets` | `BOOLEAN` | Libera o item verificado na busca da dieta |
 
 ### 3.2. Tabela `public.plano_alimentar`
 Armazena o plano alimentar estruturado:

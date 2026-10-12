@@ -195,15 +195,7 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete, onEdit, pat
             {/* Nome do Paciente */}
             {task.patientName && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/70">
-                {avatarUrl && !imgError ? (
-                  <img
-                    src={avatarUrl}
-                    alt=""
-                    className="w-3.5 h-3.5 rounded-full object-cover shrink-0 ring-1 ring-slate-300"
-                  />
-                ) : (
-                  <User className="w-3 h-3 text-slate-400" />
-                )}
+                <User className="w-3 h-3 text-slate-400 shrink-0" />
                 <strong className="font-bold text-slate-800">{task.patientName}</strong>
               </span>
             )}
@@ -314,13 +306,13 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete, onEdit, pat
       {/* Modal / Popover de Envio Rápido de WhatsApp */}
       {showWhatsAppPicker && createPortal(
         <div 
-          className="fixed inset-0 z-[9999] w-screen h-screen flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn"
+          className="app-modal-overlay animate-fadeIn"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowWhatsAppPicker(false);
           }}
         >
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-scaleIn">
-            <div className="px-5 py-4 bg-emerald-600 text-white flex items-center justify-between">
+          <div className="app-modal-panel max-w-lg animate-scaleIn">
+            <div className="app-modal-header px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-5 h-5" />
                 <h3 className="text-sm font-bold">WhatsApp para {task.patientName || 'Paciente'}</h3>
@@ -328,13 +320,14 @@ export function TaskCard({ task, todayStr, onToggleStatus, onDelete, onEdit, pat
               <button
                 type="button"
                 onClick={() => setShowWhatsAppPicker(false)}
-                className="p-1 rounded-lg text-emerald-100 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="app-modal-close p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Fechar envio pelo WhatsApp"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="app-modal-body p-5 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Escolha um Modelo Rápido:

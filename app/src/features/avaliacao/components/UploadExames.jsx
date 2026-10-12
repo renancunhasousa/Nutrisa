@@ -33,8 +33,8 @@ return (<>        {/* STEP 1: UPLOAD SCREEN - EXACT MOCKUP STYLE */}
                   <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 transition-transform hover:scale-105">
                     <CloudUpload className="w-8 h-8 text-slate-400" />
                   </div>
-                  <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-center space-x-2">
-                    <Scale className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <h3 className="flex items-center justify-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                    <Scale className="size-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
                     <span>Laudo de Adipometria</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1.5 mb-6 max-w-xs mx-auto">
@@ -80,8 +80,8 @@ return (<>        {/* STEP 1: UPLOAD SCREEN - EXACT MOCKUP STYLE */}
                   <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 transition-transform hover:scale-105">
                     <CloudUpload className="w-8 h-8 text-slate-400" />
                   </div>
-                  <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-center space-x-2">
-                    <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <h3 className="flex items-center justify-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                    <Zap className="size-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
                     <span>Laudo de Bioimpedância (BIA)</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1.5 mb-6 max-w-xs mx-auto">
@@ -122,8 +122,8 @@ return (<>        {/* STEP 1: UPLOAD SCREEN - EXACT MOCKUP STYLE */}
             {/* Bottom Actions Card (Barra Branca com Botão Verde Esmeralda) */}
             <div className="bg-white/95 backdrop-blur-md p-5 md:p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4 max-w-5xl mx-auto mt-6">
               <div className="text-left space-y-1">
-                <h4 className="font-extrabold text-slate-900 text-sm flex items-center">
-                  <Sparkles className="w-4 h-4 text-amber-500 mr-2 shrink-0" />
+                <h4 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                  <Sparkles className="size-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
                   Processamento com Inteligência Artificial
                 </h4>
                 <p className="text-xs text-slate-500 max-w-md">

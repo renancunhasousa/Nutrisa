@@ -107,7 +107,7 @@ export function PostDesignConfig({
       {/* CABEÇALHO */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+          <h3 className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900">
             Configurações Iniciais &amp; Identidade Visual
           </h3>
           <p className="text-[11px] text-slate-400 font-medium mt-0.5">
@@ -121,7 +121,7 @@ export function PostDesignConfig({
 
         {/* 1. MODELO / FORMATO (6 COLUNAS) */}
         <div className="lg:col-span-6 flex flex-col">
-          <label className="text-[10px] font-extrabold text-slate-500 uppercase flex items-center gap-1.5 ml-1 mb-2">
+          <label className="text-xs font-extrabold text-slate-900 uppercase flex items-center gap-1.5 ml-1 mb-2">
             <Layout className="w-3.5 h-3.5 text-emerald-600" />
             <span>1. Modelos de Publicação</span>
           </label>
@@ -156,7 +156,7 @@ export function PostDesignConfig({
 
         {/* 2. MODELO DE COR (3 COLUNAS) */}
         <div className="lg:col-span-3 flex flex-col">
-          <label className="text-[10px] font-extrabold text-slate-500 uppercase flex items-center gap-1.5 ml-1 mb-2">
+          <label className="text-xs font-extrabold text-slate-900 uppercase flex items-center gap-1.5 ml-1 mb-2">
             <Palette className="w-3.5 h-3.5 text-emerald-600" />
             <span>2. Modelo de Cor</span>
           </label>
@@ -204,7 +204,7 @@ export function PostDesignConfig({
 
         {/* 3. FOTOGRAFIA (3 COLUNAS) */}
         <div className="lg:col-span-3 flex flex-col">
-          <label className="text-[10px] font-extrabold text-slate-500 uppercase flex items-center gap-1.5 ml-1 mb-2">
+          <label className="text-xs font-extrabold text-slate-900 uppercase flex items-center gap-1.5 ml-1 mb-2">
             <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>3. Fotografia</span>
           </label>
@@ -301,7 +301,7 @@ export function PostDesignConfig({
                   type="button"
                   onClick={onResetPhoto}
                   title="Restaurar foto oficial"
-                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs transition-all cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs transition-all cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3 text-slate-500" />
                   <span>Oficial</span>

@@ -5,6 +5,9 @@ import { extractVariables, extractVariableNames, replaceVariable } from '../doma
 import { syncHTMLToTemplate, formatTemplateToHTML, cleanMarkdownToText } from '../domain/formatting.js';
 import { buildGenerationPrompt, buildPatientTranslationPrompt, buildClinicInsightsPrompt } from '../prompts/generate.js';
 import { KEY_ANAMNESE_TEMPLATES, KEY_ANAMNESE_DRAFT } from '../../../config/storageKeys.js';
+import { useAuth } from '../../auth/useAuth.js';
+import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
+import { createPatientAnamnese, updatePatientAnamnese } from '../services/anamneses.js';
 
 /** Dados de demonstração pré-carregados */
 const DEMO_PATIENT = `NOME: Mariana Santos Silva
@@ -43,8 +46,10 @@ const DEMO_TEMPLATE = `**ANAMNESE NUTRICIONAL COMPLETA**
  * @param {{ activeModel: string }} props
  */
 export function useAnamnese({ activeModel }) {
+  const { organizationId } = useAuth();
+  const [patientHandoff] = useState(() => consumePatientHandoff('anamnese'));
   // ── Dados ────────────────────────────────────────────────
-  const [patientData, setPatientData] = useState('');
+  const [patientData, setPatientData] = useState(() => patientHandoff?.name ? `NOME: ${patientHandoff.name}` : '');
   const [doctorData, setDoctorData] = useState('');
   const [template, setTemplate] = useState('');
   const [savedTemplates, setSavedTemplates] = useState([]);
@@ -62,6 +67,7 @@ export function useAnamnese({ activeModel }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExtraLoading, setIsExtraLoading] = useState(false);
   const editorRef = useRef(null);
+  const savedAnamneseIdRef = useRef(null);
 
   // ── Notificações ─────────────────────────────────────────
   const showNotification = (msg, type) => {
@@ -153,6 +159,19 @@ export function useAnamnese({ activeModel }) {
     return response.text;
   };
 
+  const persistGeneratedAnamnese = async (reportText) => {
+    if (!patientHandoff?.id) return null;
+    const saved = await createPatientAnamnese({
+      organizationId,
+      patientId: patientHandoff.id,
+      patientAnswers: patientData,
+      professionalNotes: doctorData,
+      report: reportText,
+    });
+    savedAnamneseIdRef.current = saved?.id || null;
+    return saved;
+  };
+
   const generateReport = async () => {
     setIsGenerating(true);
     setPatientTranslation('');
@@ -163,6 +182,7 @@ export function useAnamnese({ activeModel }) {
       const tags = template.match(/\{\{\s*[\wÀ-ÿ0-9_\-\s]+\s*\}\}/g) || [];
       if (tags.length === 0) {
         setResult(template);
+        await persistGeneratedAnamnese(template);
         return;
       }
       const variableNames = extractVariableNames(template);
@@ -179,6 +199,7 @@ export function useAnamnese({ activeModel }) {
       });
 
       setResult(finalReport);
+      await persistGeneratedAnamnese(finalReport);
       showNotification('Anamnese processada e preenchida com sucesso!', 'success');
     } catch (error) {
       showNotification(`Erro no processamento: ${error.message}`, 'error');
@@ -198,10 +219,12 @@ export function useAnamnese({ activeModel }) {
       const text = await callGemini(prompt);
       if (type === 'patient') {
         setPatientTranslation(text);
+        await updatePatientAnamnese(savedAnamneseIdRef.current, { patient_translation: text });
         setActiveResultView('patient');
         showNotification('Tradução para o paciente criada com sucesso!', 'success');
       } else {
         setClinicInsights(text);
+        await updatePatientAnamnese(savedAnamneseIdRef.current, { clinic_insights: text });
         setActiveResultView('clinic');
         showNotification('Insights de retorno criados com sucesso!', 'success');
       }

@@ -67,7 +67,7 @@ test('task categories include exames with correct module link and properties', a
   const { TASK_CATEGORIES } = await import('../../app/src/features/tarefas/domain/taskTypes.js');
   assert.ok(TASK_CATEGORIES.exames);
   assert.equal(TASK_CATEGORIES.exames.id, 'exames');
-  assert.equal(TASK_CATEGORIES.exames.label, 'Exames & Documentos');
+  assert.equal(TASK_CATEGORIES.exames.label, 'Exames');
   assert.equal(TASK_CATEGORIES.exames.defaultModule, 'laudo');
 });
 

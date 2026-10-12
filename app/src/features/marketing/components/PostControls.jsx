@@ -81,7 +81,7 @@ export function PostControls({
     <div className="space-y-5">
       {/* 1. SELETOR DE FORMATO DO POST */}
       <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+        <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-3 flex items-center gap-2">
           <Layout className="w-3.5 h-3.5 text-teal-600" />
           <span>1. Formato da Publicação no Feed</span>
         </label>
@@ -113,7 +113,7 @@ export function PostControls({
       {/* 2. SELETOR DE PALETA / IDENTIDADE VISUAL */}
       <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+          <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 flex items-center gap-2">
             <Palette className="w-3.5 h-3.5 text-teal-600" />
             <span>2. Identidade Visual & Paleta</span>
           </label>
@@ -315,7 +315,7 @@ export function PostControls({
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Badge Superior</label>
+                        <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Badge Superior</label>
                         <input
                           type="text"
                           value={currentSlide.badge || ''}
@@ -324,7 +324,7 @@ export function PostControls({
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Tagline Cursiva</label>
+                        <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Tagline Cursiva</label>
                         <input
                           type="text"
                           value={currentSlide.tagline || ''}
@@ -334,7 +334,7 @@ export function PostControls({
                       </div>
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Título da Capa (Headline)</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Título da Capa (Headline)</label>
                       <textarea
                         rows={2}
                         value={currentSlide.headline || ''}
@@ -343,7 +343,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Palavras com Destaque Dourado</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Palavras com Destaque Dourado</label>
                       <input
                         type="text"
                         value={currentSlide.highlightText || ''}
@@ -352,7 +352,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Texto de Apoio (Gancho)</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Texto de Apoio (Gancho)</label>
                       <textarea
                         rows={2}
                         value={currentSlide.description || ''}
@@ -368,7 +368,7 @@ export function PostControls({
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Número do Ponto</label>
+                        <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Número do Ponto</label>
                         <input
                           type="text"
                           value={currentSlide.stepNumber || ''}
@@ -377,7 +377,7 @@ export function PostControls({
                         />
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Badge da Lâmina</label>
+                        <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Badge da Lâmina</label>
                         <input
                           type="text"
                           value={currentSlide.badge || ''}
@@ -387,7 +387,7 @@ export function PostControls({
                       </div>
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Título da Dica</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Título da Dica</label>
                       <textarea
                         rows={2}
                         value={currentSlide.title || ''}
@@ -396,7 +396,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Destaque Dourado / Colorido</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Destaque Dourado / Colorido</label>
                       <input
                         type="text"
                         value={currentSlide.highlightText || ''}
@@ -405,7 +405,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Explicação Clínica</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Explicação Clínica</label>
                       <textarea
                         rows={3}
                         value={currentSlide.text || ''}
@@ -414,7 +414,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Caixa de Dica Prática</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Caixa de Dica Prática</label>
                       <textarea
                         rows={2}
                         value={currentSlide.tip || ''}
@@ -429,7 +429,7 @@ export function PostControls({
                 {currentSlide.type === 'cta' && (
                   <>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Badge Superior</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Badge Superior</label>
                       <input
                         type="text"
                         value={currentSlide.badge || ''}
@@ -438,7 +438,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Título de Fechamento</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Título de Fechamento</label>
                       <textarea
                         rows={2}
                         value={currentSlide.headline || ''}
@@ -447,7 +447,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Destaque Dourado</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Destaque Dourado</label>
                       <input
                         type="text"
                         value={currentSlide.highlightText || ''}
@@ -456,7 +456,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Texto de Resumo</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Texto de Resumo</label>
                       <textarea
                         rows={2}
                         value={currentSlide.description || ''}
@@ -465,7 +465,7 @@ export function PostControls({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 mb-1 block">Texto do Card de Chamada para Ação</label>
+                      <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Texto do Card de Chamada para Ação</label>
                       <textarea
                         rows={2}
                         value={currentSlide.ctaBoxText || ''}
@@ -483,7 +483,7 @@ export function PostControls({
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">Badge Superior</label>
+                    <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Badge Superior</label>
                     <input
                       type="text"
                       value={postData.badge || ''}
@@ -492,7 +492,7 @@ export function PostControls({
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">Tagline Cursiva</label>
+                    <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Tagline Cursiva</label>
                     <input
                       type="text"
                       value={postData.tagline || ''}
@@ -503,7 +503,7 @@ export function PostControls({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">Título Principal (Headline)</label>
+                  <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Título Principal (Headline)</label>
                   <textarea
                     rows={2}
                     value={postData.headline || ''}
@@ -513,7 +513,7 @@ export function PostControls({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">Trecho Dourado / Destaque do Título</label>
+                  <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Trecho Dourado / Destaque do Título</label>
                   <input
                     type="text"
                     value={postData.highlightText || ''}
@@ -523,7 +523,7 @@ export function PostControls({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">Descrição Clínica (2 a 3 frases)</label>
+                  <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Descrição Clínica (2 a 3 frases)</label>
                   <textarea
                     rows={3}
                     value={postData.description || ''}
@@ -539,7 +539,7 @@ export function PostControls({
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">Categoria do Prato</label>
+                    <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Categoria do Prato</label>
                     <input
                       type="text"
                       value={postData.dishCategory || ''}
@@ -548,7 +548,7 @@ export function PostControls({
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">Título da Estratégia</label>
+                    <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Título da Estratégia</label>
                     <input
                       type="text"
                       value={postData.dishHeadline || ''}
@@ -559,7 +559,7 @@ export function PostControls({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">Explicação Nutricional</label>
+                  <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Explicação Nutricional</label>
                   <textarea
                     rows={2}
                     value={postData.dishSubheadline || ''}
@@ -570,7 +570,7 @@ export function PostControls({
 
                 {/* HUD Macronutrientes */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 mb-1.5 block">Macronutrientes do HUD</label>
+                  <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1.5 block">Macronutrientes do HUD</label>
                   <div className="grid grid-cols-4 gap-2">
                     <div>
                       <span className="text-[10px] text-slate-500 font-semibold block">Kcal</span>
@@ -617,7 +617,7 @@ export function PostControls({
             {!isCarousel && postData.format === 'ciencia' && (
               <>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">Badge de Chancela</label>
+                  <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Badge de Chancela</label>
                   <input
                     type="text"
                     value={postData.cienciaBadge || ''}
@@ -626,7 +626,7 @@ export function PostControls({
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">Pergunta / Título Central</label>
+                  <label className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900 mb-1 block">Pergunta / Título Central</label>
                   <input
                     type="text"
                     value={postData.cienciaTitle || ''}

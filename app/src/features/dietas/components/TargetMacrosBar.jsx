@@ -1,14 +1,11 @@
 import React from 'react';
-import { Flame, Beef, Wheat, CheckCircle, AlertCircle, Save, Printer } from 'lucide-react';
+import { Flame, Beef, Wheat, CheckCircle, AlertCircle } from 'lucide-react';
 import { LipidIcon } from './LipidIcon.jsx';
 
 export function TargetMacrosBar({
   totals,
   targetComparison,
-  onSave,
-  isSaving,
   saveStatus,
-  onViewReport,
 }) {
   const { calories, protein, carbs, fat } = targetComparison;
 
@@ -37,7 +34,7 @@ export function TargetMacrosBar({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-3.5 sm:p-4 backdrop-blur-md bg-white/95">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+      <div>
         
         {/* Indicadores Nutricionais em Tempo Real com Máximo Espaço */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 flex-1">
@@ -46,7 +43,7 @@ export function TargetMacrosBar({
           <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/60">
             <div className="flex justify-between items-center text-xs mb-1">
               <span className="font-semibold text-slate-600 flex items-center gap-1">
-                <Flame className="w-3.5 h-3.5 text-amber-500" /> Calorias
+                <Flame className="w-3.5 h-3.5 text-amber-700" /> Calorias
               </span>
               <span className="text-[11px] font-bold text-slate-700">
                 {totals.calories} / {calories.target} kcal
@@ -132,30 +129,6 @@ export function TargetMacrosBar({
             </div>
           </div>
 
-        </div>
-
-        {/* Botões de Ação */}
-        <div className="flex items-center gap-2 self-end lg:self-center shrink-0">
-          <button
-            type="button"
-            onClick={() => onSave(false)}
-            disabled={isSaving}
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Salvar alterações como rascunho"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'Salvando...' : 'Salvar'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onViewReport}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
-            title="Visualizar e Imprimir Relatório em PDF"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Relatório PDF</span>
-          </button>
         </div>
 
       </div>

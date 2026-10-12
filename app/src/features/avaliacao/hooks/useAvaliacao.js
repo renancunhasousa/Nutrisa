@@ -2,9 +2,15 @@ import { emptyAssessment, validateAssessment, selectedValue } from '../domain/as
 import { EXTRACTION_PROMPT } from '../prompts/extract.js';
 import { executeGemini } from '../../../shared/services/aiClient.js';
 import { buildComparativeData as compare } from '../domain/comparative.js';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DEMO_EXTRACTED_DATA } from '../domain/demo.js';
+import { useAuth } from '../../auth/useAuth.js';
+import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
+import { createPatientEvaluation } from '../services/evaluations.js';
 export function useAvaliacao({ selectedModel, showAppNotification }) {
+const { organizationId } = useAuth();
+const [patientHandoff] = useState(() => consumePatientHandoff('laudo'));
+const savedEvaluationRef = useRef(false);
 const [currentStep, setCurrentStep] = useState(1);
   // File upload state
   const [adipometryFile, setAdipometryFile] = useState(null);
@@ -19,6 +25,31 @@ const [currentStep, setCurrentStep] = useState(1);
   const [biaEquipment, setBiaEquipment] = useState('');
   const [anthropometricMethod, setAnthropometricMethod] = useState('');
   const [customValues, setCustomValues] = useState({});
+
+  useEffect(() => {
+    if (currentStep !== 3 || !patientHandoff?.id || savedEvaluationRef.current) return;
+    savedEvaluationRef.current = true;
+    const assessment = {
+      ...extractedData,
+      patient: {
+        ...extractedData.patient,
+        id: patientHandoff.id,
+        name: extractedData.patient?.name || patientHandoff.name,
+      },
+      biaEquipment,
+      anthropometricMethod,
+      customValues,
+    };
+    createPatientEvaluation({
+      organizationId,
+      patientId: patientHandoff.id,
+      assessment,
+      notes: extractedData.aiAnalysisText || '',
+    }).catch((error) => {
+      savedEvaluationRef.current = false;
+      showAppNotification?.(error.message || 'Não foi possível salvar a avaliação.', 'error');
+    });
+  }, [anthropometricMethod, biaEquipment, currentStep, customValues, extractedData, organizationId, patientHandoff, showAppNotification]);
 
   // Convert File to Base64 (Extrai base64 puro para a API do Gemini)
   const fileToBase64 = (file) => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Clock, Calendar, Video, Copy, Check, ExternalLink, Edit3, Save, CheckCircle, MessageCircle, Palette } from 'lucide-react';
 import { colorMapper } from '../domain/calendarMapper.js';
 
@@ -174,9 +175,9 @@ function EventDetailForm({
     year: 'numeric' 
   });
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-scale-up">
+  return createPortal(
+    <div className="app-modal-overlay animate-fade-in">
+      <div className="app-modal-panel max-w-2xl animate-scale-up">
         
         {/* Header com a categoria do WebDiet */}
         <div 
@@ -185,7 +186,8 @@ function EventDetailForm({
         >
           <div className="relative z-10 space-y-1 max-w-[85%]">
             <div className="flex items-center space-x-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-white/25 uppercase tracking-wider">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-white/25 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
                 {isNew ? 'Novo Agendamento' : activeCategory.label}
               </span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
@@ -221,14 +223,15 @@ function EventDetailForm({
 
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-black/15 hover:bg-black/25 text-white transition-colors cursor-pointer"
+            className="app-modal-close p-1.5 bg-black/15 hover:bg-black/25 text-white transition-colors cursor-pointer"
+            aria-label="Fechar detalhes do agendamento"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Corpo do Modal */}
-        <div className="p-6 space-y-5 text-slate-700 text-xs max-h-[75vh] overflow-y-auto custom-scrollbar">
+        <div className="app-modal-body p-6 space-y-5 text-slate-700 text-xs custom-scrollbar">
           
           {/* Seletor de Cor de Fundo / Tipo de Atendimento WebDiet */}
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2.5">
@@ -523,6 +526,7 @@ function EventDetailForm({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

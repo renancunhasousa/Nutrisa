@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Calendar, 
   Users, 
   Filter, 
   ShieldCheck, 
-  Search 
+  Search,
+  ChevronDown,
+  SlidersHorizontal
 } from 'lucide-react';
 
 export default function WhatsAppFilters({
@@ -25,9 +27,30 @@ export default function WhatsAppFilters({
   ignoreCourtesy,
   setIgnoreCourtesy
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
     <div className="bg-slate-50/70 p-5 rounded-3xl border border-slate-200/80 shadow-2xs space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-800">
+            <SlidersHorizontal className="h-4 w-4 text-emerald-600" /> Filtros e busca
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-500">Ajuste período, equipe, categoria e status quando necessário.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsExpanded((expanded) => !expanded)}
+          aria-expanded={isExpanded}
+          aria-controls="atendimento-advanced-filters"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100"
+        >
+          {isExpanded ? 'Ocultar filtros' : 'Mostrar filtros'}
+          <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+
+      {isExpanded ? <div id="atendimento-advanced-filters" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* 1. Período */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-2.5">
@@ -92,8 +115,8 @@ export default function WhatsAppFilters({
             className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
           >
             <option value="all">Todos os Atendentes (Visão Geral)</option>
-            <option value="isabela">👩‍⚕️ Dra. Isabela Muñoz</option>
-            <option value="secretaria">💼 Equipe / Secretária</option>
+            <option value="isabela">Dra. Isabela Muñoz</option>
+            <option value="secretaria">Equipe / Secretária</option>
           </select>
           <div className="flex items-center space-x-3 text-[11px] text-slate-600 pt-1">
             <span className="flex items-center font-medium"><span className="w-2.5 h-2.5 rounded-full bg-teal-500 mr-1.5 inline-block"></span> Dra. Isabela</span>
@@ -194,7 +217,7 @@ export default function WhatsAppFilters({
           </div>
         </div>
 
-      </div>
+      </div> : null}
     </div>
   );
 }

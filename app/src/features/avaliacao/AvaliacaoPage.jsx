@@ -7,5 +7,18 @@ import SelecaoMetricas from './components/SelecaoMetricas.jsx';
 const LaudoReport = lazy(() => import('./report/LaudoReport.jsx'));
 export default function AvaliacaoPage({ settings }) {
  const evaluation = useAvaliacao(settings);
- return <AvaliacaoContext.Provider value={{ ...evaluation, nutritionist: settings.nutritionist }}><ProgressSteps /><UploadExames /><SelecaoMetricas />{evaluation.currentStep === 3 && <Suspense fallback={<p>Preparando laudo…</p>}><LaudoReport /></Suspense>}</AvaliacaoContext.Provider>;
+ return (
+  <AvaliacaoContext.Provider value={{ ...evaluation, nutritionist: settings.nutritionist }}>
+   <div className="animate-fadeIn mx-auto w-full min-w-0 max-w-7xl">
+    <ProgressSteps />
+    <UploadExames />
+    <SelecaoMetricas />
+    {evaluation.currentStep === 3 && (
+     <Suspense fallback={<p>Preparando laudo…</p>}>
+     <LaudoReport />
+     </Suspense>
+    )}
+   </div>
+  </AvaliacaoContext.Provider>
+ );
 }

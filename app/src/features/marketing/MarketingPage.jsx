@@ -8,6 +8,7 @@ import { PostDesignConfig } from './components/PostDesignConfig.jsx';
 import { PostSlideViewer } from './components/PostSlideViewer.jsx';
 import { PostContentEditor } from './components/PostContentEditor.jsx';
 import { CaptionBox } from './components/CaptionBox.jsx';
+import PageHeader from '../../shared/ui/PageHeader.jsx';
 
 export default function MarketingPage({ activeModel }) {
   const {
@@ -52,57 +53,52 @@ export default function MarketingPage({ activeModel }) {
   const isCarousel = postData.format === 'carrossel';
 
   return (
-    <div className="animate-fadeIn max-w-7xl xl:max-w-[1440px] mx-auto space-y-6 pb-16 print:hidden">
-      {/* CABEÇALHO DO MÓDULO - IDÊNTICO À IMAGEM DE REFERÊNCIA */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-            Estúdio de Posts & Carrossel IA
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-1 max-w-2xl leading-relaxed">
-            Criação de publicações e carrosséis para Instagram com apoio de IA, alternância de paletas e download em alta resolução.
-          </p>
-        </div>
+    <div className="animate-fadeIn mx-auto w-full min-w-0 max-w-7xl space-y-6 pb-16 print:hidden xl:max-w-[1440px]">
+      {/* CABEÇALHO DO MÓDULO */}
+      <PageHeader
+        category="Comunicação & Conteúdo"
+        title="Estúdio de Posts & Carrossel IA"
+        description="Criação de publicações e carrosséis para Instagram com apoio de IA."
+        actions={
+          <>
+            {/* Botão Primário (Verde Sólido) */}
+            {isCarousel ? (
+              <button
+                type="button"
+                onClick={handleDownloadCarouselZip}
+                disabled={isDownloading}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <Archive className="w-3.5 h-3.5" />
+                <span>{isDownloading ? (downloadProgress || 'Exportando...') : 'Baixar Carrossel (ZIP)'}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDownloadSingleImage}
+                disabled={isDownloading}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isDownloading ? 'Gerando...' : 'Baixar Post'}</span>
+              </button>
+            )}
 
-        <div className="flex flex-wrap items-center gap-3">
-
-          {/* Botão Primário (Verde Sólido) */}
-          {isCarousel ? (
-            <button
-              type="button"
-              onClick={handleDownloadCarouselZip}
-              disabled={isDownloading}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              <Archive className="w-3.5 h-3.5" />
-              <span>{isDownloading ? (downloadProgress || 'Exportando...') : 'Baixar Carrossel (ZIP)'}</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleDownloadSingleImage}
-              disabled={isDownloading}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>{isDownloading ? 'Gerando...' : 'Baixar Post'}</span>
-            </button>
-          )}
-
-          {/* Botão secundário de slide avulso apenas no modo carrossel */}
-          {isCarousel && (
-            <button
-              type="button"
-              onClick={handleDownloadSingleImage}
-              disabled={isDownloading}
-              className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Slide Atual</span>
-            </button>
-          )}
-        </div>
-      </div>
+            {/* Botão secundário de slide avulso apenas no modo carrossel */}
+            {isCarousel && (
+              <button
+                type="button"
+                onClick={handleDownloadSingleImage}
+                disabled={isDownloading}
+                className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Slide Atual</span>
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* 2. CONFIGURAÇÕES INICIAIS & DESIGN (MODELO, PALETA DE COR, FOTO DA DRA) */}
       <PostDesignConfig

@@ -132,7 +132,6 @@ export function createDemoDietPlan() {
 
   return sanitizeMealPlan({
     id: 'demo_plan_nutrisa',
-    patient_id: 'demo_patient_mariana',
     patient_name: 'Mariana Santos Silva',
     title: 'Plano Nutricional - Recomposição Corporal & Performance',
     objective: 'Hipertrofia Muscular com Redução de Gordura Corporal',

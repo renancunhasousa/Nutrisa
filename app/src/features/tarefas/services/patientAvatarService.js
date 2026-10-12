@@ -1,4 +1,5 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../config/env.js';
+import { supabase } from '../../../shared/services/supabase.js';
 
 let avatarsCache = null;
 let cacheTimestamp = 0;
@@ -38,10 +39,12 @@ export async function fetchPatientAvatars({ url = SUPABASE_URL, key = SUPABASE_A
   if (!url || !key) return { byPhone: {}, byName: {}, rawList: [] };
 
   try {
+    const { data: { session } = {} } = supabase ? await supabase.auth.getSession() : { data: {} };
+    const accessToken = session?.access_token || key;
     const res = await fetch(
       `${url}/rest/v1/log_conversas?select=nome_contato,contato_jid,foto_perfil&foto_perfil=not.is.null&foto_perfil=neq.&order=data_envio.desc&limit=500`,
       {
-        headers: { apikey: key, Authorization: 'Bearer ' + key }
+        headers: { apikey: key, Authorization: 'Bearer ' + accessToken }
       }
     );
 

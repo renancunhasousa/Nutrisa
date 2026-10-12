@@ -65,3 +65,90 @@ test('production API fails closed without access configuration and rejects bad t
     for(const [key,value] of Object.entries(previous)) { if(value===undefined) delete process.env[key]; else process.env[key]=value; }
   }
 });
+
+test('AI falls back from Gemini to OpenAI (gpt-4o-mini) when Gemini quota is exhausted', async () => {
+  const urls = [];
+  const output = await generateContent(
+    { model: DEFAULT_MODELS[0], payload: { contents: [{ parts: [{ text: 'test fallback' }] }] } },
+    {
+      env: {
+        GEMINI_MODELS: DEFAULT_MODELS[0],
+        GEMINI_API_KEY: 'gemini-key',
+        OPENAI_API_KEY: 'openai-key',
+      },
+      fetchImpl: async (url, options) => {
+        urls.push(url);
+        if (url.includes('googleapis.com')) {
+          return { ok: false, status: 429 };
+        }
+        if (url.includes('api.openai.com')) {
+          assert.equal(options.headers.Authorization, 'Bearer openai-key');
+          const body = JSON.parse(options.body);
+          assert.equal(body.model, 'gpt-4o-mini');
+          return json({ choices: [{ message: { content: 'resposta gpt' }, finish_reason: 'stop' }] });
+        }
+        assert.fail(`URL inesperada: ${url}`);
+      },
+    }
+  );
+  assert.equal(output.usedModel, 'gpt-4o-mini');
+  assert.equal(output.result.candidates[0].content.parts[0].text, 'resposta gpt');
+  assert.equal(urls.length, 2);
+});
+
+test('AI falls back from OpenAI to DeepSeek (deepseek-flash) when OpenAI also fails', async () => {
+  const urls = [];
+  const output = await generateContent(
+    { model: DEFAULT_MODELS[0], payload: { contents: [{ parts: [{ text: 'test deepseek fallback' }] }] } },
+    {
+      env: {
+        GEMINI_MODELS: DEFAULT_MODELS[0],
+        GEMINI_API_KEY: 'gemini-key',
+        OPENAI_API_KEY: 'openai-key',
+        DEEPSEEK_API_KEY: 'deepseek-key',
+      },
+      fetchImpl: async (url, options) => {
+        urls.push(url);
+        if (url.includes('googleapis.com')) {
+          return { ok: false, status: 429 };
+        }
+        if (url.includes('api.openai.com')) {
+          return { ok: false, status: 500 };
+        }
+        if (url.includes('api.deepseek.com')) {
+          assert.equal(options.headers.Authorization, 'Bearer deepseek-key');
+          const body = JSON.parse(options.body);
+          assert.equal(body.model, 'deepseek-flash');
+          return json({ choices: [{ message: { content: 'resposta deepseek' }, finish_reason: 'stop' }] });
+        }
+        assert.fail(`URL inesperada: ${url}`);
+      },
+    }
+  );
+  assert.equal(output.usedModel, 'deepseek-flash');
+  assert.equal(output.result.candidates[0].content.parts[0].text, 'resposta deepseek');
+  assert.equal(urls.length, 3);
+});
+
+test('pingAllProviders executes live ping across all 3 providers in parallel', async () => {
+  const { pingAllProviders } = await import('../../server/ai/ping.js');
+  const calledUrls = [];
+  const results = await pingAllProviders({
+    env: {
+      GEMINI_API_KEY: 'test-gemini',
+      OPENAI_API_KEY: 'test-openai',
+      DEEPSEEK_API_KEY: 'test-deepseek',
+    },
+    fetchImpl: async (url) => {
+      calledUrls.push(url);
+      return json({ candidates: [{ content: { parts: [{ text: 'ok' }] } }], choices: [{ message: { content: 'ok' } }] });
+    },
+  });
+
+  assert.equal(calledUrls.length, 3);
+  assert.equal(results.results.gemini.online, true);
+  assert.equal(results.results.openai.online, true);
+  assert.equal(results.results.deepseek.online, true);
+});
+
+

@@ -910,5 +910,7 @@ export const FOOD_CATEGORIES = [
   'Gorduras e Oleaginosas',
   'Suplementos',
   'Bebidas',
+  'Preparações',
+  'Produtos',
   'Personalizados',
 ];

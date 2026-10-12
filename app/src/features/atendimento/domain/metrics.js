@@ -2,6 +2,8 @@
  * Regras de domínio e métricas operacionais para Atendimento WhatsApp e Relatório Executivo
  */
 
+import { CLINICAL_CATEGORIES } from './classification.js';
+
 export const ADMINISTRATIVE_CATEGORIES = [
   'Agendamento e Horários',
   'Pagamentos e Financeiro',
@@ -57,6 +59,12 @@ export function calculateComparisonStats(filteredData = [], getAttendantType) {
     ? Math.round((secretariaAgendamentoCount / secretariaConvs.length) * 100)
     : 0;
 
+  // Categorização da Dra.: foco nas dúvidas e demandas clínicas dos pacientes
+  const isabelaClinicalCount = isabelaConvs.filter(c => CLINICAL_CATEGORIES.includes(c.categoria)).length;
+  const isabelaClinicalPct = isabelaConvs.length > 0
+    ? Math.round((isabelaClinicalCount / isabelaConvs.length) * 100)
+    : 0;
+
   return {
     isabela: isabelaStats,
     secretaria: secretariaStats,
@@ -64,7 +72,62 @@ export function calculateComparisonStats(filteredData = [], getAttendantType) {
     isabelaInterventions,
     isabelaInterventionsPct,
     secretariaAgendamentoCount,
-    secretariaAgendamentoPct
+    secretariaAgendamentoPct,
+    isabelaClinicalCount,
+    isabelaClinicalPct
+  };
+}
+
+/**
+ * Avalia os 4 indicadores da Dra. Isabela:
+ * 1. Tempo: SLA <= 30 min (Meta ouro <= 15 min)
+ * 2. Volume: recepção absorver volume igual ou maior que o da Dra.
+ * 3. Intervenção: atuação da Dra. em assuntos administrativos <= 25% do total
+ * 4. Categorização: foco da Dra. em dúvidas e demandas clínicas
+ */
+export function evaluateIsabelaGoals(comparisonStats = {}) {
+  const isaAvg = comparisonStats.isabela?.avg || 0;
+  const isaTotal = comparisonStats.isabela?.total || 0;
+  const secTotal = comparisonStats.secretaria?.total || 0;
+  const intervPct = comparisonStats.isabelaInterventionsPct ?? 0;
+  const clinicalPct = comparisonStats.isabelaClinicalPct ?? 0;
+  const clinicalCount = comparisonStats.isabelaClinicalCount ?? 0;
+
+  const isSlaOk = isaTotal === 0 || isaAvg <= 30;
+  const isVolOk = isaTotal <= secTotal;
+  const isIntervOk = intervPct <= 25;
+  const topCategory = comparisonStats.isabela?.topCategories?.[0]?.name;
+  const isCategorizacaoOk = isaTotal === 0
+    || clinicalPct >= 40
+    || CLINICAL_CATEGORIES.includes(topCategory);
+
+  return {
+    isSlaOk,
+    isVolOk,
+    isIntervOk,
+    isCategorizacaoOk,
+    avaliacaoMetas: [
+      {
+        meta: 'Tempo',
+        atingido: isSlaOk,
+        detalhe: `Média de ${isaAvg} min (Meta Ouro <= 15 min)`
+      },
+      {
+        meta: 'Volume',
+        atingido: isVolOk,
+        detalhe: `Dra: ${isaTotal} msgs vs Secretária: ${secTotal} msgs`
+      },
+      {
+        meta: 'Intervenção',
+        atingido: isIntervOk,
+        detalhe: `${comparisonStats.isabelaInterventions || 0} intervenções na recepção (${intervPct}% do total, meta <= 25%)`
+      },
+      {
+        meta: 'Categorização',
+        atingido: isCategorizacaoOk,
+        detalhe: `${clinicalPct}% dos atendimentos da Dra. em dúvidas clínicas (${clinicalCount} msgs)`
+      }
+    ]
   };
 }
 

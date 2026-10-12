@@ -1,4 +1,4 @@
-import { getAiStatus, getAiAccessToken, setAiAccessToken } from '../../shared/services/aiClient.js';
+import { getAiStatus, pingAiProviders, getAiAccessToken, setAiAccessToken } from '../../shared/services/aiClient.js';
 import { useState, useEffect, useCallback } from 'react';
 import { DEFAULT_NUTRITIONIST } from './defaultProfile.js';
 import { fetchConversations } from '../atendimento/services/conversations.js';
@@ -54,20 +54,42 @@ export function useAppSettings() {
   
   const [geminiStatus, setGeminiStatus] = useState('missing');
   const [apiTestDetails, setApiTestDetails] = useState(null);
-  const testApiConnection = async () => {
+  const [aiProviders, setAiProviders] = useState({ gemini: false, openai: false, deepseek: false });
+  const [liveProviderStatus, setLiveProviderStatus] = useState(null);
+
+  const testApiConnection = async (isLive = false) => {
     setGeminiStatus('testing');
     try {
       const status = await getAiStatus();
       setAvailableModels(status.models);
       setSelectedModel(previous => status.models.includes(previous) ? previous : status.models[0]);
       setGeminiStatus(status.configured ? 'configured' : 'missing');
-      setApiTestDetails(status.configured ? 'Servidor configurado. A disponibilidade do provedor será verificada ao gerar um documento.' : 'Configure GEMINI_API_KEY no servidor.');
+      if (status.providers) {
+        setAiProviders(status.providers);
+      }
+
+      if (isLive) {
+        const pingResult = await pingAiProviders();
+        if (pingResult?.results) {
+          setLiveProviderStatus(pingResult.results);
+          const activeList = Object.entries(pingResult.results).filter(([_, p]) => p.configured);
+          const allOnline = activeList.length > 0 && activeList.every(([_, p]) => p.online);
+          if (allOnline) {
+            setApiTestDetails('Todas as IAs configuradas responderam com sucesso ao vivo (200 OK)!');
+          } else {
+            const failed = activeList.filter(([_, p]) => !p.online).map(([name]) => name).join(', ');
+            setApiTestDetails(`Atenção: Falha de resposta ao vivo em: ${failed}.`);
+          }
+        }
+      } else {
+        setApiTestDetails(status.configured ? 'Servidor configurado. Clique em "Testar conexão" para verificar a resposta ao vivo.' : 'Configure as chaves no servidor (GEMINI_API_KEY, OPENAI_API_KEY ou DEEPSEEK_API_KEY).');
+      }
     } catch (error) {
       setGeminiStatus('error');
       setApiTestDetails(error.message);
     }
   };
-  useEffect(() => { testApiConnection(); }, []);
+  useEffect(() => { testApiConnection(false); }, []);
 
   // Sistema de Notificações Inteligentes
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -274,6 +296,8 @@ export function useAppSettings() {
     selectedModel,
     setSelectedModel,
     geminiStatus,
+    aiProviders,
+    liveProviderStatus,
     apiTestDetails,
     testApiConnection,
     isNotificationOpen,

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Calendar, Share2, LogOut, Users, CheckCircle, Clock, TrendingUp, Plus } from 'lucide-react';
+import { Calendar, Share2, LogOut, Users, CheckCircle, Clock, TrendingUp, Plus, Settings, Tags } from 'lucide-react';
 import { colorMapper, isConsultationEvent } from '../domain/calendarMapper.js';
 
 export default function WebDietSidebar({ 
@@ -94,7 +94,9 @@ export default function WebDietSidebar({
       {/* 1. Métricas da Semana */}
       <div>
         <div className="mb-3">
-          <h3 className="font-bold text-slate-800 text-sm">Semana atual</h3>
+          <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+            <Calendar className="size-3.5 text-emerald-600" aria-hidden="true" /> Semana atual
+          </h3>
           <p className="text-[10px] text-slate-400 mt-0.5">Resumo de consultas</p>
         </div>
 
@@ -144,7 +146,9 @@ export default function WebDietSidebar({
       {/* 2. Configurações */}
       <div className="border-t border-slate-100 pt-4">
         <div className="mb-3">
-          <h3 className="font-bold text-slate-800 text-sm">Configurações</h3>
+          <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+            <Settings className="size-3.5 text-emerald-600" aria-hidden="true" /> Configurações
+          </h3>
         </div>
 
         <div className="space-y-2.5 text-xs text-slate-600 font-medium">
@@ -191,7 +195,9 @@ export default function WebDietSidebar({
       {/* 3. Legendas */}
       <div className="border-t border-slate-100 pt-4 space-y-4">
         <div>
-          <h3 className="font-bold text-slate-800 text-sm">Legendas</h3>
+          <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+            <Tags className="size-3.5 text-emerald-600" aria-hidden="true" /> Legendas
+          </h3>
         </div>
 
         {/* Cor de Fundo */}

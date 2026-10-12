@@ -2,7 +2,30 @@ import React from 'react';
 import { useContratos } from './hooks/useContratos';
 import { SignaturePad } from './components/SignaturePad';
 import { ContratoPrintLayout } from './components/ContratoPrintLayout';
-import { Plus, Trash2, ArrowRight, ArrowLeft, Save, FileSignature, Link as LinkIcon, Sparkles, Bot, FileText, X, FilePlus, Printer, RotateCcw, PlusCircle, RefreshCw } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  ArrowRight,
+  ArrowLeft,
+  Save,
+  FileSignature,
+  Link as LinkIcon,
+  Sparkles,
+  Bot,
+  FileText,
+  X,
+  FilePlus,
+  Printer,
+  RotateCcw,
+  PlusCircle,
+  RefreshCw,
+  User,
+  Calendar,
+  DollarSign,
+  CreditCard,
+  LayoutTemplate,
+  Tag,
+} from 'lucide-react';
 
 const PLAN_OPTIONS = [
   { id: 'essence', label: 'Essence' },
@@ -17,10 +40,10 @@ export default function ContratosPage({ activeModel }) {
 
   return (
     <>
-    <div className="animate-fadeIn max-w-7xl mx-auto print:hidden">
+    <div className="animate-fadeIn mx-auto w-full min-w-0 max-w-7xl print:hidden">
       {/* STEPPER PROGRESS BAR */}
-      <div className="flex items-center justify-center max-w-4xl mx-auto my-6 print:hidden">
-        <div onClick={() => setActiveTab('input')} className="flex items-center space-x-2.5 cursor-pointer group">
+      <div className="mx-auto my-6 flex w-full min-w-0 max-w-4xl items-center justify-center print:hidden">
+        <div onClick={() => setActiveTab('input')} className={`flex shrink-0 items-center space-x-2.5 cursor-pointer group ${activeTab === 'input' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
             activeTab === 'input'
               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50'
@@ -28,8 +51,8 @@ export default function ContratosPage({ activeModel }) {
           }`}>1</div>
           <span className={`text-[10px] sm:text-xs uppercase tracking-wider font-extrabold transition-colors ${activeTab === 'input' ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>1. Dados Base</span>
         </div>
-        <div className={`flex-1 h-0.5 mx-2 sm:mx-4 transition-colors ${activeTab !== 'input' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-        <div onClick={() => setActiveTab('template')} className="flex items-center space-x-2.5 cursor-pointer group">
+        <div className={`mx-1.5 h-0.5 min-w-1 flex-1 transition-colors sm:mx-4 ${activeTab !== 'input' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+        <div onClick={() => setActiveTab('template')} className={`flex shrink-0 items-center space-x-2.5 cursor-pointer group ${activeTab === 'template' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
             activeTab === 'template'
               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50'
@@ -39,8 +62,8 @@ export default function ContratosPage({ activeModel }) {
           }`}>2</div>
           <span className={`text-[10px] sm:text-xs uppercase tracking-wider font-extrabold transition-colors ${activeTab === 'template' ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>2. Cláusulas</span>
         </div>
-        <div className={`flex-1 h-0.5 mx-2 sm:mx-4 transition-colors ${activeTab === 'signature' || activeTab === 'result' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-        <div onClick={() => setActiveTab('signature')} className="flex items-center space-x-2.5 cursor-pointer group">
+        <div className={`mx-1.5 h-0.5 min-w-1 flex-1 transition-colors sm:mx-4 ${activeTab === 'signature' || activeTab === 'result' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+        <div onClick={() => setActiveTab('signature')} className={`flex shrink-0 items-center space-x-2.5 cursor-pointer group ${activeTab === 'signature' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
             activeTab === 'signature'
               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50'
@@ -50,8 +73,8 @@ export default function ContratosPage({ activeModel }) {
           }`}>3</div>
           <span className={`text-[10px] sm:text-xs uppercase tracking-wider font-extrabold transition-colors ${activeTab === 'signature' ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>3. Assinatura</span>
         </div>
-        <div className={`flex-1 h-0.5 mx-2 sm:mx-4 transition-colors ${activeTab === 'result' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-        <div onClick={() => setActiveTab('result')} className="flex items-center space-x-2.5 cursor-pointer group">
+        <div className={`mx-1.5 h-0.5 min-w-1 flex-1 transition-colors sm:mx-4 ${activeTab === 'result' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+        <div onClick={() => setActiveTab('result')} className={`flex shrink-0 items-center space-x-2.5 cursor-pointer group ${activeTab === 'result' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
             activeTab === 'result'
               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50'
@@ -70,35 +93,50 @@ export default function ContratosPage({ activeModel }) {
 
       {/* ABA 1: DADOS BASE */}
       {activeTab === 'input' && (
-        <div className="bg-slate-50 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xs max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-50 p-4 sm:p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xs max-w-4xl mx-auto space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-extrabold uppercase text-slate-500 mb-1.5 ml-1">Paciente</label>
-              <input type="text" value={ctx.patientData.name} onChange={(e) => ctx.setPatientData({name: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium" />
+              <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
+                <User className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>Paciente</span>
+              </label>
+              <input type="text" value={ctx.patientData.name} onChange={(e) => ctx.setPatientData((current) => ({ ...current, name: e.target.value }))} className="w-full bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium" />
             </div>
             
             <div>
-              <label className="block text-xs font-extrabold uppercase text-slate-500 mb-1.5 ml-1">Plano Escolhido</label>
+              <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
+                <FileText className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>Plano Escolhido</span>
+              </label>
               <select value={ctx.selectedPlan} onChange={(e) => ctx.setSelectedPlan(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium">
                 {PLAN_OPTIONS.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
               </select>
             </div>
             
             <div>
-              <label className="block text-xs font-extrabold uppercase text-slate-500 mb-1.5 ml-1">Valor Total (R$)</label>
+              <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
+                <DollarSign className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>Valor Total (R$)</span>
+              </label>
               <input type="text" placeholder="Ex: 1.500,00" value={ctx.valor} onChange={(e) => ctx.handleSetValor(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium" />
             </div>
             
             <div>
-              <label className="block text-xs font-extrabold uppercase text-slate-500 mb-1.5 ml-1">Forma de Pagamento</label>
+              <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
+                <CreditCard className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>Forma de Pagamento</span>
+              </label>
               <input type="text" placeholder="Ex: À vista via Pix ou Cartão" value={ctx.formaPagamento} onChange={(e) => ctx.setFormaPagamento(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium" />
             </div>
           </div>
 
           <div className="border-t border-slate-100 pt-6 mt-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <label className="block text-xs font-extrabold uppercase text-slate-500 ml-1">Previsão de Consultas</label>
+                <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 ml-1">
+                  <Calendar className="size-3.5 text-emerald-600" aria-hidden="true" />
+                  <span>Previsão de Consultas</span>
+                </label>
                 <p className="text-[10px] text-slate-400 ml-1">Opcional. Adicione as datas previstas de retorno.</p>
               </div>
               <button type="button" onClick={() => ctx.setConsultas([...ctx.consultas, { data: '', horario: '' }])} className="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold px-3 py-1.5 rounded-lg flex items-center transition-colors">
@@ -107,11 +145,11 @@ export default function ContratosPage({ activeModel }) {
             </div>
             <div className="space-y-3">
               {ctx.consultas.map((c, index) => (
-                <div key={index} className="flex gap-3 items-center">
-                  <span className="text-xs font-bold text-slate-400 w-20">Consulta {index+1}:</span>
-                  <input type="date" value={c.data} onChange={(e) => { const nc = [...ctx.consultas]; nc[index].data = e.target.value; ctx.setConsultas(nc); }} className="flex-1 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium" />
-                  <input type="time" value={c.horario} onChange={(e) => { const nc = [...ctx.consultas]; nc[index].horario = e.target.value; ctx.setConsultas(nc); }} className="w-32 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium" />
-                  <button type="button" onClick={() => { const nc = [...ctx.consultas]; nc.splice(index, 1); ctx.setConsultas(nc); }} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                <div key={index} className="grid min-w-0 grid-cols-[1fr_auto] gap-2 sm:flex sm:items-center sm:gap-3">
+                  <span className="col-span-2 text-xs font-bold text-slate-400 sm:w-20 sm:shrink-0">Consulta {index+1}:</span>
+                  <input type="date" value={c.data} onChange={(e) => { const nc = [...ctx.consultas]; nc[index].data = e.target.value; ctx.setConsultas(nc); }} className="min-w-0 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium sm:flex-1" />
+                  <input type="time" value={c.horario} onChange={(e) => { const nc = [...ctx.consultas]; nc[index].horario = e.target.value; ctx.setConsultas(nc); }} className="w-28 min-w-0 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium sm:w-32" />
+                  <button type="button" onClick={() => { const nc = [...ctx.consultas]; nc.splice(index, 1); ctx.setConsultas(nc); }} className="col-span-2 flex min-h-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 sm:col-span-1 sm:size-11" aria-label={`Remover consulta ${index + 1}`}><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -133,14 +171,20 @@ export default function ContratosPage({ activeModel }) {
       <div className={activeTab === 'template' ? "animate-fadeIn space-y-6 block" : "hidden"}>
           <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row gap-4 items-end max-w-5xl mx-auto">
             <div className="flex-1 w-full">
-              <label className="block text-[10px] font-extrabold text-slate-500 mb-1.5 uppercase ml-1">Meus Modelos</label>
+              <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
+                <LayoutTemplate className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>Meus Modelos</span>
+              </label>
               <select value={ctx.selectedTemplateId} onChange={e => ctx.loadTemplate(e.target.value)} className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white font-medium outline-none shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800">
                 <option value="">-- Novo / Em branco --</option>
                 {ctx.savedTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
             <div className="flex-1 w-full">
-              <label className="block text-[10px] font-extrabold text-slate-500 mb-1.5 uppercase ml-1">Nome do Modelo</label>
+              <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
+                <Tag className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>Nome do Modelo</span>
+              </label>
               <input type="text" value={ctx.templateNameInput} onChange={e => ctx.setTemplateNameInput(e.target.value)} placeholder="Ex: Contrato Padrão Premium" className="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-medium outline-none shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white text-slate-800" />
             </div>
             <div className="flex gap-2">
@@ -152,8 +196,8 @@ export default function ContratosPage({ activeModel }) {
             {/* NOVO ASSISTENTE DE IA PARA CLÁUSULAS */}
             <div className="bg-slate-50 border-b border-slate-200 p-4 shrink-0 space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="flex items-center text-slate-800 font-extrabold text-[11px] uppercase tracking-wider">
-                  <Bot className="w-4 h-4 mr-1.5 text-emerald-600" /> Assistente Jurídico (IA)
+                <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                  <Bot className="size-3.5 text-emerald-600" aria-hidden="true" /> Assistente Jurídico (IA)
                 </label>
 
                 {/* Seletores de Modo: Adicionar vs Atualizar */}

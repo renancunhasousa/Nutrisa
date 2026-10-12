@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   UtensilsCrossed, Plus, BookOpen, Copy, Sparkles, 
-  Target, Droplets, CheckCircle, Printer 
+  Target, Droplets, CheckCircle, Printer, MoreHorizontal, Save
 } from 'lucide-react';
 import { useDietPlan } from './hooks/useDietPlan.js';
 import { TargetMacrosBar } from './components/TargetMacrosBar.jsx';
@@ -13,6 +13,7 @@ import { DietHistoryModal } from './components/DietHistoryModal.jsx';
 import { DietConfigSection } from './components/DietConfigSection.jsx';
 import { NotesSection } from './components/NotesSection.jsx';
 import { DietReport } from './report/DietReport.jsx';
+import PageHeader from '../../shared/ui/PageHeader.jsx';
 
 export default function DietasPage({ settings = {} }) {
   const {
@@ -50,7 +51,26 @@ export default function DietasPage({ settings = {} }) {
   } = useDietPlan();
 
   const macrosBarRef = useRef(null);
+  const actionsMenuRef = useRef(null);
   const [showFloatingFooter, setShowFloatingFooter] = useState(false);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+
+  const closeActionsMenu = () => setIsActionsMenuOpen(false);
+
+  const handleCreateNewPlan = () => {
+    closeActionsMenu();
+    if (confirm('Deseja iniciar um novo plano em branco? O rascunho atual continuará no histórico.')) {
+      handleCreateNew();
+    }
+  };
+
+  const handleLoadDemo = () => {
+    closeActionsMenu();
+    const hasItems = plan.meals?.some((meal) => meal.items?.length > 0);
+    if (!hasItems || confirm('Deseja carregar o plano alimentar demonstrativo completo com 5 refeições, medidas caseiras e metas calculadas?')) {
+      handleLoadDemoPlan();
+    }
+  };
 
   // Monitora quando a barra de macronutrientes do topo sai da tela para ativar o rodapé flutuante
   useEffect(() => {
@@ -86,6 +106,24 @@ export default function DietasPage({ settings = {} }) {
     };
   }, []);
 
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target)) {
+        closeActionsMenu();
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeActionsMenu();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   // Se estiver na aba Relatório, exibe o relatório para impressão
   if (activeTab === 'relatorio') {
     return (
@@ -99,109 +137,96 @@ export default function DietasPage({ settings = {} }) {
   }
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="w-full min-w-0 space-y-6 pb-16">
       
       {/* Barra de Título Superior e Ações Globais */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Montagem de Dieta
-          </h1>
-          <p className="text-xs text-slate-500">
-            Prescrição nutricional em tempo real com tabela TACO e medidas caseiras
-          </p>
-        </div>
+      <PageHeader
+        category="Nutrição clínica"
+        title="Montagem de dieta"
+        description="Prescrição nutricional em tempo real com tabela TACO e medidas caseiras."
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative" ref={actionsMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsActionsMenuOpen((isOpen) => !isOpen)}
+                aria-expanded={isActionsMenuOpen}
+                aria-controls="diet-actions-menu"
+                className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <MoreHorizontal className="w-4 h-4 text-slate-500" />
+                <span>Mais ações</span>
+              </button>
 
-        {/* Botões de Ação do Cabeçalho */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => {
-              const hasItems = plan.meals?.some(m => m.items?.length > 0);
-              if (!hasItems || confirm('Deseja carregar o plano alimentar demonstrativo completo com 5 refeições, medidas caseiras e metas calculadas?')) {
-                handleLoadDemoPlan();
-              }
-            }}
-            title="Carregar plano alimentar demonstrativo completo para visualização"
-            className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Carregar Dados Demo</span>
-          </button>
+              {isActionsMenuOpen ? (
+                <div
+                  id="diet-actions-menu"
+                  role="menu"
+                  aria-label="Ações auxiliares da dieta"
+                  className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl"
+                >
+                  <button type="button" role="menuitem" onClick={() => { closeActionsMenu(); handleSave(false); }} disabled={isSaving} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                    <Save className="h-4 w-4 text-slate-500" /> Salvar rascunho
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { closeActionsMenu(); setActiveTab('relatorio'); }} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    <Printer className="h-4 w-4 text-slate-500" /> Relatório PDF
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { closeActionsMenu(); setIsHistoryModalOpen(true); }} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    <BookOpen className="h-4 w-4 text-slate-500" /> Modelos e histórico
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { closeActionsMenu(); handleDuplicateCurrent(); }} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    <Copy className="h-4 w-4 text-slate-500" /> Duplicar dieta
+                  </button>
+                  <button type="button" role="menuitem" onClick={handleCreateNewPlan} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    <Plus className="h-4 w-4 text-emerald-600" /> Nova dieta
+                  </button>
+                  <div className="my-1 border-t border-slate-100" />
+                  <button type="button" role="menuitem" onClick={handleLoadDemo} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-emerald-800 hover:bg-emerald-50">
+                    <Sparkles className="h-4 w-4 text-emerald-600" /> Carregar dados demo
+                  </button>
+                </div>
+              ) : null}
+            </div>
 
-          <button
-            type="button"
-            onClick={() => setIsHistoryModalOpen(true)}
-            className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-slate-500" />
-            <span>Modelos & Histórico</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDuplicateCurrent}
-            title="Duplicar esta dieta para gerar uma nova versão"
-            className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <Copy className="w-3.5 h-3.5 text-slate-500" />
-            <span>Duplicar</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm('Deseja iniciar um novo plano em branco? O rascunho atual continuará no histórico.')) {
-                handleCreateNew();
-              }
-            }}
-            className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Nova Dieta</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSave(true)}
-            disabled={isSaving}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
-          >
-            <CheckCircle className="w-4 h-4" />
-            <span>Publicar Dieta</span>
-          </button>
-        </div>
-      </div>
+            <button
+              type="button"
+              onClick={() => handleSave(true)}
+              disabled={isSaving}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span>Publicar Dieta</span>
+            </button>
+            {saveStatus === 'saved' ? <span className="text-xs font-semibold text-emerald-700">Rascunho salvo</span> : null}
+            {saveStatus === 'error' ? <span className="text-xs font-semibold text-rose-700">Falha ao salvar</span> : null}
+          </div>
+        }
+      />
 
       {/* Barra de Macronutrientes com Monitoramento ao Vivo */}
       <div ref={macrosBarRef}>
         <TargetMacrosBar
-          plan={plan}
           totals={totals}
           targetComparison={targetComparison}
-          onSave={handleSave}
-          isSaving={isSaving}
           saveStatus={saveStatus}
-          onViewReport={() => setActiveTab('relatorio')}
         />
       </div>
 
       {/* Abas de Navegação do Painel */}
-      <div className="flex items-center gap-1 border-b border-slate-200 pb-2">
+      <div className="flex min-w-0 items-center gap-1 overflow-x-auto border-b border-slate-200 pb-2 no-scrollbar" aria-label="Seções da dieta">
         <button
           type="button"
           onClick={() => setActiveTab('refeicoes')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+          aria-current={activeTab === 'refeicoes' ? 'page' : undefined}
+          className={`flex shrink-0 cursor-pointer items-center gap-2 px-4 py-2 text-xs transition-colors ${
             activeTab === 'refeicoes'
-              ? 'bg-emerald-600 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              ? 'font-extrabold text-emerald-700'
+              : 'font-semibold text-slate-500 hover:text-emerald-700'
           }`}
         >
           <UtensilsCrossed className="w-4 h-4" />
-          <span>Refeições & Alimentos</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-            activeTab === 'refeicoes' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
-          }`}>
+          <span className={activeTab === 'refeicoes' ? 'underline decoration-2 underline-offset-[6px]' : undefined}>Refeições & Alimentos</span>
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
             {plan.meals?.length || 0}
           </span>
         </button>
@@ -209,43 +234,36 @@ export default function DietasPage({ settings = {} }) {
         <button
           type="button"
           onClick={() => setActiveTab('metas')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+          aria-current={activeTab === 'metas' ? 'page' : undefined}
+          className={`flex shrink-0 cursor-pointer items-center gap-2 px-4 py-2 text-xs transition-colors ${
             activeTab === 'metas'
-              ? 'bg-emerald-600 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              ? 'font-extrabold text-emerald-700'
+              : 'font-semibold text-slate-500 hover:text-emerald-700'
           }`}
         >
           <Target className="w-4 h-4" />
-          <span>Paciente & Metas</span>
+          <span className={activeTab === 'metas' ? 'underline decoration-2 underline-offset-[6px]' : undefined}>Paciente & Metas</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('orientacoes')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+          aria-current={activeTab === 'orientacoes' ? 'page' : undefined}
+          className={`flex shrink-0 cursor-pointer items-center gap-2 px-4 py-2 text-xs transition-colors ${
             activeTab === 'orientacoes'
-              ? 'bg-emerald-600 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              ? 'font-extrabold text-emerald-700'
+              : 'font-semibold text-slate-500 hover:text-emerald-700'
           }`}
         >
           <Droplets className="w-4 h-4" />
-          <span>Hidratação & Recados</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('relatorio')}
-          className="px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer text-slate-600 hover:bg-slate-100 hover:text-slate-900 ml-auto"
-        >
-          <Printer className="w-4 h-4 text-emerald-600" />
-          <span className="hidden sm:inline">Visualizar Laudo</span>
+          <span className={activeTab === 'orientacoes' ? 'underline decoration-2 underline-offset-[6px]' : undefined}>Recomendações & Recados</span>
         </button>
       </div>
 
       {/* Conteúdo Dinâmico por Aba */}
       {activeTab === 'refeicoes' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Cardápio Diário ({plan.meals?.length || 0} refeições prescritas)
             </span>
@@ -326,6 +344,7 @@ export default function DietasPage({ settings = {} }) {
           if (activeMealIndex !== null) {
             addFoodToMeal(activeMealIndex, newFood, 100, 'g');
           }
+          setIsFoodModalOpen(false);
         }}
       />
 
@@ -341,10 +360,6 @@ export default function DietasPage({ settings = {} }) {
         visible={showFloatingFooter && activeTab !== 'relatorio'}
         totals={totals}
         targetComparison={targetComparison}
-        onSave={handleSave}
-        isSaving={isSaving}
-        saveStatus={saveStatus}
-        onViewReport={() => setActiveTab('relatorio')}
       />
 
     </div>

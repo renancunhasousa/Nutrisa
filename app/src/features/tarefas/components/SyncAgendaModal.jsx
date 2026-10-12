@@ -47,17 +47,17 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[9999] w-screen h-screen flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn"
+      className="app-modal-overlay animate-fadeIn"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isSyncing) onClose();
       }}
     >
       <div 
-        className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative space-y-6 max-h-[92vh] overflow-y-auto"
+        className="app-modal-panel max-w-xl p-6 sm:p-7 relative space-y-6 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+        <div className="app-modal-header -mx-6 -mt-6 flex items-start justify-between gap-4 px-6 py-4 sm:-mx-7 sm:-mt-7 sm:px-7">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs">
               <RefreshCw className="w-5 h-5" />
@@ -75,7 +75,8 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
             type="button"
             onClick={onClose}
             disabled={isSyncing}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="app-modal-close p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Fechar importação da agenda"
           >
             <X className="w-5 h-5" />
           </button>
@@ -171,7 +172,7 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
         </div>
 
         {/* Ações */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        <div className="app-modal-footer -mx-6 -mb-6 flex items-center justify-end gap-3 px-6 py-4 sm:-mx-7 sm:-mb-7 sm:px-7">
           <button
             type="button"
             onClick={onClose}

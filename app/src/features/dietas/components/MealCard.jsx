@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
   Clock, Plus, Trash2, Copy, ChevronUp, ChevronDown, 
-  MessageSquare, RefreshCw, Layers 
+  MessageSquare, RefreshCw, Layers, Beef, Wheat, Flame 
 } from 'lucide-react';
 import { calculateMealTotals } from '../domain/nutritionCalculations.js';
+import { LipidIcon } from './LipidIcon.jsx';
 
 export function MealCard({
   meal,
@@ -79,13 +80,37 @@ export function MealCard({
           
           {/* Badge de Macronutrientes desta refeição */}
           <div className="flex items-center gap-1.5 bg-slate-100/90 text-slate-700 px-2.5 py-1 rounded-xl text-xs font-semibold">
-            <span className="text-amber-700 font-bold">{mealTotals.calories} kcal</span>
+            <span
+              className="inline-flex items-center gap-0.5 text-amber-700 font-bold"
+              title="Calorias"
+              aria-label={`Calorias: ${mealTotals.calories} kcal`}
+            >
+              <Flame className="w-3.5 h-3.5" aria-hidden="true" /> {mealTotals.calories} kcal
+            </span>
             <span className="text-slate-300">•</span>
-            <span className="text-rose-600">P: {mealTotals.protein}g</span>
+            <span
+              className="inline-flex items-center gap-0.5 text-rose-600"
+              title="Proteína"
+              aria-label={`Proteína: ${mealTotals.protein}g`}
+            >
+              <Beef className="w-3.5 h-3.5" aria-hidden="true" /> {mealTotals.protein}g
+            </span>
             <span className="text-slate-300">•</span>
-            <span className="text-amber-600">C: {mealTotals.carbs}g</span>
+            <span
+              className="inline-flex items-center gap-0.5 text-amber-600"
+              title="Carboidratos"
+              aria-label={`Carboidratos: ${mealTotals.carbs}g`}
+            >
+              <Wheat className="w-3.5 h-3.5" aria-hidden="true" /> {mealTotals.carbs}g
+            </span>
             <span className="text-slate-300">•</span>
-            <span className="text-teal-600">G: {mealTotals.fat}g</span>
+            <span
+              className="inline-flex items-center gap-0.5 text-teal-600"
+              title="Gorduras"
+              aria-label={`Gorduras: ${mealTotals.fat}g`}
+            >
+              <LipidIcon className="w-3.5 h-3.5" aria-hidden="true" /> {mealTotals.fat}g
+            </span>
           </div>
 
           {/* Botões de Ação na Refeição */}
@@ -146,11 +171,11 @@ export function MealCard({
         ) : (
           <div className="space-y-2">
             {/* Cabeçalho sutil de alinhamento das colunas (telas médias e grandes) */}
-            <div className="hidden sm:flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pb-1.5 border-b border-slate-100">
+            <div className="hidden sm:flex items-center justify-between gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pb-1.5 border-b border-slate-100">
               <span className="flex-1 min-w-0">Alimento</span>
               <div className="w-[300px] md:w-[340px] shrink-0 flex items-center gap-2 pl-1">
                 <span className="w-16 text-center">Qtd</span>
-                <span className="w-44 md:w-52 text-left pl-2">Medida Caseira</span>
+                <span className="w-44 md:w-52 text-left pl-2">Medida</span>
                 <span className="w-14 text-right">Peso</span>
               </div>
               <span className="w-32 md:w-36 shrink-0 text-right pr-7">Nutrientes</span>
@@ -201,7 +226,7 @@ export function MealCard({
                         <input
                           type="number"
                           min="0.1"
-                          step="0.5"
+                          step="0.1"
                           value={item.quantity}
                           onChange={(e) => onUpdateFood(mealIndex, itemIdx, { quantity: Number(e.target.value) || 0 })}
                           className="w-16 shrink-0 text-center text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-lg p-1.5 focus:border-emerald-500 focus:bg-white focus:outline-hidden transition-all"

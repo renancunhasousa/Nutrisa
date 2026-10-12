@@ -31,6 +31,14 @@ async function request(options = {}) {
   return data;
 }
 export const getAiStatus = () => request();
+export const pingAiProviders = () => request({
+  method: 'POST',
+  body: JSON.stringify({ task: 'ping_providers' }),
+});
+export const researchProduct = ({ image = null }) => request({
+  method: 'POST',
+  body: JSON.stringify({ task: 'product_research', image }),
+});
 export async function executeGemini(payload, selectedModel) {
   const { models } = await getAiStatus();
   const model = models.includes(selectedModel) ? selectedModel : models[0];

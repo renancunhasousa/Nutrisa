@@ -3,3 +3,308 @@
 @import "./print.css";
 
 [hidden] { display: none !important; }
+
+html {
+  min-width: 320px;
+  background: var(--color-app-background);
+}
+
+body,
+#root {
+  min-width: 0;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-app-background);
+  color: #1e293b;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.app-shell {
+  --app-content-offset: 0rem;
+
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(191, 230, 255, 0.28), transparent 30rem),
+    radial-gradient(circle at 88% 4%, rgba(206, 246, 231, 0.32), transparent 34rem),
+    radial-gradient(circle at 76% 92%, rgba(255, 232, 211, 0.20), transparent 32rem),
+    linear-gradient(145deg, #f5f9fb 0%, #f7fbf8 45%, #fbfaf7 100%);
+}
+
+.diet-macros-footer {
+  inset-inline: 0.75rem;
+}
+
+.app-ambient {
+  opacity: 0.9;
+}
+
+.app-ambient::before {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(71, 107, 95, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(71, 107, 95, 0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+  content: '';
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent 62%);
+}
+
+.app-ambient__orb {
+  position: absolute;
+  display: block;
+  border-radius: 9999px;
+  filter: blur(52px);
+  opacity: 0.48;
+}
+
+.app-ambient__orb--mint {
+  top: -10rem;
+  right: 8%;
+  width: 34rem;
+  height: 28rem;
+  background: rgba(168, 236, 214, 0.48);
+}
+
+.app-ambient__orb--blue {
+  top: 28%;
+  left: 16%;
+  width: 28rem;
+  height: 32rem;
+  background: rgba(185, 216, 255, 0.32);
+}
+
+.app-ambient__orb--peach {
+  right: -8rem;
+  bottom: -8rem;
+  width: 30rem;
+  height: 26rem;
+  background: rgba(255, 217, 186, 0.30);
+}
+
+.app-sidebar,
+.app-topbar {
+  box-shadow: var(--shadow-glass);
+}
+
+.settings-dialog {
+  width: min(52rem, calc(100% - 1.5rem));
+  max-width: none;
+  max-height: calc(100dvh - 1.5rem);
+  margin: auto;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.product-form-dialog {
+  width: min(60rem, calc(100% - 1.5rem));
+}
+
+/* Linguagem visual compartilhada pelos overlays legados e diálogos nativos. */
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(6px) saturate(0.9);
+}
+
+.app-modal-panel {
+  display: flex;
+  width: 100%;
+  max-height: calc(100dvh - 2rem);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22), 0 3px 12px rgba(15, 23, 42, 0.08);
+}
+
+.app-modal-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(209, 250, 229, 0.95);
+  background: linear-gradient(90deg, #ecfdf5 0%, #fff 58%, #fff 100%);
+}
+
+.app-modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.app-modal-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.app-modal-close {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+}
+
+.settings-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(5px) saturate(0.9);
+}
+
+.settings-dialog[open] {
+  animation: settings-dialog-in 180ms ease-out both;
+}
+
+.settings-dialog__panel {
+  display: flex;
+  max-height: calc(100dvh - 1.5rem);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22), 0 3px 12px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(24px) saturate(1.08);
+}
+
+.settings-dialog__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@keyframes settings-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Vidro leve apenas em painéis grandes; campos e documentos continuam sólidos. */
+.app-main :where(
+  [class~="bg-white"][class~="rounded-2xl"],
+  [class~="bg-white"][class~="rounded-3xl"]
+) {
+  background-color: var(--color-surface-glass);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .app-main :where(
+    [class~="bg-white"][class~="rounded-2xl"],
+    [class~="bg-white"][class~="rounded-3xl"]
+  ) {
+    backdrop-filter: blur(18px) saturate(1.08);
+  }
+}
+
+::selection {
+  background: var(--color-brand-teal-light);
+  color: #134e4a;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[tabindex]:not([tabindex="-1"]) {
+  &:focus-visible {
+    outline: 2px solid var(--color-brand-emerald);
+    outline-offset: 2px;
+  }
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition-duration: var(--transition-fast);
+}
+
+.app-main > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .settings-dialog,
+  .settings-dialog__panel {
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .settings-dialog {
+    width: calc(100% - 1rem);
+  }
+
+  .settings-dialog__panel {
+    border-radius: 1.5rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .diet-macros-footer {
+    inset-inline: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    --app-content-offset: 13.5rem;
+  }
+
+  .app-shell[data-sidebar-collapsed='true'] {
+    --app-content-offset: 6rem;
+  }
+
+  .diet-macros-footer {
+    inset-inline-start: calc(var(--app-content-offset) + 1.25rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    --app-content-offset: 16rem;
+  }
+
+  .app-shell[data-sidebar-collapsed='true'] {
+    --app-content-offset: 6rem;
+  }
+}
+
+@media print {
+  .app-main :where(
+    [class~="bg-white"][class~="rounded-2xl"],
+    [class~="bg-white"][class~="rounded-3xl"]
+  ) {
+    background-color: white;
+    backdrop-filter: none;
+  }
+}

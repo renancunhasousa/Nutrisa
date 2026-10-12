@@ -46,12 +46,12 @@ export function DietHistoryModal({ isOpen, onClose, onSelectPlan, onDuplicateAnd
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div className="app-modal-overlay">
       <div 
-        className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh] animate-scaleUp"
+        className="app-modal-panel max-w-2xl animate-scaleUp"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="app-modal-header p-4 sm:p-5 flex items-center justify-between">
           <div>
             <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-emerald-600" />
@@ -62,7 +62,8 @@ export function DietHistoryModal({ isOpen, onClose, onSelectPlan, onDuplicateAnd
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer"
+            className="app-modal-close p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            aria-label="Fechar histórico de dietas"
           >
             <X className="w-5 h-5" />
           </button>
@@ -83,7 +84,7 @@ export function DietHistoryModal({ isOpen, onClose, onSelectPlan, onDuplicateAnd
         </div>
 
         {/* Lista */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+        <div className="app-modal-body flex-1 p-4 space-y-2.5">
           {loading ? (
             <p className="text-center py-8 text-xs text-slate-400 font-medium">Carregando dietas...</p>
           ) : filtered.length === 0 ? (

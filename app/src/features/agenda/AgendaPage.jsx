@@ -6,6 +6,7 @@ import WebDietSidebar from './components/WebDietSidebar.jsx';
 import WebDietWeekGrid from './components/WebDietWeekGrid.jsx';
 import BlockDatesModal from './components/BlockDatesModal.jsx';
 import EventDetailModal from './components/EventDetailModal.jsx';
+import PageHeader from '../../shared/ui/PageHeader.jsx';
 import { KEY_GOOGLE_TOKEN, KEY_GOOGLE_MEET } from '../../config/storageKeys.js';
 import { GOOGLE_CALENDAR_ID } from '../../config/env.js';
 
@@ -201,37 +202,32 @@ function AgendaViewContent() {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-6 animate-fade-in">
+    <div className="w-full min-w-0 space-y-6 animate-fade-in pb-12">
       
-      {/* Header Superior da Aplicação - Mesmo Padrão do Módulo WhatsApp */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-        <div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              Agenda Inteligente
-            </h1>
-            <span className="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
-              Dra. Isabela ({calendarId})
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 font-medium mt-1 max-w-2xl leading-relaxed">
-            Visualização padrão WebDiet integrada em tempo real com Google Calendar para acompanhamento de consultas presenciais e online.
-          </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          {isAuthenticated && (
+      {/* Header Superior da Aplicação */}
+      <PageHeader
+        category="Gestão de consultas"
+        title="Agenda Inteligente"
+        badge={
+          <span className="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+            Dra. Isabela ({calendarId})
+          </span>
+        }
+        description="Visualização padrão integrado em tempo real com Google Calendar."
+        actions={
+          isAuthenticated ? (
             <button 
+              type="button"
               onClick={handleRefresh}
               disabled={loading}
-              className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
+              className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${loading ? 'animate-spin' : ''}`} />
               <span>Sincronizar</span>
             </button>
-          )}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       {/* Não Autenticado */}
       {!isAuthenticated ? (

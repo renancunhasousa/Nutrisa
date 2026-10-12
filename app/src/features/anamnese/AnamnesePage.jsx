@@ -1,5 +1,4 @@
-import React from 'react';
-import { User, Stethoscope, ArrowRight, CheckCircle, Copy, Download, RefreshCw, List, BrainCircuit, Bot, Sparkles, Save, Plus, MessageCircle, Upload, FileText } from 'lucide-react';
+import { User, Stethoscope, ArrowRight, CheckCircle, Copy, Download, RefreshCw, List, Bot, Sparkles, Save, Plus, MessageCircle, Upload, FileText, LayoutTemplate, Tag } from 'lucide-react';
 import { useAnamnese } from './hooks/useAnamnese.js';
 import { cleanMarkdownToHTML } from './domain/formatting.js';
 import Toast from '../../shared/ui/Toast.jsx';
@@ -43,10 +42,10 @@ export default function AnamnesePage({ activeModel }) {
   };
 
   return (
-    <div className="animate-fadeIn max-w-7xl mx-auto">
+    <div className="animate-fadeIn mx-auto w-full min-w-0 max-w-7xl">
       {/* STEPPER PROGRESS BAR */}
-      <div className="flex items-center justify-center max-w-2xl mx-auto my-6 print:hidden">
-        <div onClick={() => setActiveTab('input')} className="flex items-center space-x-2.5 cursor-pointer group">
+      <div className="mx-auto my-6 flex w-full min-w-0 max-w-2xl items-center justify-center print:hidden">
+        <div onClick={() => setActiveTab('input')} className={`flex shrink-0 items-center space-x-2.5 cursor-pointer group ${activeTab === 'input' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
             activeTab === 'input'
               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50'
@@ -56,8 +55,8 @@ export default function AnamnesePage({ activeModel }) {
           }`}>1</div>
           <span className={`text-xs uppercase tracking-wider font-extrabold transition-colors ${activeTab === 'input' ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>1. Coleta de Dados</span>
         </div>
-        <div className={`flex-1 h-0.5 mx-4 transition-colors ${activeTab === 'template' || activeTab === 'result' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-        <div onClick={() => setActiveTab('template')} className="flex items-center space-x-2.5 cursor-pointer group">
+        <div className={`mx-2 h-0.5 min-w-2 flex-1 transition-colors sm:mx-4 ${activeTab === 'template' || activeTab === 'result' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+        <div onClick={() => setActiveTab('template')} className={`flex shrink-0 items-center space-x-2.5 cursor-pointer group ${activeTab === 'template' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
             activeTab === 'template'
               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50'
@@ -67,8 +66,8 @@ export default function AnamnesePage({ activeModel }) {
           }`}>2</div>
           <span className={`text-xs uppercase tracking-wider font-extrabold transition-colors ${activeTab === 'template' ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>2. Estrutura Modelo</span>
         </div>
-        <div className={`flex-1 h-0.5 mx-4 transition-colors ${activeTab === 'result' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-        <div onClick={() => result && setActiveTab('result')} className={`flex items-center space-x-2.5 ${result ? 'cursor-pointer group' : 'cursor-not-allowed opacity-60'}`}>
+        <div className={`mx-2 h-0.5 min-w-2 flex-1 transition-colors sm:mx-4 ${activeTab === 'result' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+        <div onClick={() => result && setActiveTab('result')} className={`flex shrink-0 items-center space-x-2.5 ${activeTab === 'result' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'} ${result ? 'cursor-pointer group' : 'cursor-not-allowed opacity-60'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
             activeTab === 'result'
               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-50'
@@ -82,7 +81,7 @@ export default function AnamnesePage({ activeModel }) {
       {activeTab === 'input' && (
         <div className="grid md:grid-cols-2 gap-6 animate-fadeIn max-w-5xl mx-auto">
           <div className="md:col-span-2 text-center space-y-2 pt-2 pb-4">
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Análise Integrada de Prontuário</h2>
+            <h2 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">Análise Integrada de Prontuário</h2>
             <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-2xl mx-auto font-normal">
               Colete os dados do questionário prévio e notas da consulta, escolha um modelo de documento e deixe a IA preencher a estrutura automaticamente.
             </p>
@@ -96,7 +95,7 @@ export default function AnamnesePage({ activeModel }) {
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                   {field.icon}
-                  <h2 className="text-base font-extrabold text-slate-900">{field.title}</h2>
+                  <h2 className="text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">{field.title}</h2>
                 </div>
                 <label className="cursor-pointer text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-1.5 rounded-full border border-slate-200 transition-all shadow-2xs flex items-center active:scale-95">
                   <Upload size={13} className="mr-1.5 text-slate-500" /> PDF / TXT
@@ -117,8 +116,8 @@ export default function AnamnesePage({ activeModel }) {
 
           <div className="md:col-span-2 bg-white backdrop-blur-md p-5 md:p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4 max-w-5xl mx-auto w-full mt-2">
             <div className="text-left space-y-1">
-              <h4 className="font-extrabold text-slate-900 text-sm flex items-center">
-                <Sparkles className="w-4 h-4 text-amber-500 mr-2 shrink-0" />
+              <h4 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                <Sparkles className="size-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
                 Assistente de Anamnese com IA
               </h4>
               <p className="text-xs text-slate-500 max-w-md">
@@ -144,14 +143,20 @@ export default function AnamnesePage({ activeModel }) {
         <div className="animate-fadeIn space-y-6">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
-              <label className="block text-[10px] font-extrabold text-slate-500 mb-1.5 uppercase ml-1">Meus Modelos</label>
+              <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
+                <LayoutTemplate className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>Meus Modelos</span>
+              </label>
               <select value={selectedTemplateId} onChange={e => loadTemplate(e.target.value)} className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white font-medium outline-none shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800">
                 <option value="">-- Novo / Em branco --</option>
                 {savedTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
             <div className="flex-1 w-full">
-              <label className="block text-[10px] font-extrabold text-slate-500 mb-1.5 uppercase ml-1">Nome do Modelo</label>
+              <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
+                <Tag className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>Nome do Modelo</span>
+              </label>
               <input type="text" value={templateNameInput} onChange={e => setTemplateNameInput(e.target.value)} placeholder="Ex: Anamnese Esportiva" className="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-medium outline-none shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white text-slate-800" />
             </div>
             <div className="flex gap-2">
@@ -176,7 +181,10 @@ export default function AnamnesePage({ activeModel }) {
 
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xs flex flex-col h-full overflow-hidden">
               <div className="p-4 border-b border-slate-100 bg-slate-50/80">
-                <h3 className="font-extrabold text-xs text-slate-700 uppercase text-center tracking-wider">Variáveis Detectadas</h3>
+                <h3 className="flex items-center justify-center gap-1.5 font-extrabold text-[10px] text-slate-900 uppercase text-center tracking-[0.06em]">
+                  <List className="size-3.5 text-emerald-600" aria-hidden="true" />
+                  Variáveis Detectadas
+                </h3>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {detectedVars.map((v, i) => (

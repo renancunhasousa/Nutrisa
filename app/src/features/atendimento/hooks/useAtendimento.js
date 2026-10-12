@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchConversations } from '../services/conversations.js';
 import { getAttendantType, isClosingOrGreetingMessage } from '../domain/classification.js';
 import { calculateComparisonStats } from '../domain/metrics.js';
@@ -40,7 +40,7 @@ export function useAtendimento({ activeModel }) {
   const [aiError, setAiError] = useState(null);
 
   // ── Carregamento ─────────────────────────────────────────
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -53,9 +53,9 @@ export function useAtendimento({ activeModel }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
   // ── Filtragem ─────────────────────────────────────────────
   const filteredData = useMemo(() => {

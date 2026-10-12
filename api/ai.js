@@ -1,5 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { generateContent, getModels } from '../server/ai/service.js';
+import { researchProduct } from '../server/ai/productResearch.js';
+import { pingAllProviders } from '../server/ai/ping.js';
 export const MAX_BODY_BYTES = 4_000_000;
 const buckets = new Map();
 function equalSecret(a, b) {
@@ -19,7 +21,20 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Método não permitido.' });
   }
-  if (req.method === 'GET') return res.status(200).json({ configured: Boolean(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY), models: getModels() });
+  if (req.method === 'GET') {
+    const hasGemini = Boolean(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY);
+    const hasOpenAi = Boolean(process.env.OPENAI_API_KEY);
+    const hasDeepSeek = Boolean(process.env.DEEPSEEK_API_KEY);
+    return res.status(200).json({
+      configured: hasGemini || hasOpenAi || hasDeepSeek,
+      models: getModels(),
+      providers: {
+        gemini: hasGemini,
+        openai: hasOpenAi,
+        deepseek: hasDeepSeek,
+      },
+    });
+  }
   if (!String(req.headers['content-type'] || '').startsWith('application/json')) return res.status(415).json({ error: 'Envie JSON.' });
   if (Buffer.byteLength(JSON.stringify(req.body || {})) > MAX_BODY_BYTES) return res.status(413).json({ error: 'Arquivos muito grandes. Reduza os PDFs e tente novamente.' });
   // Best-effort per-instance limit. Production also needs a shared edge limit.
@@ -30,6 +45,12 @@ export default async function handler(req, res) {
   if (++bucket.count > 20) return res.status(429).json({ error: 'Muitas solicitações. Aguarde um minuto.' });
   buckets.set(client, bucket);
   try {
+    if (req.body?.task === 'product_research') {
+      return res.status(200).json(await researchProduct({ image: req.body.image }));
+    }
+    if (req.body?.task === 'ping_providers') {
+      return res.status(200).json(await pingAllProviders());
+    }
     return res.status(200).json(await generateContent(req.body || {}));
   } catch (error) {
     return res.status(error.status || 502).json({ error: error.name === 'TimeoutError' ? 'A IA demorou demais. Tente novamente.' : error.message });

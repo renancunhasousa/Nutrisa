@@ -1,4 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+
+const handleBackdropClick = (event) => {
+  if (event.target !== event.currentTarget) return;
+  if ('closedBy' in HTMLDialogElement.prototype) return;
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  const clickedInside = (
+    event.clientX >= rect.left
+    && event.clientX <= rect.right
+    && event.clientY >= rect.top
+    && event.clientY <= rect.bottom
+  );
+
+  if (!clickedInside) event.currentTarget.close();
+};
 import { 
   MessageSquare, 
   RefreshCw, 
@@ -9,7 +24,6 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   Filter,
   ArrowUpDown,
   Check,
@@ -28,6 +42,7 @@ import {
 } from '../../agenda/services/appointmentMatcher.js';
 import { KEY_GOOGLE_TOKEN } from '../../../config/storageKeys.js';
 import { GOOGLE_CALENDAR_ID } from '../../../config/env.js';
+import ConversationPatientAction from './ConversationPatientAction.jsx';
 
 const CATEGORY_STYLES = {
   'Agendamento e Horários': 'bg-blue-50 text-blue-700 border-blue-200',
@@ -45,11 +60,24 @@ export default function WhatsAppFeedTable({
   filteredData,
   conversations,
   loading,
-  getAttendantType
+  getAttendantType,
+  onNavigate,
 }) {
   const [selectedChat, setSelectedChat] = useState(null);
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (selectedChat && !dialog.open) {
+      dialog.showModal();
+    } else if (!selectedChat && dialog.open) {
+      dialog.close();
+    }
+  }, [selectedChat]);
+
   const [matchedEvent, setMatchedEvent] = useState(null);
-  const [loadingEvent, setLoadingEvent] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [eventConfirmed, setEventConfirmed] = useState(false);
@@ -153,7 +181,6 @@ export default function WhatsAppFeedTable({
 
     let isMounted = true;
     async function loadMatchingAppointment() {
-      setLoadingEvent(true);
       try {
         const savedToken = localStorage.getItem(KEY_GOOGLE_TOKEN);
         const tokenInfo = savedToken ? JSON.parse(savedToken) : null;
@@ -171,8 +198,6 @@ export default function WhatsAppFeedTable({
         }
       } catch (err) {
         console.warn('Erro ao cruzar agendamento do paciente:', err);
-      } finally {
-        if (isMounted) setLoadingEvent(false);
       }
     }
 
@@ -618,28 +643,37 @@ export default function WhatsAppFeedTable({
         const modalFoto = selectedChat.foto_perfil || null;
 
         return (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-            <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 animate-scale-up">
-              <div className="bg-[#005B48] p-5 text-white flex items-center justify-between">
-                <div className="flex items-center space-x-3.5">
+          <dialog
+            ref={dialogRef}
+            closedby="any"
+            aria-labelledby="conversation-detail-title"
+            className="settings-dialog print:hidden"
+            onClick={handleBackdropClick}
+            onClose={() => setSelectedChat(null)}
+          >
+            <div className="settings-dialog__panel" onClick={(e) => e.stopPropagation()}>
+              <header className="app-modal-header flex shrink-0 items-center justify-between px-6 py-4.5">
+                <div className="flex items-center space-x-3.5 min-w-0">
                   {modalFoto ? (
                     <img 
                       src={modalFoto} 
                       alt={pacienteNome}
                       referrerPolicy="no-referrer"
-                      className="w-11 h-11 rounded-full object-cover border border-white/30 flex-shrink-0 shadow-sm"
+                      className="size-11 rounded-2xl object-cover border border-slate-200 shrink-0 shadow-2xs"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                         e.currentTarget.nextElementSibling?.classList.remove('hidden');
                       }}
                     />
                   ) : null}
-                  <div className={`w-11 h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white font-black text-sm flex-shrink-0 ${modalFoto ? 'hidden' : ''}`}>
+                  <div className={`size-11 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold text-sm flex items-center justify-center shrink-0 shadow-2xs ${modalFoto ? 'hidden' : ''}`}>
                     {initial}
                   </div>
-                  <div>
-                    <h3 className="font-extrabold text-base tracking-tight leading-tight text-white">{pacienteNome}</h3>
-                    <p className="text-[11px] text-emerald-100/90 font-mono mt-0.5">
+                  <div className="min-w-0">
+                    <h3 id="conversation-detail-title" className="font-extrabold text-base tracking-tight leading-tight text-slate-900 truncate">
+                      {pacienteNome}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                       {pacienteTelefone} • {dataCompleta}
                     </p>
                   </div>
@@ -647,25 +681,26 @@ export default function WhatsAppFeedTable({
                 <button
                   type="button"
                   onClick={() => setSelectedChat(null)}
-                  className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-all active:scale-95"
+                  aria-label="Fechar detalhes da conversa"
+                  className="inline-flex size-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="size-5" />
                 </button>
-              </div>
+              </header>
 
               {/* CORPO DO MODAL */}
-              <div className="p-6 space-y-5 bg-white">
+              <div className="settings-dialog__body app-modal-body space-y-5 px-6 py-5">
                 
                 {/* BADGES SUPERIORES */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-3.5 py-1 bg-[#EEF4FF] text-[#3568D4] font-bold text-[11px] rounded-full border border-[#D0E0FC]">
+                  <span className="px-3.5 py-1 bg-slate-100 text-slate-700 font-bold text-[11px] rounded-full border border-slate-200/80">
                     Assunto: {categoria}
                   </span>
 
-                  <span className="px-3.5 py-1 bg-[#E6F8F3] text-[#007A5A] font-bold text-[11px] rounded-full border border-[#B3EBDC] flex items-center shadow-2xs">
+                  <span className="px-3.5 py-1 bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-full border border-emerald-200/80 flex items-center shadow-2xs">
                     {respostaSecretaria 
-                      ? `👩‍⚕️ Respondido por ${isIsabela ? 'Dra. Isabela' : 'Secretária'}` 
-                      : `⏳ Atribuído para ${isIsabela ? 'Dra. Isabela' : 'Secretária'}`}
+                      ? `Respondido por ${isIsabela ? 'Dra. Isabela' : 'Secretária'}` 
+                      : `Atribuído para ${isIsabela ? 'Dra. Isabela' : 'Secretária'}`}
                   </span>
 
                   {tempoEspera !== null && tempoEspera !== undefined && (
@@ -675,6 +710,14 @@ export default function WhatsAppFeedTable({
                     </span>
                   )}
                 </div>
+
+                <ConversationPatientAction
+                  conversation={selectedChat}
+                  onOpenPatient={() => {
+                    setSelectedChat(null);
+                    onNavigate?.('pacientes');
+                  }}
+                />
 
                 {/* CARD DE IDENTIFICAÇÃO E CONFIRMAÇÃO / DESMARCAÇÃO NA AGENDA */}
                 {eventCanceled ? (
@@ -832,17 +875,17 @@ export default function WhatsAppFeedTable({
               </div>
 
               {/* RODAPÉ DO MODAL */}
-              <div className="p-4 bg-white border-t border-slate-100 flex justify-end">
+              <footer className="app-modal-footer flex shrink-0 justify-end px-6 py-3.5">
                 <button
                   type="button"
                   onClick={() => setSelectedChat(null)}
-                  className="px-6 py-2 bg-[#111827] hover:bg-black text-white font-bold text-xs rounded-full shadow-xs transition-all active:scale-95 cursor-pointer"
+                  className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-colors"
                 >
                   Fechar
                 </button>
-              </div>
+              </footer>
             </div>
-          </div>
+          </dialog>
         );
       })()}
     </>

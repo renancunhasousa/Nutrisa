@@ -13,10 +13,14 @@ Crie `app/.env` a partir de `app/.env.example` e `.env` na raiz a partir de `.en
 - `VITE_GOOGLE_CLIENT_ID`
 - `VITE_GOOGLE_CALENDAR_ID` — se ausente, usa `primary`.
 
+O login clínico com Google usa o provedor configurado no Supabase e não adiciona segredo ao frontend. Em **Authentication → URL Configuration**, cadastre a URL exata da aplicação em produção e a URL local usada pelo Vite (por padrão, `http://localhost:5173/**`). No Google Cloud, o callback do cliente OAuth do Supabase deve ser `https://<PROJECT_REF>.supabase.co/auth/v1/callback`.
+
 ## Variáveis privadas — servidor
 
-- `GEMINI_API_KEY`: chave do provedor.
-- `GEMINI_MODELS`: lista separada por vírgulas dos modelos permitidos, na ordem de fallback.
+- `GEMINI_API_KEY`: chave do provedor titular (Google Gemini).
+- `GEMINI_MODELS`: lista separada por vírgulas dos modelos permitidos, na ordem de fallback (ex: `gemini-3.6-flash,gemini-3.8-flash,gemini-3.5-flash-lite`).
+- `OPENAI_API_KEY`: chave da OpenAI para o 1º fallback (`gpt-4o-mini`).
+- `DEEPSEEK_API_KEY`: chave da DeepSeek para o 2º fallback (`deepseek-flash`).
 - `AI_ACCESS_TOKEN`: código privado de acesso da clínica. **Obrigatório em produção.**
 
 O servidor mantém compatibilidade temporária com `VITE_GEMINI_API_KEY` já existente, mas a configuração Vite exclui chaves de IA da injeção no navegador. Migre a variável para `GEMINI_API_KEY` na hospedagem. Se versões anteriores já publicaram essa chave no frontend, substitua-a no provedor e na hospedagem.
@@ -25,7 +29,7 @@ O servidor mantém compatibilidade temporária com `VITE_GEMINI_API_KEY` já exi
 
 ## Vercel
 
-Mantenha a raiz deste repositório como Root Directory. `vercel.json` compila `app/`, publica `app/dist` e mantém a função `api/ai.js`. Configure as variáveis acima no ambiente desejado e publique somente depois das verificações locais.
+Mantenha a raiz deste repositório como Root Directory. `vercel.json` compila `app/`, publica `app/dist` e mantém as funções `api/ai.js` e `api/products.js`. Configure as variáveis acima no ambiente desejado e publique somente depois das verificações locais.
 
 Sem `AI_ACCESS_TOKEN`, a API retorna 503 em produção. Com o token configurado, informe o mesmo código no painel de configurações de IA e clique em **Testar Conexão**. O navegador guarda esse código no `localStorage` local para não exigir redigitação a cada reabertura. O teste consulta a configuração; ele não faz uma chamada paga ao Gemini.
 
@@ -36,4 +40,4 @@ O código de acesso protege apenas a API de IA: não substitui autenticação de
 - Extração dos exames: até 2,8 MB no total dos PDFs, considerando a expansão base64 e o limite do corpo HTTP.
 - Importação local de anamnese: até 15 MB.
 - Timeout de IA no servidor: 90 segundos para toda a cadeia de tentativas. Ajuste também a duração máxima permitida pela hospedagem.
-- Configurações Google devem incluir a origem local/produção autorizada no projeto OAuth.
+- Configurações do Google Calendar devem incluir a origem local/produção autorizada no projeto OAuth. Elas são independentes do provedor Google configurado no Supabase Auth.

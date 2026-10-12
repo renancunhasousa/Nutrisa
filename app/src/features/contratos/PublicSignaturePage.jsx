@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getRemoteContract, signRemoteContract } from './services/contracts';
+import { getPublicContract, signRemoteContract } from './services/contracts';
 import { SignaturePad } from './components/SignaturePad';
 import logoPdf from '../../assets/logo.png';
 
@@ -12,7 +12,7 @@ export default function PublicSignaturePage({ contractId }) {
   const [signed, setSigned] = useState(false);
 
   useEffect(() => {
-    getRemoteContract(contractId)
+    getPublicContract(contractId)
       .then(data => {
         if (!data) throw new Error('Contrato não encontrado.');
         setContract(data);

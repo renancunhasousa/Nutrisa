@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateComparisonStats, evaluateSecretaryGoals } from '../../app/src/features/atendimento/domain/metrics.js';
+import { calculateComparisonStats, evaluateIsabelaGoals, evaluateSecretaryGoals } from '../../app/src/features/atendimento/domain/metrics.js';
 
 test('calculateComparisonStats calculates intervention percentage and secretary category metrics', () => {
   const mockData = [
@@ -27,6 +27,49 @@ test('calculateComparisonStats calculates intervention percentage and secretary 
   // Secretária tem 3 mensagens em 'Agendamento e Horários' de 4 no total = 75%
   assert.equal(stats.secretariaAgendamentoCount, 3);
   assert.equal(stats.secretariaAgendamentoPct, 75);
+  assert.equal(stats.isabelaClinicalCount, 1);
+  assert.equal(stats.isabelaClinicalPct, 50);
+});
+
+test('evaluateIsabelaGoals checks SLA, protected volume, interventions and clinical focus', () => {
+  const evaluation = evaluateIsabelaGoals({
+    isabela: {
+      avg: 12,
+      total: 20,
+      topCategories: [{ name: 'Dúvida Plano Alimentar', count: 15 }]
+    },
+    secretaria: { total: 80 },
+    isabelaInterventions: 4,
+    isabelaInterventionsPct: 20,
+    isabelaClinicalCount: 16,
+    isabelaClinicalPct: 80
+  });
+
+  assert.equal(evaluation.isSlaOk, true);
+  assert.equal(evaluation.isVolOk, true);
+  assert.equal(evaluation.isIntervOk, true);
+  assert.equal(evaluation.isCategorizacaoOk, true);
+  assert.equal(evaluation.avaliacaoMetas.length, 4);
+});
+
+test('evaluateIsabelaGoals flags operational overload and low clinical focus', () => {
+  const evaluation = evaluateIsabelaGoals({
+    isabela: {
+      avg: 45,
+      total: 60,
+      topCategories: [{ name: 'Agendamento e Horários', count: 40 }]
+    },
+    secretaria: { total: 20 },
+    isabelaInterventions: 30,
+    isabelaInterventionsPct: 38,
+    isabelaClinicalCount: 10,
+    isabelaClinicalPct: 17
+  });
+
+  assert.equal(evaluation.isSlaOk, false);
+  assert.equal(evaluation.isVolOk, false);
+  assert.equal(evaluation.isIntervOk, false);
+  assert.equal(evaluation.isCategorizacaoOk, false);
 });
 
 test('evaluateSecretaryGoals checks intervention threshold <= 25% and category focus on Agendamento e Horários', () => {

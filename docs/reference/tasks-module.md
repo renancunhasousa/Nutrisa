@@ -45,8 +45,7 @@ Cada card de tarefa busca dinamicamente a foto de perfil do paciente via [`patie
 3. **UI / Experiência**:
    - Exibição de avatar squircle (`w-11 h-11 rounded-2xl`) com anel suave e transição de hover.
    - Micro-badge de WhatsApp em verde quando há telefone cadastrado.
-   - Fallback com iniciais do paciente em degradê harmônico determinístico quando a foto ainda não existir ou falhar no carregamento.
-   - Miniatura da foto no chip de identificação do paciente no topo do card.
+   - Ícone de usuário padronizado no chip de identificação do paciente no topo do card.
 
 
 ---
@@ -55,13 +54,13 @@ Cada card de tarefa busca dinamicamente a foto de perfil do paciente via [`patie
 
 | Categoria | ID | Cor / Badge | Módulo Padrão | Descrição de Uso |
 |---|---|---|---|---|
-| **Plano Alimentar** | `dieta` | Laranja Nutrição (`bg-orange-50`) | `laudo` | Elaboração, cálculo de macros ou ajuste de dietas |
-| **Exames & Documentos** | `exames` | Verde-Petróleo / Teal (`bg-teal-50`) | `laudo` | Análise de exames laboratoriais, bioimpedância e anexos |
-| **Anamnese & Laudo** | `anamnese` | Azul Claro (`bg-sky-50`) | `anamnese` | Finalizar coleta, gerar PDF ou laudo bioimpedância |
-| **WhatsApp / Dúvidas** | `whatsapp` | Verde WhatsApp (`bg-emerald-50`) | - | Dúvidas de pacientes sobre suplementos, substituições |
-| **Follow-up de Adesão** | `followup` | Roxo (`bg-purple-50`) | - | Check-in ativo (ex: 7 dias pós-consulta) |
-| **Retorno & Agenda** | `retorno` | Âmbar (`bg-amber-50`) | `agenda` | Lembrete de contato para agendamento de retorno |
-| **Geral / Consultório**| `geral` | Cinza (`bg-slate-100`) | - | Tarefas administrativas livres |
+| **Dieta** | `dieta` | Laranja Nutrição (`bg-orange-50`) | `laudo` | Elaboração, cálculo de macros ou ajuste de dietas |
+| **Exames** | `exames` | Verde-Petróleo / Teal (`bg-teal-50`) | `laudo` | Análise de exames laboratoriais, bioimpedância e anexos |
+| **Laudos** | `anamnese` | Azul Claro (`bg-sky-50`) | `anamnese` | Finalizar coleta, gerar PDF ou laudo bioimpedância |
+| **Dúvidas** | `whatsapp` | Verde WhatsApp (`bg-emerald-50`) | - | Dúvidas de pacientes sobre suplementos, substituições |
+| **Follow-Up** | `followup` | Roxo (`bg-purple-50`) | - | Check-in ativo (ex: 7 dias pós-consulta) |
+| **Agenda** | `retorno` | Âmbar (`bg-amber-50`) | `agenda` | Lembrete de contato para agendamento de retorno |
+| **Geral**| `geral` | Cinza (`bg-slate-100`) | - | Tarefas administrativas livres |
 
 ---
 

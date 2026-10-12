@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Beef, Wheat, CheckCircle, AlertCircle, Save, Printer, ChevronUp } from 'lucide-react';
+import { Flame, Beef, Wheat, CheckCircle, ChevronUp } from 'lucide-react';
 import { LipidIcon } from './LipidIcon.jsx';
 
 /**
@@ -11,10 +11,6 @@ export function FloatingMacrosFooter({
   visible = false,
   totals,
   targetComparison,
-  onSave,
-  isSaving,
-  saveStatus,
-  onViewReport,
 }) {
   const { calories, protein, carbs, fat } = targetComparison || {};
 
@@ -33,7 +29,7 @@ export function FloatingMacrosFooter({
   return (
     <aside 
       aria-label="Resumo de macronutrientes flutuante"
-      className="fixed bottom-4 inset-x-3 sm:inset-x-6 z-50 max-w-6xl mx-auto transition-all duration-300 ease-out"
+      className="diet-macros-footer fixed bottom-4 z-50 mx-auto max-w-[1600px] transition-[inset-inline-start] duration-300 ease-out"
     >
       <div className="bg-slate-900/92 text-white backdrop-blur-md border border-slate-700/70 rounded-2xl shadow-2xl p-2.5 sm:px-4 sm:py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4">
         
@@ -158,42 +154,6 @@ export function FloatingMacrosFooter({
 
         {/* Ações Rápidas no Rodapé */}
         <div className="flex items-center justify-end gap-2 shrink-0 border-t md:border-t-0 md:border-l border-slate-800 md:pl-3 pt-2 md:pt-0">
-          <button
-            type="button"
-            onClick={() => onSave(false)}
-            disabled={isSaving}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
-              saveStatus === 'saved'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-            }`}
-            title="Salvar rascunho da dieta"
-          >
-            {saveStatus === 'saved' ? (
-              <>
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-200" />
-                <span>Salvo!</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-3.5 h-3.5 text-slate-300" />
-                <span>{isSaving ? 'Salvando...' : 'Salvar'}</span>
-              </>
-            )}
-          </button>
-
-          {onViewReport && (
-            <button
-              type="button"
-              onClick={onViewReport}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-              title="Visualizar laudo e cardápio"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Laudo</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={scrollToTop}

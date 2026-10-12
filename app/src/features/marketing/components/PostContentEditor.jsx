@@ -330,7 +330,7 @@ export function PostContentEditor({
         <div className="flex items-center justify-between pb-3 border-b border-slate-200">
           <div className="flex items-center gap-2">
             <FormatIcon className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+            <h3 className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900">
               {isCarousel
                 ? `Editando Slide ${currentSlideIndex + 1} de ${totalSlides} • ${formatLabels[activeFormat] || activeFormat}`
                 : `Conteúdo da Publicação • ${formatLabels[activeFormat] || activeFormat}`}
@@ -357,7 +357,7 @@ export function PostContentEditor({
           <div className="space-y-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Badge Superior
                 </label>
                 <input
@@ -368,7 +368,7 @@ export function PostContentEditor({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Tagline Cursiva
                 </label>
                 <input
@@ -381,7 +381,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Título Principal (Headline)
               </label>
               <textarea
@@ -393,7 +393,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Palavras com Destaque Dourado
               </label>
               <input
@@ -405,7 +405,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Descrição Clínica (2 a 3 frases)
               </label>
               <textarea
@@ -418,7 +418,7 @@ export function PostContentEditor({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Nome da Autora
                 </label>
                 <input
@@ -429,7 +429,7 @@ export function PostContentEditor({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Especialidade / Subtítulo
                 </label>
                 <input
@@ -450,7 +450,7 @@ export function PostContentEditor({
           <div className="space-y-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Categoria do Prato
                 </label>
                 <input
@@ -461,7 +461,7 @@ export function PostContentEditor({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Título da Estratégia
                 </label>
                 <input
@@ -474,7 +474,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Explicação Nutricional
               </label>
               <textarea
@@ -486,7 +486,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1.5 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1.5 block ml-1">
                 Macronutrientes do HUD Nutricional
               </label>
               <div className="grid grid-cols-4 gap-2">
@@ -537,7 +537,7 @@ export function PostContentEditor({
         {activeFormat === 'ciencia' && (
           <div className="space-y-3.5">
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Badge de Chancela
               </label>
               <input
@@ -548,7 +548,7 @@ export function PostContentEditor({
               />
             </div>
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Pergunta / Título Central
               </label>
               <input
@@ -608,7 +608,7 @@ export function PostContentEditor({
           <div className="space-y-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Badge Superior
                 </label>
                 <input
@@ -619,7 +619,7 @@ export function PostContentEditor({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Destaque Dourado do Título
                 </label>
                 <input
@@ -632,7 +632,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Título Principal
               </label>
               <textarea
@@ -707,7 +707,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Texto do Rodapé
               </label>
               <input
@@ -726,7 +726,7 @@ export function PostContentEditor({
         {activeFormat === 'cta' && (
           <div className="space-y-3.5">
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Badge Superior
               </label>
               <input
@@ -738,7 +738,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Título Principal
               </label>
               <textarea
@@ -750,7 +750,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Destaque Dourado do Título
               </label>
               <input
@@ -762,7 +762,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Subtítulo Explicativo
               </label>
               <textarea
@@ -801,7 +801,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Texto do Botão / Chamada para Ação
               </label>
               <textarea
@@ -820,7 +820,7 @@ export function PostContentEditor({
         {activeFormat === 'manifesto' && (
           <div className="space-y-3.5">
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Badge Superior
               </label>
               <input
@@ -832,7 +832,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Citação / Frase de Impacto Principal
               </label>
               <textarea
@@ -844,7 +844,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Trecho com Destaque Dourado na Frase
               </label>
               <input
@@ -857,7 +857,7 @@ export function PostContentEditor({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Nome da Autora
                 </label>
                 <input
@@ -868,7 +868,7 @@ export function PostContentEditor({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Especialidade / Título
                 </label>
                 <input
@@ -882,7 +882,7 @@ export function PostContentEditor({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Credencial
                 </label>
                 <input
@@ -893,7 +893,7 @@ export function PostContentEditor({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Botão / Link na Bio
                 </label>
                 <input
@@ -914,7 +914,7 @@ export function PostContentEditor({
           <div className="space-y-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Número do Ponto
                 </label>
                 <input
@@ -925,7 +925,7 @@ export function PostContentEditor({
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                   Badge da Lâmina
                 </label>
                 <input
@@ -941,7 +941,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Título do Ponto
               </label>
               <textarea
@@ -956,7 +956,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Destaque Dourado do Título
               </label>
               <input
@@ -971,7 +971,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Explicação Científica Completa
               </label>
               <textarea
@@ -986,7 +986,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 block ml-1">
+              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
                 Conduta Clínica (Card Dourado com 💡)
               </label>
               <textarea

@@ -14,7 +14,7 @@ import { getPresetDate } from '../domain/taskTypes.js';
 import { syncTasksFromCalendar } from '../services/agendaTaskSync.js';
 import { fetchPatientAvatars } from '../services/patientAvatarService.js';
 
-export function useTasks() {
+export function useTasks({ organizationId = null } = {}) {
   const [tasks, setTasks] = useState(() => getTasks());
   const [filterTab, setFilterTab] = useState('today'); // 'today' | 'upcoming' | 'all' | 'completed'
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -151,10 +151,13 @@ export function useTasks() {
 
   // Ações
   const handleCreateTask = useCallback((data) => {
-    const created = createTask(data);
+    const created = createTask({
+      ...data,
+      organizationId: data.organizationId || organizationId,
+    });
     reloadTasks();
     return created;
-  }, [reloadTasks]);
+  }, [reloadTasks, organizationId]);
 
   const handleUpdateTask = useCallback((taskId, updates) => {
     updateTask(taskId, updates);
@@ -184,14 +187,14 @@ export function useTasks() {
     try {
       const result = await syncTasksFromCalendar(tasks, 7, modeId);
       if (result.newTasks.length > 0) {
-        createMultipleTasks(result.newTasks);
+        createMultipleTasks(result.newTasks.map((task) => ({ ...task, organizationId })));
         reloadTasks();
       }
       return result;
     } finally {
       setIsSyncing(false);
     }
-  }, [tasks, reloadTasks]);
+  }, [tasks, reloadTasks, organizationId]);
 
   return {
     tasks,

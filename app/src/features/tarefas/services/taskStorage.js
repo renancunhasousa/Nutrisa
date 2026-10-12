@@ -5,7 +5,7 @@
  */
 import { KEY_TASKS } from '../../../config/storageKeys.js';
 import { getPresetDate } from '../domain/taskTypes.js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../config/env.js';
+import { supabase } from '../../../shared/services/supabase.js';
 
 export const TASKS_UPDATED_EVENT = 'nutrisa_tasks_updated';
 
@@ -13,6 +13,8 @@ export const TASKS_UPDATED_EVENT = 'nutrisa_tasks_updated';
 function mapToDB(task) {
   return {
     id: task.id,
+    organization_id: task.organizationId || task.organization_id,
+    patient_id: task.patientId || task.patient_id || null,
     title: task.title,
     patient_name: task.patientName || null,
     patient_phone: task.patientPhone || null,
@@ -39,6 +41,8 @@ function mapToJS(row) {
 
   return {
     id: row.id,
+    organizationId: row.organization_id,
+    patientId: row.patient_id || null,
     title: row.title,
     patientName: row.patient_name || '',
     patientPhone: row.patient_phone || '',
@@ -57,13 +61,6 @@ function mapToJS(row) {
     updatedAt: row.updated_at
   };
 }
-
-// Configuração padrão do fetch para o Supabase
-const getSupabaseHeaders = () => ({
-  'Content-Type': 'application/json',
-  'apikey': SUPABASE_ANON_KEY,
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-});
 
 /**
  * Notifica ouvintes locais que as tarefas mudaram (para atualizar a UI imediatamente).
@@ -107,15 +104,10 @@ function saveTasksToLocal(tasks) {
  * Sincroniza a lista inteira puxando do Supabase. Atualiza o cache se a nuvem tiver novidades.
  */
 export async function syncTasksFromCloud() {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+  if (!supabase) return;
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/nutrisa_tasks?select=*&order=created_at.desc`, {
-      method: 'GET',
-      headers: getSupabaseHeaders()
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
+    const { data, error } = await supabase.from('nutrisa_tasks').select('*').order('created_at', { ascending: false });
+    if (!error) {
       const jsTasks = data.map(mapToJS);
       saveTasksToLocal(jsTasks);
     }
@@ -142,6 +134,8 @@ function generateUUID() {
 export function createTask(taskData) {
   const newTask = {
     id: generateUUID(),
+    organizationId: taskData.organizationId,
+    patientId: taskData.patientId || null,
     title: taskData.title?.trim() || 'Nova Demanda',
     patientName: taskData.patientName?.trim() || '',
     patientPhone: taskData.patientPhone?.trim() || '',
@@ -165,17 +159,9 @@ export function createTask(taskData) {
   saveTasksToLocal([newTask, ...current]);
 
   // 2. Assíncrono: Envia para a nuvem
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-    fetch(`${SUPABASE_URL}/rest/v1/nutrisa_tasks`, {
-      method: 'POST',
-      headers: getSupabaseHeaders(),
-      body: JSON.stringify(mapToDB(newTask))
-    }).then(async res => {
-      if (!res.ok) {
-        const error = await res.json();
-        console.error('Falha ao salvar tarefa no Supabase (400):', error);
-      }
-    }).catch(err => console.error('Falha de rede ao salvar no Supabase:', err));
+  if (supabase && newTask.organizationId) {
+    supabase.from('nutrisa_tasks').insert(mapToDB(newTask))
+      .then(({ error }) => { if (error) console.error('Falha ao salvar tarefa no Supabase:', error); });
   }
 
   return newTask;
@@ -189,6 +175,8 @@ export function createMultipleTasks(tasksData) {
 
   const createdTasks = tasksData.map(data => ({
     id: generateUUID(),
+    organizationId: data.organizationId,
+    patientId: data.patientId || null,
     title: data.title?.trim() || 'Nova Demanda',
     patientName: data.patientName?.trim() || '',
     patientPhone: data.patientPhone?.trim() || '',
@@ -212,17 +200,9 @@ export function createMultipleTasks(tasksData) {
   saveTasksToLocal([...createdTasks, ...current]);
 
   // Envio assíncrono para o Supabase
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-    fetch(`${SUPABASE_URL}/rest/v1/nutrisa_tasks`, {
-      method: 'POST',
-      headers: getSupabaseHeaders(),
-      body: JSON.stringify(createdTasks.map(mapToDB))
-    }).then(async res => {
-      if (!res.ok) {
-        const error = await res.json();
-        console.error('Falha ao salvar lote de tarefas no Supabase (400):', error);
-      }
-    }).catch(err => console.error('Falha de rede ao salvar lote no Supabase:', err));
+  if (supabase && createdTasks.every((task) => task.organizationId)) {
+    supabase.from('nutrisa_tasks').insert(createdTasks.map(mapToDB))
+      .then(({ error }) => { if (error) console.error('Falha ao salvar lote no Supabase:', error); });
   }
 
   return createdTasks;
@@ -247,12 +227,9 @@ export function updateTask(taskId, updates) {
   saveTasksToLocal(newTasks);
 
   // Envia para a nuvem
-  if (updatedTask && SUPABASE_URL && SUPABASE_ANON_KEY) {
-    fetch(`${SUPABASE_URL}/rest/v1/nutrisa_tasks?id=eq.${taskId}`, {
-      method: 'PATCH',
-      headers: getSupabaseHeaders(),
-      body: JSON.stringify(mapToDB(updatedTask))
-    }).catch(err => console.error('Falha ao atualizar tarefa no Supabase:', err));
+  if (updatedTask && supabase) {
+    supabase.from('nutrisa_tasks').update(mapToDB(updatedTask)).eq('id', taskId)
+      .then(({ error }) => { if (error) console.error('Falha ao atualizar tarefa no Supabase:', error); });
   }
 }
 
@@ -279,12 +256,9 @@ export function toggleTaskStatus(taskId) {
 
   saveTasksToLocal(newTasks);
 
-  if (updatedTask && SUPABASE_URL && SUPABASE_ANON_KEY) {
-    fetch(`${SUPABASE_URL}/rest/v1/nutrisa_tasks?id=eq.${taskId}`, {
-      method: 'PATCH',
-      headers: getSupabaseHeaders(),
-      body: JSON.stringify(mapToDB(updatedTask))
-    }).catch(err => console.error('Falha ao alternar status no Supabase:', err));
+  if (updatedTask && supabase) {
+    supabase.from('nutrisa_tasks').update(mapToDB(updatedTask)).eq('id', taskId)
+      .then(({ error }) => { if (error) console.error('Falha ao alternar status no Supabase:', error); });
   }
 }
 
@@ -296,11 +270,9 @@ export function deleteTask(taskId) {
   const updated = current.filter(task => task.id !== taskId);
   saveTasksToLocal(updated);
 
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-    fetch(`${SUPABASE_URL}/rest/v1/nutrisa_tasks?id=eq.${taskId}`, {
-      method: 'DELETE',
-      headers: getSupabaseHeaders()
-    }).catch(err => console.error('Falha ao deletar tarefa no Supabase:', err));
+  if (supabase) {
+    supabase.from('nutrisa_tasks').delete().eq('id', taskId)
+      .then(({ error }) => { if (error) console.error('Falha ao deletar tarefa no Supabase:', error); });
   }
 }
 
@@ -314,11 +286,8 @@ export function deleteMultipleTasks(taskIds) {
   const updated = current.filter(task => !taskIds.includes(task.id));
   saveTasksToLocal(updated);
 
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-    const idList = taskIds.join(',');
-    fetch(`${SUPABASE_URL}/rest/v1/nutrisa_tasks?id=in.(${idList})`, {
-      method: 'DELETE',
-      headers: getSupabaseHeaders()
-    }).catch(err => console.error('Falha ao deletar múltiplas tarefas no Supabase:', err));
+  if (supabase) {
+    supabase.from('nutrisa_tasks').delete().in('id', taskIds)
+      .then(({ error }) => { if (error) console.error('Falha ao deletar múltiplas tarefas no Supabase:', error); });
   }
 }

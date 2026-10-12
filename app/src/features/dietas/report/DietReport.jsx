@@ -13,6 +13,12 @@ export function DietReport({ plan, totals, nutritionist, onBack }) {
   };
 
   const formattedDate = new Date(plan.created_at || Date.now()).toLocaleDateString('pt-BR');
+  const recommendationSections = [
+    { title: 'Marcas e produtos recomendados', content: plan.recommended_brands },
+    { title: 'Suplementos', content: plan.supplement_recommendations },
+    { title: 'Receitas e preparações', content: plan.recipe_suggestions },
+    { title: 'Orientações e recados gerais', content: plan.general_notes },
+  ].filter((section) => section.content?.trim());
 
   return (
     <div className="space-y-6">
@@ -184,14 +190,19 @@ export function DietReport({ plan, totals, nutritionist, onBack }) {
         </div>
 
         {/* ORIENTAÇÕES GERAIS E RECADOS */}
-        {plan.general_notes && (
-          <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/60 break-inside-avoid space-y-2">
+        {recommendationSections.length > 0 && (
+          <div className="break-inside-avoid space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900">
-              Orientações Complementares e Estilo de Vida
+              Recomendações e recados
             </h4>
-            <p className="text-xs text-slate-700 whitespace-pre-line leading-relaxed">
-              {plan.general_notes}
-            </p>
+            <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
+              {recommendationSections.map((section) => (
+                <div key={section.title} className="break-inside-avoid">
+                  <h5 className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{section.title}</h5>
+                  <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-700">{section.content}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

@@ -2,7 +2,7 @@ import { conversationsCsv } from './domain/conversations.js';
 import { downloadText } from '../../shared/utils/download.js';
 import { getAttendantType, isClosingOrGreetingMessage } from './domain/classification.js';
 import { calculateComparisonStats, evaluateSecretaryGoals } from './domain/metrics.js';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { fetchConversations } from './services/conversations.js';
 import { MessageSquare, Clock, CheckCircle2, AlertCircle, RefreshCw, Download, Printer } from 'lucide-react';
@@ -12,6 +12,7 @@ import WhatsAppAttendantCards from './components/WhatsAppAttendantCards.jsx';
 import WhatsAppCharts from './components/WhatsAppCharts.jsx';
 import WhatsAppFeedTable from './components/WhatsAppFeedTable.jsx';
 import WhatsAppPdfReport from './report/WhatsAppPdfReport.jsx';
+import PageHeader from '../../shared/ui/PageHeader.jsx';
 
 import { callGeminiWithFallback } from '../../shared/services/aiClient.js';
 import { formatWaitTime } from '../../shared/utils/formatters.js';
@@ -21,7 +22,7 @@ const MONTH_NAMES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export default function AtendimentoPage({ activeModel }) {
+export default function AtendimentoPage({ activeModel, onNavigate }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,7 +43,7 @@ export default function AtendimentoPage({ activeModel }) {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiError, setAiError] = useState(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -55,11 +56,11 @@ export default function AtendimentoPage({ activeModel }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // FILTRAGEM DOS DADOS
   const filteredData = useMemo(() => {
@@ -161,26 +162,6 @@ export default function AtendimentoPage({ activeModel }) {
   }, [filteredData]);
 
   // DADOS PARA GRÁFICOS
-  const attendantComparisonBarData = useMemo(() => {
-    return [
-      {
-        metrica: 'Tempo Médio',
-        'Dra. Isabela': comparisonStats.isabela.avg,
-        'Secretária': comparisonStats.secretaria.avg
-      },
-      {
-        metrica: 'Mais Rápida',
-        'Dra. Isabela': comparisonStats.isabela.min,
-        'Secretária': comparisonStats.secretaria.min
-      },
-      {
-        metrica: 'Mais Demorada',
-        'Dra. Isabela': comparisonStats.isabela.max,
-        'Secretária': comparisonStats.secretaria.max
-      }
-    ];
-  }, [comparisonStats]);
-
   const topCategoriesComparisonData = useMemo(() => {
     const catMap = {};
     filteredData.forEach(item => {
@@ -471,59 +452,55 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
-      {/* CABEÇALHO DO DASHBOARD - IDÊNTICO À IMAGEM DE REFERÊNCIA */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-            Painel de Produtividade & SLA WhatsApp
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-1 max-w-2xl leading-relaxed">
-            Análise comparativa de volume, tempos de resposta (médio, mín., máx.) e categorias atendidas entre Dra. Isabela e Secretária.
-          </p>
-        </div>
+    <div className="w-full min-w-0 space-y-6 animate-fade-in pb-12">
+      {/* CABEÇALHO DO DASHBOARD */}
+      <PageHeader
+        category="Operação WhatsApp"
+        title="Painel de Produtividade & SLA"
+        description="Análise comparativa de volume, tempos de resposta."
+        actions={
+          <>
+            {/* Badge: Atualizado às */}
+            {lastUpdated && (
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 flex items-center space-x-1.5">
+                <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Atualizado às {lastUpdated.toLocaleTimeString('pt-BR')}</span>
+              </span>
+            )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Badge: Atualizado às */}
-          {lastUpdated && (
-            <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 flex items-center space-x-1.5">
-              <Clock className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Atualizado às {lastUpdated.toLocaleTimeString('pt-BR')}</span>
-            </span>
-          )}
+            {/* Botão Atualizar (Verde Sólido) */}
+            <button
+              type="button"
+              onClick={loadData}
+              disabled={loading}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Atualizar</span>
+            </button>
 
-          {/* Botão Atualizar (Verde Sólido) */}
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={loading}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Atualizar</span>
-          </button>
+            {/* Botão CSV (Outline) */}
+            <button
+              type="button"
+              onClick={exportToCSV}
+              className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              <span>CSV</span>
+            </button>
 
-          {/* Botão CSV (Outline) */}
-          <button
-            type="button"
-            onClick={exportToCSV}
-            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-600" />
-            <span>CSV</span>
-          </button>
-
-          {/* Botão PDF (Outline) */}
-          <button
-            type="button"
-            onClick={() => setShowPdfModal(true)}
-            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95"
-          >
-            <Printer className="w-3.5 h-3.5 text-emerald-600" />
-            <span>PDF</span>
-          </button>
-        </div>
-      </div>
+            {/* Botão PDF (Outline) */}
+            <button
+              type="button"
+              onClick={() => setShowPdfModal(true)}
+              className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5 text-emerald-600" />
+              <span>PDF</span>
+            </button>
+          </>
+        }
+      />
 
       {/* BARRA DE FILTROS */}
       <WhatsAppFilters
@@ -554,7 +531,7 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
 
       {/* BARRA DE KPIS GERAIS CONSOLIDADOS */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="order-2 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs md:order-1">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider">Total de Mensagens</span>
             <MessageSquare className="w-4 h-4 text-emerald-600" />
@@ -563,39 +540,39 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
           <span className="text-[10px] text-slate-400 font-medium">No período filtrado</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="order-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs md:order-2">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider">Respondidas</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-emerald-700">{globalStats.answered}</div>
-          <span className="text-[10px] text-emerald-600 font-bold">{globalStats.responseRate}% resolvidas</span>
+          <div className="text-2xl font-black text-slate-900">{globalStats.answered}</div>
+          <span className="text-[10px] text-slate-400 font-medium">{globalStats.responseRate}% resolvidas</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="order-1 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs md:order-3">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider">Aguardando</span>
-            <Clock className="w-4 h-4 text-amber-500" />
+            <Clock className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-amber-700">{globalStats.pending}</div>
+          <div className="text-2xl font-black text-slate-900">{globalStats.pending}</div>
           <span className="text-[10px] text-slate-400 font-medium">Na fila de resposta</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="order-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider">Taxa de Resposta</span>
-            <CheckCircle2 className="w-4 h-4 text-teal-600" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-teal-700">{globalStats.responseRate}%</div>
-          <span className="text-[10px] text-teal-600 font-bold">Meta: &gt; 90%</span>
+          <div className="text-2xl font-black text-slate-900">{globalStats.responseRate}%</div>
+          <span className="text-[10px] text-slate-400 font-medium">Meta: &gt; 90%</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs col-span-2 md:col-span-1">
+        <div className="order-5 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs col-span-2 md:col-span-1">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider">Tempo Médio Geral</span>
-            <Clock className="w-4 h-4 text-purple-600" />
+            <Clock className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-purple-700">{formatWaitTime(globalStats.avgWaitMinutes)}</div>
+          <div className="text-2xl font-black text-slate-900">{formatWaitTime(globalStats.avgWaitMinutes)}</div>
           <span className="text-[10px] text-slate-400 font-medium">Espera média do paciente</span>
         </div>
       </div>
@@ -605,15 +582,12 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
 
       {/* GRÁFICOS ANALÍTICOS COMPARATIVOS */}
       <WhatsAppCharts
-        attendantComparisonBarData={attendantComparisonBarData}
         topCategoriesComparisonData={topCategoriesComparisonData}
         timelineChartData={timelineChartData}
         peakHoursChartData={peakHoursChartData}
         slaResolutionBreakdownData={slaResolutionBreakdownData}
         slaResolutionDraData={slaResolutionDraData}
         comparisonStats={comparisonStats}
-        categoryChartData={categoryChartData}
-        globalStats={globalStats}
       />
 
       {/* TABELA / FEED DE CONVERSAS */}
@@ -624,6 +598,7 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
         getAttendantType={getAttendantType}
         getAttendantLabel={(item) => getAttendantType(item) === 'isabela' ? 'Dra. Isabela' : 'Secretária'}
         getWaitStatusBadge={getWaitStatusBadge}
+        onNavigate={onNavigate}
       />
     </div>
   );

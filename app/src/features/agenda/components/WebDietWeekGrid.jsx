@@ -238,7 +238,8 @@ export default function WebDietWeekGrid({
         
         {/* Mês/Ano & Navegação */}
         <div className="flex items-center space-x-3">
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight mr-2">
+          <h2 className="mr-2 flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 sm:text-sm">
+            <Calendar className="size-3.5 text-emerald-600" aria-hidden="true" />
             {monthYearLabel}
           </h2>
 
@@ -286,18 +287,6 @@ export default function WebDietWeekGrid({
               );
             })}
           </div>
-
-          {/* Botão Novo Agendamento */}
-          {onNewAppointment && (
-            <button
-              type="button"
-              onClick={onNewAppointment}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm shadow-emerald-600/20 flex items-center space-x-1.5 cursor-pointer active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span> Agendar</span>
-            </button>
-          )}
 
           {/* Campo de Busca Inteligente com Localização e Salto */}
           <div ref={searchContainerRef} className="relative flex items-center">

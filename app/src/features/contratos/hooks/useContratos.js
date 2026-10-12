@@ -3,6 +3,8 @@ import { KEY_CONTRACTS_PLAN_HISTORY, KEY_CONTRACTS_CONFIG } from '../../../confi
 import { defaultClauses } from '../domain/defaultClauses';
 import { createRemoteContract, getRemoteContract } from '../services/contracts';
 import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
+import { useAuth } from '../../auth/useAuth.js';
+import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
 
 const createPage = (label) => ({
   id: Date.now().toString() + Math.random().toString(36).slice(2),
@@ -11,10 +13,16 @@ const createPage = (label) => ({
 });
 
 export function useContratos(activeModel) {
+  const { organizationId } = useAuth();
   const [activeTab, setActiveTab] = useState('input'); // input, template, result
+  const [patientHandoff] = useState(() => consumePatientHandoff('contratos'));
 
   // Passo 1: Dados do Paciente e Plano
-  const [patientData, setPatientData] = useState({ name: 'Paciente Selecionado' }); // Mock
+  const [patientData, setPatientData] = useState(() => ({
+    name: patientHandoff?.name || '',
+    id: patientHandoff?.id || null,
+  }));
+
   const [selectedPlan, setSelectedPlan] = useState('essence');
   const [valor, setValor] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('Pix');
@@ -289,12 +297,14 @@ export function useContratos(activeModel) {
       const finalContent = allText.join('\n\n--- Página seguinte ---\n\n');
 
       const contract = await createRemoteContract({
+        organizationId,
+        patientId: patientData?.id || null,
         patientName: patientData?.name || 'Paciente',
         plan: selectedPlan,
         finalContent,
       });
 
-      const url = `${window.location.origin}/#sign-${contract.id}`;
+      const url = `${window.location.origin}/#sign-${contract.public_token}`;
       await navigator.clipboard.writeText(url);
       setRemoteContractId(contract.id);
       alert('Link copiado para a área de transferência!\n\nEnvie este link para o paciente assinar pelo WhatsApp:\n' + url + '\n\nA tela aguardará automaticamente a assinatura do paciente.');

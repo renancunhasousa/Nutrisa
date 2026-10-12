@@ -5,15 +5,18 @@
 export function sanitizeMealPlan(plan = {}) {
   return {
     id: plan.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'plan_' + Date.now()),
-    patient_id: plan.patient_id || null,
+    organization_id: plan.organization_id || null,
     patient_name: (plan.patient_name || '').trim(),
-    title: (plan.title || 'Plano Alimentar Personalizado').trim(),
-    objective: plan.objective || 'Emagrecimento Saudável',
+    title: (plan.title || '').trim(),
+    objective: typeof plan.objective === 'string' ? plan.objective : 'Emagrecimento Saudável',
     target_calories: Number(plan.target_calories) || 1800,
     target_protein: Number(plan.target_protein) || 120,
     target_carbs: Number(plan.target_carbs) || 180,
     target_fat: Number(plan.target_fat) || 55,
     water_intake_ml: Number(plan.water_intake_ml) || 2500,
+    recommended_brands: plan.recommended_brands || '',
+    supplement_recommendations: plan.supplement_recommendations || '',
+    recipe_suggestions: plan.recipe_suggestions || '',
     general_notes: plan.general_notes || '',
     status: plan.status || 'rascunho', // 'rascunho' | 'publicada' | 'arquivada'
     version: Number(plan.version) || 1,

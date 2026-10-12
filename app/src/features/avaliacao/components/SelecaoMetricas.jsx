@@ -13,7 +13,10 @@ return (<>        {/* STEP 2: COMPARATIVE TABLE & SELECTION KEYS */}
             {/* Header / Info box */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Conferência e Seleção de Parâmetros</h2>
+                <h2 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                  <Activity className="size-3.5 text-emerald-600" aria-hidden="true" />
+                  Conferência e Seleção de Parâmetros
+                </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Selecione a chave correspondente para escolher se prefere o valor da <strong className="font-semibold text-teal-800">Bioimpedância</strong> ou da <strong className="font-semibold text-emerald-800">Adipometria</strong> para compor o laudo final.
                 </p>
@@ -38,7 +41,9 @@ return (<>        {/* STEP 2: COMPARATIVE TABLE & SELECTION KEYS */}
             {/* General Patient & Methods Settings Card */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div>
-                <label className="block text-slate-500 font-medium mb-1">Nome do Paciente</label>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                  <User className="size-3.5 text-emerald-600" aria-hidden="true" /> Nome do Paciente
+                </label>
                 <input 
                   type="text" 
                   value={extractedData.patient.name}
@@ -51,7 +56,9 @@ return (<>        {/* STEP 2: COMPARATIVE TABLE & SELECTION KEYS */}
               </div>
 
               <div>
-                <label className="block text-slate-500 font-medium mb-1">Equipamento de Bioimpedância Utilizado</label>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                  <Activity className="size-3.5 text-emerald-600" aria-hidden="true" /> Equipamento de Bioimpedância Utilizado
+                </label>
                 <input 
                   type="text" 
                   value={biaEquipment}
@@ -62,7 +69,9 @@ return (<>        {/* STEP 2: COMPARATIVE TABLE & SELECTION KEYS */}
               </div>
 
               <div>
-                <label className="block text-slate-500 font-medium mb-1">Método Antropométrico Utilizado</label>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                  <Scale className="size-3.5 text-emerald-600" aria-hidden="true" /> Método Antropométrico Utilizado
+                </label>
                 <input 
                   type="text" 
                   list="anthropometricMethods"
@@ -85,7 +94,7 @@ return (<>        {/* STEP 2: COMPARATIVE TABLE & SELECTION KEYS */}
             {/* Metrics Selection Table */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                <h3 className="font-bold text-slate-800 text-sm flex items-center">
+                <h3 className="font-extrabold uppercase tracking-[0.06em] text-slate-900 text-[10px] flex items-center">
                   <Sliders className="w-4 h-4 text-emerald-600 mr-2" />
                   Parâmetros Identificados e Chaves de Seleção
                 </h3>

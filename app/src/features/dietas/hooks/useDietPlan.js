@@ -3,14 +3,23 @@ import { sanitizeMealPlan, sanitizeMeal, sanitizeMealItem, getDefaultMeals } fro
 import { calculateFoodItemNutrition, calculateDietTotals, compareTargetVsActual } from '../domain/nutritionCalculations.js';
 import { saveDietPlan, saveCurrentDraft, loadCurrentDraft, duplicateDietPlan } from '../services/dietStorageService.js';
 import { createDemoDietPlan } from '../data/demoDietData.js';
+import { useAuth } from '../../auth/useAuth.js';
+import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
 
-export function useDietPlan(initialPatient = null) {
+export function useDietPlan() {
+  const { organizationId } = useAuth();
+  const [patientHandoff] = useState(() => consumePatientHandoff('dietas'));
   const [plan, setPlan] = useState(() => {
     const draft = loadCurrentDraft();
-    if (draft) return draft;
+    if (draft) return sanitizeMealPlan({
+      ...draft,
+      patient_id: patientHandoff?.id || draft.patient_id || null,
+      patient_name: patientHandoff?.name || draft.patient_name || '',
+    });
     return sanitizeMealPlan({
-      patient_name: initialPatient?.name || '',
-      patient_id: initialPatient?.id || null,
+      organization_id: organizationId,
+      patient_name: patientHandoff?.name || '',
+      patient_id: patientHandoff?.id || null,
       meals: getDefaultMeals(),
     });
   });
@@ -22,6 +31,15 @@ export function useDietPlan(initialPatient = null) {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'saved' | 'error' | null
+
+  useEffect(() => {
+    setPlan((current) => ({
+      ...current,
+      organization_id: organizationId,
+      patient_id: patientHandoff?.id || current.patient_id || null,
+      patient_name: patientHandoff?.name || current.patient_name || '',
+    }));
+  }, [organizationId, patientHandoff]);
 
   // Auto-save local draft
   useEffect(() => {
@@ -254,7 +272,9 @@ export function useDietPlan(initialPatient = null) {
 
   const handleCreateNew = () => {
     const fresh = sanitizeMealPlan({
-      patient_name: '',
+      organization_id: organizationId,
+      patient_name: patientHandoff?.name || '',
+      patient_id: patientHandoff?.id || null,
       meals: getDefaultMeals(),
     });
     setPlan(fresh);

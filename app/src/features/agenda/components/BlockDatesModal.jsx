@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Lock, Unlock, Calendar } from 'lucide-react';
 
 export default function BlockDatesModal({ isOpen, onClose, blockedDates = [], onToggleBlockDate }) {
@@ -19,12 +20,12 @@ export default function BlockDatesModal({ isOpen, onClose, blockedDates = [], on
     setDateInput('');
   };
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-scale-up">
+  return createPortal(
+    <div className="app-modal-overlay animate-fade-in">
+      <div className="app-modal-panel max-w-md animate-scale-up">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="app-modal-header flex items-center justify-between p-4">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
               <Lock className="w-4 h-4" />
@@ -36,14 +37,15 @@ export default function BlockDatesModal({ isOpen, onClose, blockedDates = [], on
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+            className="app-modal-close p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+            aria-label="Fechar bloqueio de datas"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4">
+        <div className="app-modal-body p-5 space-y-4">
           <div className="p-3 rounded-xl bg-amber-50 text-amber-900 text-[11px] leading-relaxed border border-amber-200">
             O bloqueio é aplicado somente nesta tela e neste navegador. Ele não altera nem bloqueia horários no Google Calendar.
           </div>
@@ -120,7 +122,7 @@ export default function BlockDatesModal({ isOpen, onClose, blockedDates = [], on
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <div className="app-modal-footer p-3 flex justify-end">
           <button
             onClick={onClose}
             className="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition-all"
@@ -130,6 +132,7 @@ export default function BlockDatesModal({ isOpen, onClose, blockedDates = [], on
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

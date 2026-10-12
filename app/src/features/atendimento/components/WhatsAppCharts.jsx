@@ -1,7 +1,5 @@
 import React from 'react';
 import { 
-  Activity, 
-  MessageCircle, 
   TrendingUp, 
   Clock, 
   Award, 
@@ -20,107 +18,15 @@ import {
 } from 'recharts';
 
 export default function WhatsAppCharts({
-  attendantComparisonBarData,
   topCategoriesComparisonData,
   timelineChartData,
   peakHoursChartData,
   slaResolutionBreakdownData,
   slaResolutionDraData,
-  comparisonStats,
-  categoryChartData,
-  globalStats
+  comparisonStats
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-      {/* Gráfico 1: Comparativo Direto de Tempos (Médio, Mín., Máx.) */}
-      <div className="bg-white p-6 md:p-7 rounded-3xl border border-slate-200 shadow-xs">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-extrabold text-sm text-slate-900 flex items-center">
-              <Activity className="w-4 h-4 mr-2 text-teal-600" />
-              Comparativo de Tempos de Espera (minutos)
-            </h3>
-            <p className="text-xs text-slate-500">Média, Menor Tempo e Maior Tempo: Dra. Isabela vs Secretária</p>
-          </div>
-        </div>
-
-        {attendantComparisonBarData.length === 0 ? (
-          <div className="h-64 flex items-center justify-center text-xs text-slate-400">
-            Sem dados suficientes no período para calcular o comparativo.
-          </div>
-        ) : (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={attendantComparisonBarData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                <XAxis dataKey="metrica" tick={{ fontSize: 11, fill: '#475569', fontWeight: 600 }} />
-                <YAxis unit="m" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <Tooltip 
-                  formatter={(val, name) => [`${val} min`, name]}
-                  contentStyle={{ 
-                    backgroundColor: '#ffffff', 
-                    borderColor: '#e2e8f0', 
-                    borderRadius: '16px', 
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)' 
-                  }}
-                  labelStyle={{ color: '#0f172a', fontWeight: '800', marginBottom: '4px' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-                <Bar dataKey="Dra. Isabela" fill="#14B8A6" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="Secretária" fill="#8B5CF6" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-
-      {/* Gráfico 2: Categorias Atendidas por Cada Atendente */}
-      <div className="bg-white p-6 md:p-7 rounded-3xl border border-slate-200 shadow-xs">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-extrabold text-sm text-slate-900 flex items-center">
-              <MessageCircle className="w-4 h-4 mr-2 text-teal-600" />
-              Categorias Atendidas por Atendente
-            </h3>
-            <p className="text-xs text-slate-500">Distribuição dos temas respondidos por cada responsável</p>
-          </div>
-        </div>
-
-        {topCategoriesComparisonData.length === 0 ? (
-          <div className="h-64 flex items-center justify-center text-xs text-slate-400">
-            Nenhuma categoria registrada no período.
-          </div>
-        ) : (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                layout="vertical"
-                data={topCategoriesComparisonData}
-                margin={{ top: 5, right: 20, left: 30, bottom: 5 }}
-              >
-                <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} />
-                <YAxis type="category" dataKey="categoria" width={110} tick={{ fontSize: 10, fill: '#334155' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#ffffff', 
-                    borderColor: '#e2e8f0', 
-                    borderRadius: '16px', 
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)' 
-                  }}
-                  labelStyle={{ color: '#0f172a', fontWeight: '800', marginBottom: '4px' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="isabela" name="Dra. Isabela" fill="#14B8A6" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="secretaria" name="Secretária" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
 
       {/* Gráfico 3: Volume Diário de Atendimentos */}
       <div className="bg-white p-6 md:p-7 rounded-3xl border border-slate-200 shadow-xs lg:col-span-2">
@@ -305,21 +211,35 @@ export default function WhatsAppCharts({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {categoryChartData.slice(0, 6).map((cat, idx) => (
-            <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between">
+        {topCategoriesComparisonData.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-400">
+            Nenhuma categoria registrada no período.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {topCategoriesComparisonData.map((cat) => {
+            const isabelaPct = cat.total > 0 ? Math.round((cat.isabela / cat.total) * 100) : 0;
+            const secretariaPct = cat.total > 0 ? 100 - isabelaPct : 0;
+
+            return (
+            <div key={cat.categoria} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex min-w-0 flex-col justify-between">
               <span className="text-[11px] font-extrabold text-slate-500 uppercase truncate block">
-                {cat.name}
+                {cat.categoria}
               </span>
-              <div className="mt-2 flex items-baseline justify-between">
-                <span className="text-2xl font-black text-slate-900">{cat.value}</span>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  {globalStats.total > 0 ? Math.round((cat.value / globalStats.total) * 100) : 0}%
+              <span className="mt-2 text-2xl font-black text-slate-900">{cat.total}</span>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-800">
+                  Dra. {isabelaPct}%
+                </span>
+                <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-800">
+                  Secretária {secretariaPct}%
                 </span>
               </div>
             </div>
-          ))}
-        </div>
+            );
+          })}
+          </div>
+        )}
       </div>
 
     </div>

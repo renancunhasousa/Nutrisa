@@ -1,5 +1,5 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../config/env.js';
 import { sanitizeMealPlan } from '../domain/dietValidators.js';
+import { supabase } from '../../../shared/services/supabase.js';
 
 const STORAGE_DIETS_LIST = 'nutrisa_saved_diets_v1';
 const STORAGE_CURRENT_DRAFT = 'nutrisa_diet_draft_v1';
@@ -14,10 +14,11 @@ export async function saveDietPlan(plan) {
   saveLocalDiet(sanitized);
 
   // 2. Persistir no Supabase se configurado
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  if (supabase && sanitized.organization_id) {
     try {
       const payload = {
         id: sanitized.id,
+        organization_id: sanitized.organization_id,
         patient_id: sanitized.patient_id || null,
         title: sanitized.title,
         description: `${sanitized.objective} • ${sanitized.target_calories} kcal`,
@@ -26,21 +27,8 @@ export async function saveDietPlan(plan) {
         updated_at: new Date().toISOString(),
       };
 
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/plano_alimentar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          Prefer: 'resolution=merge-duplicates,return=representation',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn('Erro ao sincronizar plano com Supabase:', errorText);
-      }
+      const { error } = await supabase.from('plano_alimentar').upsert(payload).select();
+      if (error) throw error;
     } catch (err) {
       console.warn('Falha na requisição ao Supabase para plano alimentar:', err);
     }
@@ -55,27 +43,25 @@ export async function saveDietPlan(plan) {
 export async function listDietPlans() {
   const localList = getLocalDiets();
 
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  if (supabase) {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/plano_alimentar?select=*&order=updated_at.desc`, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      });
-
-      if (response.ok) {
-        const remoteData = await response.json();
+      const { data: remoteData, error } = await supabase.from('plano_alimentar').select('*').order('updated_at', { ascending: false });
+      if (!error) {
         if (Array.isArray(remoteData) && remoteData.length > 0) {
           const map = new Map();
           // Coloca locais primeiro
           localList.forEach(p => map.set(p.id, p));
           // Sobrescreve com remotos
           remoteData.forEach(row => {
-            const plan = row.content || {
+            const plan = row.content ? {
+              ...row.content,
+              organization_id: row.organization_id,
+              patient_id: row.patient_id || row.content.patient_id || null,
+            } : {
               id: row.id,
+              organization_id: row.organization_id,
+              patient_id: row.patient_id || null,
               title: row.title,
-              patient_id: row.patient_id,
               status: row.status,
               created_at: row.created_at,
               updated_at: row.updated_at,
@@ -99,20 +85,11 @@ export async function listDietPlans() {
  * Recupera um plano específico por ID
  */
 export async function getDietPlan(id) {
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  if (supabase) {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/plano_alimentar?id=eq.${id}&select=*`, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      });
-
-      if (response.ok) {
-        const rows = await response.json();
-        if (rows?.[0]?.content) {
-          return sanitizeMealPlan(rows[0].content);
-        }
+      const { data: row } = await supabase.from('plano_alimentar').select('*').eq('id', id).maybeSingle();
+      if (row?.content) {
+        return sanitizeMealPlan({ ...row.content, organization_id: row.organization_id, patient_id: row.patient_id || row.content.patient_id || null });
       }
     } catch (err) {
       console.warn('Erro ao buscar plano no Supabase:', err);
@@ -137,15 +114,9 @@ export async function deleteDietPlan(id) {
   }
 
   // Remover do Supabase
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  if (supabase) {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/plano_alimentar?id=eq.${id}`, {
-        method: 'DELETE',
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      });
+      await supabase.from('plano_alimentar').delete().eq('id', id);
     } catch (err) {
       console.warn('Erro ao excluir no Supabase:', err);
     }

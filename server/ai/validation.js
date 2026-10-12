@@ -1,5 +1,5 @@
 // Validação de entrada dos requests de IA antes de chamar o provedor.
-import { getModels } from './models.js';
+import { getAllowedModels } from './models.js';
 
 /**
  * Valida o modelo e o payload recebidos pelo handler HTTP.
@@ -8,8 +8,8 @@ import { getModels } from './models.js';
  * @param {{ env?: object }} options
  */
 export function validateAiRequest({ model, payload }, { env = process.env } = {}) {
-  const models = getModels(env);
-  if (!models.includes(model)) {
+  const allowed = getAllowedModels(env);
+  if (!allowed.includes(model)) {
     throw Object.assign(new Error('Modelo não permitido.'), { status: 400 });
   }
   if (
