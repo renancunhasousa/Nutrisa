@@ -5,6 +5,7 @@ import {
   FileSignature,
   FileText,
   MessageSquare,
+  Radar,
   PackageSearch,
   Sparkles,
   UtensilsCrossed,
@@ -13,6 +14,7 @@ import {
 
 export const NAV_ITEMS = [
   { id: 'pacientes', label: 'Pacientes', icon: Users },
+  { id: 'crm', label: 'Relacionamento', icon: Radar },
   { id: 'laudo', label: 'Avaliação', icon: Activity },
   { id: 'anamnese', label: 'Anamnese', icon: FileText },
   { id: 'dietas', label: 'Dietas', icon: UtensilsCrossed },
@@ -24,7 +26,7 @@ export const NAV_ITEMS = [
   { id: 'marketing', label: 'Marketing', icon: Sparkles },
 ];
 
-export const MOBILE_PRIMARY_MODE_IDS = new Set(['pacientes', 'agenda', 'dietas', 'tarefas']);
+export const MOBILE_PRIMARY_MODE_IDS = new Set(['pacientes', 'crm', 'agenda', 'tarefas']);
 
 export const getModeLabel = (mode) =>
   NAV_ITEMS.find((item) => item.id === mode)?.label ?? 'NutrIsa';

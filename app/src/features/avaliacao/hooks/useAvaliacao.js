@@ -7,11 +7,18 @@ import { DEMO_EXTRACTED_DATA } from '../domain/demo.js';
 import { useAuth } from '../../auth/useAuth.js';
 import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
 import { createPatientEvaluation } from '../services/evaluations.js';
+import { usePatient } from '../../pacientes/usePatient.js';
+import { consumeClinicalRecordHandoff } from '../../pacientes/services/clinicalRecords.js';
 export function useAvaliacao({ selectedModel, showAppNotification }) {
 const { organizationId } = useAuth();
 const [patientHandoff] = useState(() => consumePatientHandoff('laudo'));
+const { selectedPatient } = usePatient();
+const activePatient = selectedPatient || patientHandoff;
+const [openedRecord] = useState(() => consumeClinicalRecordHandoff('avaliacao'));
+const [savedEvaluationId, setSavedEvaluationId] = useState(openedRecord?.id || null);
+const [isSavingEvaluation, setIsSavingEvaluation] = useState(false);
 const savedEvaluationRef = useRef(false);
-const [currentStep, setCurrentStep] = useState(1);
+const [currentStep, setCurrentStep] = useState(openedRecord ? 3 : 1);
   // File upload state
   const [adipometryFile, setAdipometryFile] = useState(null);
   const [bioimpedanceFile, setBioimpedanceFile] = useState(null);
@@ -21,35 +28,53 @@ const [currentStep, setCurrentStep] = useState(1);
 
   const executeGeminiWithFallback = payload => executeGemini(payload, selectedModel);
   // Extracted and calculated data state
-  const [extractedData, setExtractedData] = useState(emptyAssessment);
-  const [biaEquipment, setBiaEquipment] = useState('');
-  const [anthropometricMethod, setAnthropometricMethod] = useState('');
-  const [customValues, setCustomValues] = useState({});
+  const [extractedData, setExtractedData] = useState(() => openedRecord?.data || emptyAssessment);
+  const [biaEquipment, setBiaEquipment] = useState(() => openedRecord?.data?.biaEquipment || '');
+  const [anthropometricMethod, setAnthropometricMethod] = useState(() => openedRecord?.data?.anthropometricMethod || '');
+  const [customValues, setCustomValues] = useState(() => openedRecord?.data?.customValues || {});
 
   useEffect(() => {
-    if (currentStep !== 3 || !patientHandoff?.id || savedEvaluationRef.current) return;
+    if (currentStep !== 3 || !activePatient?.id || savedEvaluationRef.current) return;
     savedEvaluationRef.current = true;
     const assessment = {
       ...extractedData,
       patient: {
         ...extractedData.patient,
-        id: patientHandoff.id,
-        name: extractedData.patient?.name || patientHandoff.name,
+        id: activePatient.id,
+        name: extractedData.patient?.name || activePatient.full_name || activePatient.name,
       },
       biaEquipment,
       anthropometricMethod,
       customValues,
     };
-    createPatientEvaluation({
+    createPatientEvaluation({ id: savedEvaluationId,
       organizationId,
-      patientId: patientHandoff.id,
+      patientId: activePatient.id,
       assessment,
       notes: extractedData.aiAnalysisText || '',
-    }).catch((error) => {
+    }).then((saved) => setSavedEvaluationId(saved?.id || savedEvaluationId)).catch((error) => {
       savedEvaluationRef.current = false;
       showAppNotification?.(error.message || 'Não foi possível salvar a avaliação.', 'error');
     });
-  }, [anthropometricMethod, biaEquipment, currentStep, customValues, extractedData, organizationId, patientHandoff, showAppNotification]);
+  }, [activePatient, anthropometricMethod, biaEquipment, currentStep, customValues, extractedData, organizationId, savedEvaluationId, showAppNotification]);
+
+  const saveEvaluation = async () => {
+    if (!activePatient?.id) {
+      showAppNotification?.('Selecione um paciente no topo para salvar no prontuário.', 'error');
+      return null;
+    }
+    setIsSavingEvaluation(true);
+    try {
+      const assessment = { ...extractedData, patient: { ...extractedData.patient, id: activePatient.id, name: extractedData.patient?.name || activePatient.full_name || activePatient.name }, biaEquipment, anthropometricMethod, customValues };
+      const saved = await createPatientEvaluation({ id: savedEvaluationId, organizationId, patientId: activePatient.id, assessment, notes: extractedData.aiAnalysisText || '' });
+      setSavedEvaluationId(saved?.id || savedEvaluationId);
+      showAppNotification?.(`Avaliação salva no prontuário de ${activePatient.full_name || activePatient.name}.`, 'success');
+      return saved;
+    } catch (error) {
+      showAppNotification?.(error.message || 'Não foi possível salvar a avaliação.', 'error');
+      return null;
+    } finally { setIsSavingEvaluation(false); }
+  };
 
   // Convert File to Base64 (Extrai base64 puro para a API do Gemini)
   const fileToBase64 = (file) => {
@@ -277,5 +302,5 @@ NÃO use formatações Markdown (como asteriscos duplos **), NÃO crie títulos.
   // Helper to get final selected value for a metric
   const getFinalValue = m => selectedValue(m, customValues);
 
-return { currentStep, setCurrentStep, adipometryFile, setAdipometryFile, bioimpedanceFile, setBioimpedanceFile, isAnalyzing, isGeneratingAI, analysisProgress, extractedData, setExtractedData, biaEquipment, setBiaEquipment, anthropometricMethod, setAnthropometricMethod, customValues, processFilesWithGemini, generateAIAnalysis, handleSourceChange, handleCustomValueChange, loadDemoData, getFinalValue, buildComparativeData: () => compare(extractedData, getFinalValue) };
+return { currentStep, setCurrentStep, adipometryFile, setAdipometryFile, bioimpedanceFile, setBioimpedanceFile, isAnalyzing, isGeneratingAI, isSavingEvaluation, savedEvaluationId, saveEvaluation, analysisProgress, extractedData, setExtractedData, biaEquipment, setBiaEquipment, anthropometricMethod, setAnthropometricMethod, customValues, processFilesWithGemini, generateAIAnalysis, handleSourceChange, handleCustomValueChange, loadDemoData, getFinalValue, buildComparativeData: () => compare(extractedData, getFinalValue) };
 }

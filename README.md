@@ -29,6 +29,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 | Menu e estrutura das telas | `app/src/layout` |
 | Autenticação clínica (Google, senha e link por e-mail) | `app/src/features/auth` |
 | Cadastro de pacientes e contatos | `app/src/features/pacientes` |
+| Relacionamento: radar de retornos, reativação e oportunidades | `app/src/features/crm` |
 | Upload, seleção e validação dos exames | `app/src/features/avaliacao` |
 | Páginas do laudo | `app/src/features/avaliacao/report` |
 | Editor e geração de anamnese | `app/src/features/anamnese` |
@@ -50,12 +51,14 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 ## Documentação
 
 - [Arquitetura](docs/architecture.md)
+- [Contexto global e histórico clínico](docs/reference/patient-clinical-history.md)
 - [Configuração e publicação](docs/deployment.md)
 - [Contratos de dados e persistência](docs/data-contracts.md)
 - [Roteiro de verificação](docs/testing.md)
 - [Roadmap Estratégico](docs/roadmap.md) e [Checklist de Tarefas](docs/tasks.md): visão de produto, matriz de impacto e tarefas de implementação.
 - [Plano de implementação CRM + Patient 360](docs/crm-patient360-implementation-plan.md): modelo de dados, telas, segurança, fluxos, migração e fases de execução.
 - [Cadastro de Pacientes](docs/reference/patients-database.md): dados cadastrais, consentimentos, políticas RLS, cadastro assistido e lista de contatos do WhatsApp ainda não cadastrados.
+- [Radar de Relacionamento](docs/reference/crm-radar.md): fila priorizada por SLA, tarefas vencidas, retorno, reativação e leads sem avanço.
 - [Especificação do Criador de Dietas](docs/diet-plan-builder-spec.md): editor em etapas, alimentos, macros, substituições, IA e relatório PDF.
 - [Montagem de Dietas & Tabela TACO](docs/reference/diet-plan-builder.md): regras de macronutrientes, medidas caseiras, base de alimentos e sincronização com Supabase.
 - [Catálogo Nutricional — Alimentos e Produtos](docs/reference/product-catalog.md): cadastro unificado, base de cálculo, medidas caseiras, código de barras e liberação de itens verificados para dietas.

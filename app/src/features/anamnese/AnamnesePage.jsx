@@ -2,6 +2,7 @@ import { User, Stethoscope, ArrowRight, CheckCircle, Copy, Download, RefreshCw, 
 import { useAnamnese } from './hooks/useAnamnese.js';
 import { cleanMarkdownToHTML } from './domain/formatting.js';
 import Toast from '../../shared/ui/Toast.jsx';
+import PatientContextBar from '../pacientes/components/PatientContextBar.jsx';
 
 export default function AnamnesePage({ activeModel }) {
   const {
@@ -43,6 +44,7 @@ export default function AnamnesePage({ activeModel }) {
 
   return (
     <div className="animate-fadeIn mx-auto w-full min-w-0 max-w-7xl">
+      <PatientContextBar action="A anamnese" recordType="anamnese" />
       {/* STEPPER PROGRESS BAR */}
       <div className="mx-auto my-6 flex w-full min-w-0 max-w-2xl items-center justify-center print:hidden">
         <div onClick={() => setActiveTab('input')} className={`flex shrink-0 items-center space-x-2.5 cursor-pointer group ${activeTab === 'input' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'}`}>

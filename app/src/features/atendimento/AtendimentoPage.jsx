@@ -13,6 +13,8 @@ import WhatsAppCharts from './components/WhatsAppCharts.jsx';
 import WhatsAppFeedTable from './components/WhatsAppFeedTable.jsx';
 import WhatsAppPdfReport from './report/WhatsAppPdfReport.jsx';
 import PageHeader from '../../shared/ui/PageHeader.jsx';
+import PatientConversationView from './components/PatientConversationView.jsx';
+import { consumePatientHandoff } from '../pacientes/services/patientHandoff.js';
 
 import { callGeminiWithFallback } from '../../shared/services/aiClient.js';
 import { formatWaitTime } from '../../shared/utils/formatters.js';
@@ -23,6 +25,7 @@ const MONTH_NAMES = [
 ];
 
 export default function AtendimentoPage({ activeModel, onNavigate }) {
+  const [patientConversation, setPatientConversation] = useState(() => consumePatientHandoff('dashboard'));
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,8 +62,8 @@ export default function AtendimentoPage({ activeModel, onNavigate }) {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!patientConversation) loadData();
+  }, [loadData, patientConversation]);
 
   // FILTRAGEM DOS DADOS
   const filteredData = useMemo(() => {
@@ -449,6 +452,10 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
         slaResolutionBreakdownData={slaResolutionBreakdownData}
       />
     );
+  }
+
+  if (patientConversation) {
+    return <PatientConversationView patient={patientConversation} onBack={() => setPatientConversation(null)} />;
   }
 
   return (

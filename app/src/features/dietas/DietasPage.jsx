@@ -14,6 +14,7 @@ import { DietConfigSection } from './components/DietConfigSection.jsx';
 import { NotesSection } from './components/NotesSection.jsx';
 import { DietReport } from './report/DietReport.jsx';
 import PageHeader from '../../shared/ui/PageHeader.jsx';
+import PatientContextBar from '../pacientes/components/PatientContextBar.jsx';
 
 export default function DietasPage({ settings = {} }) {
   const {
@@ -138,6 +139,7 @@ export default function DietasPage({ settings = {} }) {
 
   return (
     <div className="w-full min-w-0 space-y-6 pb-16">
+      <PatientContextBar action="A dieta" recordType="dieta" />
       
       {/* Barra de Título Superior e Ações Globais */}
       <PageHeader

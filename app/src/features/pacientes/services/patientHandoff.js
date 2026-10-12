@@ -9,6 +9,8 @@ export function writePatientHandoff(mode, patient) {
       id: patient.id,
       name: patient.full_name || patient.name || '',
       phone: patient.whatsapp_phone || patient.phone || '',
+      avatar_url: patient.avatar_url || '',
+      organization_id: patient.organization_id || '',
     }));
   } catch {}
 }

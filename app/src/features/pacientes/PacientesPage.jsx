@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   Bell,
@@ -31,6 +31,7 @@ import { writePatientHandoff } from './services/patientHandoff.js';
 import PageHeader from '../../shared/ui/PageHeader.jsx';
 import { linkConversationsToPatient } from '../atendimento/services/conversations.js';
 import PatientAiSummary from './components/PatientAiSummary.jsx';
+import PatientClinicalHistory from './components/PatientClinicalHistory.jsx';
 
 const STAGE_LABELS = {
   lead: 'Lead',
@@ -52,7 +53,7 @@ const PATIENT_SHORTCUTS = [
     id: 'dietas',
     label: 'Dieta',
     icon: UtensilsCrossed,
-    tooltip: 'Acessar Plano Alimentar e Metas',
+    tooltip: 'Criar nova dieta para este paciente',
     colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
     iconColor: 'text-sky-600',
   },
@@ -60,7 +61,7 @@ const PATIENT_SHORTCUTS = [
     id: 'anamnese',
     label: 'Anamnese',
     icon: FileText,
-    tooltip: 'Acessar Anamnese e Histórico Clínico',
+    tooltip: 'Criar nova anamnese para este paciente',
     colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
     iconColor: 'text-sky-600',
   },
@@ -68,7 +69,7 @@ const PATIENT_SHORTCUTS = [
     id: 'laudo',
     label: 'Avaliação',
     icon: Activity,
-    tooltip: 'Acessar Avaliação Física, Bioimpedância e Laudos',
+    tooltip: 'Criar nova avaliação física para este paciente',
     colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
     iconColor: 'text-sky-600',
   },
@@ -76,7 +77,7 @@ const PATIENT_SHORTCUTS = [
     id: 'dashboard',
     label: 'Conversa',
     icon: MessageSquare,
-    tooltip: 'Acessar Atendimento e Conversas',
+    tooltip: 'Abrir atendimento e conversas deste paciente',
     colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
     iconColor: 'text-sky-600',
   },
@@ -84,7 +85,7 @@ const PATIENT_SHORTCUTS = [
     id: 'agenda',
     label: 'Agenda',
     icon: Calendar,
-    tooltip: 'Acessar Agenda e Consultas',
+    tooltip: 'Ver agenda e consultas deste paciente',
     colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
     iconColor: 'text-sky-600',
   },
@@ -92,7 +93,7 @@ const PATIENT_SHORTCUTS = [
     id: 'tarefas',
     label: 'Tarefas',
     icon: CheckSquare,
-    tooltip: 'Acessar Tarefas e Demandas',
+    tooltip: 'Ver tarefas e demandas deste paciente',
     colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
     iconColor: 'text-sky-600',
   },
@@ -100,7 +101,7 @@ const PATIENT_SHORTCUTS = [
     id: 'contratos',
     label: 'Contrato',
     icon: FileSignature,
-    tooltip: 'Acessar Contratos e Propostas',
+    tooltip: 'Criar novo contrato para este paciente',
     colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
     iconColor: 'text-sky-600',
   },
@@ -114,22 +115,36 @@ export default function PacientesPage({ onNavigate, activeModel }) {
   const { organizationId } = useAuth();
   const { patients, selectedPatient, selectPatient, refreshPatients, loading, error } = usePatient();
   const [search, setSearch] = useState('');
+  const detailPanelRef = useRef(null);
+  const [detailPanelHeight, setDetailPanelHeight] = useState(null);
+
+  useEffect(() => {
+    const panel = detailPanelRef.current;
+    if (!panel || typeof ResizeObserver === 'undefined') return undefined;
+    const syncHeight = () => setDetailPanelHeight(panel.getBoundingClientRect().height);
+    syncHeight();
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [selectedPatient]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const [initialValues, setInitialValues] = useState(null);
   const [deletingPatientId, setDeletingPatientId] = useState('');
   const [actionError, setActionError] = useState('');
 
-  const handleNavigate = (mode) => {
+  const handleNavigate = async (mode) => {
     if (selectedPatient) {
       selectPatient(selectedPatient);
       writePatientHandoff(mode, selectedPatient);
       if (mode === 'dashboard') {
-        linkConversationsToPatient({
-          organizationId,
-          patientId: selectedPatient.id,
-          phone: selectedPatient.whatsapp_phone || selectedPatient.phone,
-        }).catch(() => {});
+        try {
+          await linkConversationsToPatient({
+            organizationId,
+            patientId: selectedPatient.id,
+            phone: selectedPatient.whatsapp_phone || selectedPatient.phone,
+          });
+        } catch {}
       }
       if (mode === 'tarefas') {
         try {
@@ -247,8 +262,8 @@ export default function PacientesPage({ onNavigate, activeModel }) {
         }
       />
 
-      <div className="grid min-w-0 gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside className="min-w-0 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm" aria-label="Lista de pacientes">
+      <div className="grid min-w-0 gap-5 lg:items-stretch lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <aside className="min-h-0 min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:flex lg:min-h-0 lg:flex-col" style={detailPanelHeight ? { height: detailPanelHeight } : undefined} aria-label="Lista de pacientes">
           <form role="search" className="relative mb-3" onSubmit={(event) => event.preventDefault()}>
             <label htmlFor="patient-search" className="sr-only">Buscar paciente</label>
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -262,7 +277,7 @@ export default function PacientesPage({ onNavigate, activeModel }) {
           ) : error ? (
             <p role="alert" className="p-4 text-sm text-rose-700">{error}</p>
           ) : filteredPatients.length ? (
-            <div className="max-h-[65vh] space-y-1 overflow-y-auto">
+            <div className="min-h-0 max-h-[65vh] space-y-1 overflow-y-auto lg:min-h-0 lg:max-h-none lg:flex-1">
               {filteredPatients.map((patient) => (
                 <div key={patient.id} className={`flex min-h-14 w-full items-center rounded-2xl ${selectedPatient?.id === patient.id ? 'bg-emerald-50 text-emerald-900' : 'hover:bg-slate-50'}`}>
                   <button type="button" onClick={() => selectPatient(patient)} aria-pressed={selectedPatient?.id === patient.id} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
@@ -291,15 +306,33 @@ export default function PacientesPage({ onNavigate, activeModel }) {
           )}
         </aside>
 
-        <section className="min-w-0" aria-live="polite">
+        <section className="min-w-0 lg:h-full" aria-live="polite">
           {!selectedPatient ? (
-            <div className="flex min-h-96 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white/70 p-8 text-center">
-              <UserRound className="mb-3 size-10 text-slate-300" />
-              <h2 className="text-lg font-black text-slate-800">Selecione um cadastro</h2>
-              <p className="max-w-md text-sm text-slate-500">Consulte ou edite os dados do paciente selecionado.</p>
-            </div>
+            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:h-full">
+              <div className="flex min-h-28 items-center gap-3 border-b border-slate-100 pb-5">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-300">
+                  <UserRound className="size-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-800">Selecione um cadastro</h2>
+                  <p className="text-sm text-slate-500">Consulte ou edite os dados do paciente selecionado.</p>
+                </div>
+              </div>
+              <div className="my-6 border-t border-slate-200/90" />
+              <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 shadow-xs">
+                <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-slate-400">Resumo com IA</h3>
+                <p className="mt-3 text-xs text-slate-400">Selecione um paciente para visualizar o resumo.</p>
+              </section>
+              <div className="my-6 border-t border-slate-200/90" />
+              <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 shadow-xs">
+                <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-slate-400">Prontuário e histórico</h3>
+                <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-xs text-slate-400">
+                  Selecione um paciente para visualizar os registros.
+                </div>
+              </section>
+            </article>
           ) : (
-            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <article ref={detailPanelRef} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex min-w-0 items-center gap-3.5">
                   <PatientAvatar patient={selectedPatient} size="large" />
@@ -315,7 +348,9 @@ export default function PacientesPage({ onNavigate, activeModel }) {
                       ) : null}
                     </div>
                     <div className="flex items-center gap-2">
-                      <h2 className="truncate text-xl font-black text-slate-900 sm:text-2xl">{selectedPatient.full_name}</h2>
+                      <h2 className="truncate text-xl font-black text-slate-900 sm:text-2xl" title={selectedPatient.full_name}>
+                        {selectedPatient.full_name.length > 15 ? `${selectedPatient.full_name.slice(0, 15)}…` : selectedPatient.full_name}
+                      </h2>
                       <button
                         type="button"
                         onClick={() => openEditPatient(selectedPatient)}
@@ -403,8 +438,9 @@ export default function PacientesPage({ onNavigate, activeModel }) {
               </dl>
 
               <div className="my-6 border-t border-slate-200/90" />
-
               <PatientAiSummary patient={selectedPatient} activeModel={activeModel} />
+              <div className="my-6 border-t border-slate-200/90" />
+              <PatientClinicalHistory patient={selectedPatient} onNavigate={handleNavigate} />
             </article>
           )}
         </section>

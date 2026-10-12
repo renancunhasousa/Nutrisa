@@ -38,6 +38,36 @@ export async function fetchConversations({ limit = Infinity, startDate, endDate,
   return result;
 }
 
+export async function fetchPatientConversations({ patientId, page = 0, pageSize = 50 }) {
+  if (!supabase || !patientId) return { items: [], hasMore: false };
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+  const { data, error } = await supabase
+    .from('log_conversas')
+    .select('*')
+    .eq('patient_id', patientId)
+    .order('data_envio', { ascending: false })
+    .order('id_mensagem', { ascending: false })
+    .range(from, to);
+  if (error) throw error;
+  const rows = (data || []).map(normalizeConversation).reverse();
+  return { items: rows, hasMore: rows.length === pageSize };
+}
+
+export function subscribeToPatientConversations(patientId, onChange) {
+  if (!supabase || !patientId) return () => {};
+  const channel = supabase
+    .channel(`patient-conversations:${patientId}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'log_conversas',
+      filter: `patient_id=eq.${patientId}`,
+    }, onChange)
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}
+
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
 
 export async function linkConversationsToPatient({ organizationId, patientId, phone }) {

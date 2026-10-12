@@ -2,6 +2,7 @@ import React from 'react';
 import { useContratos } from './hooks/useContratos';
 import { SignaturePad } from './components/SignaturePad';
 import { ContratoPrintLayout } from './components/ContratoPrintLayout';
+import PatientContextBar from '../pacientes/components/PatientContextBar.jsx';
 import {
   Plus,
   Trash2,
@@ -41,6 +42,7 @@ export default function ContratosPage({ activeModel }) {
   return (
     <>
     <div className="animate-fadeIn mx-auto w-full min-w-0 max-w-7xl print:hidden">
+      <PatientContextBar action="O contrato" recordType="contrato" />
       {/* STEPPER PROGRESS BAR */}
       <div className="mx-auto my-6 flex w-full min-w-0 max-w-4xl items-center justify-center print:hidden">
         <div onClick={() => setActiveTab('input')} className={`flex shrink-0 items-center space-x-2.5 cursor-pointer group ${activeTab === 'input' ? '[&>span]:inline' : '[&>span]:hidden sm:[&>span]:inline'}`}>

@@ -18,6 +18,7 @@ const DietasPage = lazy(() => import('./features/dietas/DietasPage.jsx'));
 const ProdutosPage = lazy(() => import('./features/produtos/ProdutosPage.jsx'));
 const PublicSignaturePage = lazy(() => import('./features/contratos/PublicSignaturePage.jsx'));
 const PacientesPage = lazy(() => import('./features/pacientes/PacientesPage.jsx'));
+const CrmPage = lazy(() => import('./features/crm/CrmPage.jsx'));
 
 export default function App() {
   return <AuthProvider><AppRouter /></AuthProvider>;
@@ -59,6 +60,7 @@ function ClinicalApp({ appMode, setMode }) {
 
   const pages = {
     pacientes: <PacientesPage onNavigate={setAppMode} activeModel={settings.selectedModel} />,
+    crm: <CrmPage onNavigate={setAppMode} activeModel={settings.selectedModel} />,
     laudo: <AvaliacaoPage settings={settings} />,
     anamnese: <AnamnesePage activeModel={settings.selectedModel} />,
     dietas: <DietasPage settings={settings} />,

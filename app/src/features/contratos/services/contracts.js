@@ -1,14 +1,18 @@
 import { requireSupabase } from '../../../shared/services/supabase.js';
 
-export async function createRemoteContract({ organizationId, patientId, patientName, plan, finalContent }) {
-  const { data, error } = await requireSupabase().from('contracts').insert({
+export async function createRemoteContract({ id, organizationId, patientId, patientName, plan, finalContent }) {
+  const payload = {
     organization_id: organizationId,
     patient_id: patientId || null,
     patient_name: patientName,
     plan,
     final_content: finalContent,
     status: 'pending',
-  }).select('id,public_token,status').single();
+  };
+  const query = id
+    ? requireSupabase().from('contracts').update(payload).eq('id', id)
+    : requireSupabase().from('contracts').insert(payload);
+  const { data, error } = await query.select('id,public_token,status').single();
   if (error) throw new Error(error.message || 'Erro ao criar contrato no Supabase');
   return data;
 }

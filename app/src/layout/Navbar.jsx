@@ -14,6 +14,7 @@ import { useTasks } from '../features/tarefas/hooks/useTasks.js';
 import MobileNavigation from './MobileNavigation.jsx';
 import { getModeLabel, NAV_ITEMS } from './navigationItems.js';
 import { useAuth } from '../features/auth/useAuth.js';
+import PatientSelector from '../features/pacientes/components/PatientSelector.jsx';
 
 const getNotificationDismissalKey = (notification) =>
   `${notification.id}|${notification.title}|${notification.description}`;
@@ -194,6 +195,7 @@ export default function Navbar({
           <span className="min-w-0 flex-1 truncate px-1 text-center text-sm font-extrabold text-slate-800 sm:text-left md:hidden">{getModeLabel(appMode)}</span>
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <PatientSelector />
             <div className="relative">
               <button
                 type="button"

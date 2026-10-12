@@ -4,12 +4,14 @@ import { useAvaliacao } from './hooks/useAvaliacao.js';
 import ProgressSteps from './components/ProgressSteps.jsx';
 import UploadExames from './components/UploadExames.jsx';
 import SelecaoMetricas from './components/SelecaoMetricas.jsx';
+import PatientContextBar from '../pacientes/components/PatientContextBar.jsx';
 const LaudoReport = lazy(() => import('./report/LaudoReport.jsx'));
 export default function AvaliacaoPage({ settings }) {
  const evaluation = useAvaliacao(settings);
  return (
   <AvaliacaoContext.Provider value={{ ...evaluation, nutritionist: settings.nutritionist }}>
    <div className="animate-fadeIn mx-auto w-full min-w-0 max-w-7xl">
+    <PatientContextBar action="A avaliação" recordType="avaliacao" />
     <ProgressSteps />
     <UploadExames />
     <SelecaoMetricas />

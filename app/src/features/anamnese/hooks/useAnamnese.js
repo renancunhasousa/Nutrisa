@@ -8,6 +8,8 @@ import { KEY_ANAMNESE_TEMPLATES, KEY_ANAMNESE_DRAFT } from '../../../config/stor
 import { useAuth } from '../../auth/useAuth.js';
 import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
 import { createPatientAnamnese, updatePatientAnamnese } from '../services/anamneses.js';
+import { usePatient } from '../../pacientes/usePatient.js';
+import { consumeClinicalRecordHandoff } from '../../pacientes/services/clinicalRecords.js';
 
 /** Dados de demonstração pré-carregados */
 const DEMO_PATIENT = `NOME: Mariana Santos Silva
@@ -48,26 +50,34 @@ const DEMO_TEMPLATE = `**ANAMNESE NUTRICIONAL COMPLETA**
 export function useAnamnese({ activeModel }) {
   const { organizationId } = useAuth();
   const [patientHandoff] = useState(() => consumePatientHandoff('anamnese'));
+  const { selectedPatient } = usePatient();
+  const activePatient = selectedPatient || patientHandoff;
+  const [openedRecord] = useState(() => consumeClinicalRecordHandoff('anamnese'));
   // ── Dados ────────────────────────────────────────────────
-  const [patientData, setPatientData] = useState(() => patientHandoff?.name ? `NOME: ${patientHandoff.name}` : '');
-  const [doctorData, setDoctorData] = useState('');
+  const [patientData, setPatientData] = useState(() => openedRecord?.patient_answers || (activePatient?.full_name || activePatient?.name ? `NOME: ${activePatient.full_name || activePatient.name}` : ''));
+  const [doctorData, setDoctorData] = useState(() => openedRecord?.professional_notes || '');
   const [template, setTemplate] = useState('');
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [templateNameInput, setTemplateNameInput] = useState('');
-  const [result, setResult] = useState('');
-  const [patientTranslation, setPatientTranslation] = useState('');
-  const [clinicInsights, setClinicInsights] = useState('');
+  const [result, setResult] = useState(() => openedRecord?.report || '');
+  const [patientTranslation, setPatientTranslation] = useState(() => openedRecord?.patient_translation || '');
+  const [clinicInsights, setClinicInsights] = useState(() => openedRecord?.clinic_insights || '');
   const [activeResultView, setActiveResultView] = useState('main');
   const [detectedVars, setDetectedVars] = useState([]);
 
   // ── UI ───────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState('input');
+  const [activeTab, setActiveTab] = useState(() => openedRecord ? 'result' : 'input');
   const [notification, setNotification] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExtraLoading, setIsExtraLoading] = useState(false);
   const editorRef = useRef(null);
-  const savedAnamneseIdRef = useRef(null);
+  const savedAnamneseIdRef = useRef(openedRecord?.id || null);
+
+  useEffect(() => {
+    if (!activePatient?.id) return;
+    setPatientData((current) => current.trim() ? current : `NOME: ${activePatient.full_name || activePatient.name}`);
+  }, [activePatient]);
 
   // ── Notificações ─────────────────────────────────────────
   const showNotification = (msg, type) => {
@@ -160,10 +170,18 @@ export function useAnamnese({ activeModel }) {
   };
 
   const persistGeneratedAnamnese = async (reportText) => {
-    if (!patientHandoff?.id) return null;
+    if (!activePatient?.id) return null;
+    if (savedAnamneseIdRef.current) {
+      return updatePatientAnamnese(savedAnamneseIdRef.current, {
+        patient_id: activePatient.id,
+        patient_answers: patientData,
+        professional_notes: doctorData,
+        report: reportText,
+      });
+    }
     const saved = await createPatientAnamnese({
       organizationId,
-      patientId: patientHandoff.id,
+      patientId: activePatient.id,
       patientAnswers: patientData,
       professionalNotes: doctorData,
       report: reportText,

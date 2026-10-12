@@ -5,21 +5,27 @@ import { saveDietPlan, saveCurrentDraft, loadCurrentDraft, duplicateDietPlan } f
 import { createDemoDietPlan } from '../data/demoDietData.js';
 import { useAuth } from '../../auth/useAuth.js';
 import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
+import { usePatient } from '../../pacientes/usePatient.js';
+import { consumeClinicalRecordHandoff } from '../../pacientes/services/clinicalRecords.js';
 
 export function useDietPlan() {
   const { organizationId } = useAuth();
   const [patientHandoff] = useState(() => consumePatientHandoff('dietas'));
+  const { selectedPatient } = usePatient();
+  const activePatient = selectedPatient || patientHandoff;
+  const [openedRecord] = useState(() => consumeClinicalRecordHandoff('dieta'));
   const [plan, setPlan] = useState(() => {
+    if (openedRecord?.content) return sanitizeMealPlan({ ...openedRecord.content, id: openedRecord.id, patient_id: activePatient?.id || openedRecord.patient_id });
     const draft = loadCurrentDraft();
     if (draft) return sanitizeMealPlan({
       ...draft,
-      patient_id: patientHandoff?.id || draft.patient_id || null,
-      patient_name: patientHandoff?.name || draft.patient_name || '',
+      patient_id: activePatient?.id || draft.patient_id || null,
+      patient_name: activePatient?.full_name || activePatient?.name || draft.patient_name || '',
     });
     return sanitizeMealPlan({
       organization_id: organizationId,
-      patient_name: patientHandoff?.name || '',
-      patient_id: patientHandoff?.id || null,
+      patient_name: activePatient?.full_name || activePatient?.name || '',
+      patient_id: activePatient?.id || null,
       meals: getDefaultMeals(),
     });
   });
@@ -36,10 +42,10 @@ export function useDietPlan() {
     setPlan((current) => ({
       ...current,
       organization_id: organizationId,
-      patient_id: patientHandoff?.id || current.patient_id || null,
-      patient_name: patientHandoff?.name || current.patient_name || '',
+      patient_id: activePatient?.id || current.patient_id || null,
+      patient_name: activePatient?.full_name || activePatient?.name || current.patient_name || '',
     }));
-  }, [organizationId, patientHandoff]);
+  }, [organizationId, activePatient]);
 
   // Auto-save local draft
   useEffect(() => {
@@ -273,8 +279,8 @@ export function useDietPlan() {
   const handleCreateNew = () => {
     const fresh = sanitizeMealPlan({
       organization_id: organizationId,
-      patient_name: patientHandoff?.name || '',
-      patient_id: patientHandoff?.id || null,
+      patient_name: activePatient?.full_name || activePatient?.name || '',
+      patient_id: activePatient?.id || null,
       meals: getDefaultMeals(),
     });
     setPlan(fresh);

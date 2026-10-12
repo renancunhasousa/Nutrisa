@@ -5,6 +5,8 @@ import { createRemoteContract, getRemoteContract } from '../services/contracts';
 import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
 import { useAuth } from '../../auth/useAuth.js';
 import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
+import { usePatient } from '../../pacientes/usePatient.js';
+import { consumeClinicalRecordHandoff } from '../../pacientes/services/clinicalRecords.js';
 
 const createPage = (label) => ({
   id: Date.now().toString() + Math.random().toString(36).slice(2),
@@ -14,16 +16,27 @@ const createPage = (label) => ({
 
 export function useContratos(activeModel) {
   const { organizationId } = useAuth();
-  const [activeTab, setActiveTab] = useState('input'); // input, template, result
   const [patientHandoff] = useState(() => consumePatientHandoff('contratos'));
+  const [openedRecord] = useState(() => consumeClinicalRecordHandoff('contrato'));
+  const [activeTab, setActiveTab] = useState(() => openedRecord ? 'template' : 'input'); // input, template, result
+  const { selectedPatient } = usePatient();
+  const activePatient = selectedPatient || patientHandoff;
 
   // Passo 1: Dados do Paciente e Plano
   const [patientData, setPatientData] = useState(() => ({
-    name: patientHandoff?.name || '',
-    id: patientHandoff?.id || null,
+    name: activePatient?.full_name || activePatient?.name || '',
+    id: activePatient?.id || null,
   }));
 
-  const [selectedPlan, setSelectedPlan] = useState('essence');
+  useEffect(() => {
+    setPatientData((current) => ({
+      ...current,
+      id: activePatient?.id || null,
+      name: activePatient?.full_name || activePatient?.name || current.name,
+    }));
+  }, [activePatient]);
+
+  const [selectedPlan, setSelectedPlan] = useState(() => openedRecord?.plan || 'essence');
   const [valor, setValor] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('Pix');
   const [consultas, setConsultas] = useState([{ data: '', horario: '' }]);
@@ -44,7 +57,7 @@ export function useContratos(activeModel) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Link e Polling da Assinatura Remota
-  const [remoteContractId, setRemoteContractId] = useState(null);
+  const [remoteContractId, setRemoteContractId] = useState(openedRecord?.id || null);
 
   // Poll for remote signature
   useEffect(() => {
@@ -297,6 +310,7 @@ export function useContratos(activeModel) {
       const finalContent = allText.join('\n\n--- Página seguinte ---\n\n');
 
       const contract = await createRemoteContract({
+        id: openedRecord?.id || null,
         organizationId,
         patientId: patientData?.id || null,
         patientName: patientData?.name || 'Paciente',
