@@ -28,6 +28,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 |---|---|
 | Menu e estrutura das telas | `app/src/layout` |
 | Autenticação clínica (Google, senha e link por e-mail) | `app/src/features/auth` |
+| Gestão de equipe, papéis e permissões por módulo | `app/src/features/auth` |
 | Cadastro de pacientes e contatos | `app/src/features/pacientes` |
 | Relacionamento: radar de retornos, reativação e oportunidades | `app/src/features/crm` |
 | Upload, seleção e validação dos exames | `app/src/features/avaliacao` |
@@ -52,6 +53,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 
 - [Arquitetura](docs/architecture.md)
 - [Contexto global e histórico clínico](docs/reference/patient-clinical-history.md)
+- [Gestão de Equipe & Permissões](docs/reference/team-permissions.md): controle de papéis (Dra./Owner, Secretária, Administrativo), código de convite da clínica e liga/desliga de módulos por barra de atalhos.
 - [Configuração e publicação](docs/deployment.md)
 - [Contratos de dados e persistência](docs/data-contracts.md)
 - [Roteiro de verificação](docs/testing.md)
@@ -68,3 +70,4 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Provedores de IA & Cadeia de Fallback](docs/reference/ai-providers-fallback.md): resiliência automática entre Gemini (titular), OpenAI GPT-4o-mini (1º fallback) e DeepSeek Flash (2º fallback) com suporte a visão e formato JSON.
 
 Os PDFs em `model/` são referências existentes e não são importados pela aplicação. O protótipo antigo foi preservado em `docs/reference/anamnese-prototype.jsx.txt` e não é executável nesta plataforma.
+

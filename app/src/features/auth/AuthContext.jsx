@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../../shared/services/supabase.js';
 import { cleanAuthTokensFromUrl, extractAuthErrorFromHash, getGoogleOAuthOptions } from './oauth.js';
 import { AuthStateContext } from './useAuth.js';
+import { hasModulePermission } from './permissions.js';
+import { findOrganizationByInviteCode, getMemberForUser } from './services/teamService.js';
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -52,6 +54,22 @@ export function AuthProvider({ children }) {
     const loadOrganization = async () => {
       setLoading(true);
       setError('');
+
+      try {
+        const pendingCode = localStorage.getItem('nutrisa_pending_invite_code');
+        if (pendingCode) {
+          const matchedOrg = findOrganizationByInviteCode(pendingCode);
+          if (matchedOrg && matchedOrg !== 'nutrisa-default') {
+            if (cancelled) return;
+            setOrganizationId(matchedOrg);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // ignora se localStorage não estiver disponível
+      }
+
       const { data, error: bootstrapError } = await supabase.rpc('bootstrap_organization', {
         p_name: 'NutrIsa',
       });
@@ -69,10 +87,17 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, [userId]);
 
+  const currentMember = useMemo(() => {
+    return getMemberForUser(organizationId, session?.user);
+  }, [organizationId, session?.user]);
+
   const value = useMemo(() => ({
     session,
     user: session?.user ?? null,
     organizationId,
+    currentMember,
+    isOwner: Boolean(currentMember?.isOwner ?? true),
+    canAccessModule: (moduleId) => hasModulePermission(currentMember, moduleId),
     loading,
     error,
     configured: isSupabaseConfigured,
@@ -94,8 +119,15 @@ export function AuthProvider({ children }) {
       });
       if (linkError) throw linkError;
     },
+    joinWithInviteCode: async (inviteCode) => {
+      const orgId = findOrganizationByInviteCode(inviteCode);
+      if (!orgId) throw new Error('Código de clínica não encontrado ou inválido.');
+      setOrganizationId(orgId);
+      return orgId;
+    },
     signOut: () => supabase?.auth.signOut(),
-  }), [session, organizationId, loading, error]);
+  }), [session, organizationId, currentMember, loading, error]);
 
   return <AuthStateContext.Provider value={value}>{children}</AuthStateContext.Provider>;
 }
+

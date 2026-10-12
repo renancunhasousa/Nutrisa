@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Menu, Settings, Sparkles, X } from 'lucide-react';
 import { MOBILE_PRIMARY_MODE_IDS, NAV_ITEMS } from './navigationItems.js';
-
-const primaryItems = NAV_ITEMS.filter((item) => MOBILE_PRIMARY_MODE_IDS.has(item.id));
-const moreItems = NAV_ITEMS.filter((item) => !MOBILE_PRIMARY_MODE_IDS.has(item.id));
+import { useAuth } from '../features/auth/useAuth.js';
 
 export default function MobileNavigation({
   appMode,
@@ -12,8 +10,18 @@ export default function MobileNavigation({
   setActiveModal,
   taskCount = 0,
 }) {
+  const { canAccessModule } = useAuth();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const isMoreActive = moreItems.some((item) => item.id === appMode);
+
+  const allowedPrimary = NAV_ITEMS
+    .filter((item) => MOBILE_PRIMARY_MODE_IDS.has(item.id))
+    .filter((item) => canAccessModule(item.id));
+
+  const allowedMore = NAV_ITEMS
+    .filter((item) => !MOBILE_PRIMARY_MODE_IDS.has(item.id))
+    .filter((item) => canAccessModule(item.id));
+
+  const isMoreActive = allowedMore.some((item) => item.id === appMode);
 
   useEffect(() => {
     if (!isMoreOpen) return undefined;
@@ -73,7 +81,7 @@ export default function MobileNavigation({
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {moreItems.map((item) => {
+              {allowedMore.map((item) => {
                 const Icon = item.icon;
                 const isActive = appMode === item.id;
 
@@ -123,8 +131,8 @@ export default function MobileNavigation({
         style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}
         aria-label="Navegação principal mobile"
       >
-        <div className="mx-auto grid max-w-md grid-cols-5 gap-0.5">
-          {primaryItems.map((item) => {
+        <div className="mx-auto flex max-w-md items-center justify-around gap-0.5">
+          {allowedPrimary.map((item) => {
             const Icon = item.icon;
             const isActive = appMode === item.id;
             const badge = item.id === 'tarefas' && taskCount > 0 ? taskCount : null;

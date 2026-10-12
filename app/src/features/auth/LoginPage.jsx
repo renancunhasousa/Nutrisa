@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LockKeyhole, Mail } from 'lucide-react';
+import { Building2, KeyRound, LockKeyhole, Mail } from 'lucide-react';
 import { useAuth } from './useAuth.js';
 import logoNew from '../../assets/logo_new.png';
 
@@ -7,12 +7,27 @@ export default function LoginPage() {
   const { configured, loading, error: authError, signIn, signInWithGoogle, sendMagicLink } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState(() => {
+    return localStorage.getItem('nutrisa_pending_invite_code') || '';
+  });
+  const [showInviteField, setShowInviteField] = useState(() => {
+    return Boolean(localStorage.getItem('nutrisa_pending_invite_code'));
+  });
   const [message, setMessage] = useState('');
   const [pendingAction, setPendingAction] = useState('');
   const submitting = Boolean(pendingAction);
 
+  const savePendingCode = () => {
+    if (inviteCode.trim()) {
+      localStorage.setItem('nutrisa_pending_invite_code', inviteCode.trim().toUpperCase());
+    } else {
+      localStorage.removeItem('nutrisa_pending_invite_code');
+    }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
+    savePendingCode();
     setPendingAction('password');
     setMessage('');
     try {
@@ -25,6 +40,7 @@ export default function LoginPage() {
   };
 
   const continueWithGoogle = async () => {
+    savePendingCode();
     setPendingAction('google');
     setMessage('');
     try {
@@ -40,6 +56,7 @@ export default function LoginPage() {
       setMessage('Informe seu e-mail primeiro.');
       return;
     }
+    savePendingCode();
     setPendingAction('magic-link');
     setMessage('');
     try {
@@ -89,6 +106,44 @@ export default function LoginPage() {
                 <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <input id="current-password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm" />
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-3.5 transition">
+              <button
+                type="button"
+                onClick={() => setShowInviteField((prev) => !prev)}
+                className="flex w-full items-center justify-between text-left text-xs font-bold text-slate-700 hover:text-emerald-700"
+              >
+                <span className="flex items-center gap-2">
+                  <Building2 className="size-4 text-emerald-600" />
+                  Membro de equipe / Secretária?
+                </span>
+                <span className="text-[11px] font-semibold text-emerald-600 underline underline-offset-2">
+                  {showInviteField ? 'Ocultar código' : 'Inserir código da clínica'}
+                </span>
+              </button>
+
+              {showInviteField && (
+                <div className="mt-3 space-y-1.5">
+                  <label htmlFor="login-invite-code" className="block text-xs font-semibold text-slate-600">
+                    Código de Convite da Clínica
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      id="login-invite-code"
+                      type="text"
+                      placeholder="Ex: ISABELA-2026"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      className="min-h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs font-mono font-bold tracking-wider uppercase text-slate-800 placeholder:normal-case placeholder:font-normal placeholder:tracking-normal focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Fornecido pela Dra. para liberar seus acessos de recepção ou administrativo.
+                  </p>
+                </div>
+              )}
             </div>
 
             {(message || authError) ? <p role="status" aria-live="polite" className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">{message || authError}</p> : null}

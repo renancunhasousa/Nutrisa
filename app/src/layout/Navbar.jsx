@@ -7,6 +7,7 @@ import {
   LogOut,
   Settings,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import logoPlatform from '../assets/logo_new.png';
 import NotificationPopover from '../features/notificacoes/NotificationPopover.jsx';
@@ -15,6 +16,7 @@ import MobileNavigation from './MobileNavigation.jsx';
 import { getModeLabel, NAV_ITEMS } from './navigationItems.js';
 import { useAuth } from '../features/auth/useAuth.js';
 import PatientSelector from '../features/pacientes/components/PatientSelector.jsx';
+import TeamPermissionsModal from '../features/auth/components/TeamPermissionsModal.jsx';
 
 const getNotificationDismissalKey = (notification) =>
   `${notification.id}|${notification.title}|${notification.description}`;
@@ -36,7 +38,8 @@ export default function Navbar({
   isSidebarCollapsed = false,
   onToggleSidebar,
 }) {
-  const { signOut } = useAuth();
+  const { signOut, isOwner, canAccessModule } = useAuth();
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const {
     nutritionist,
     activeModal,
@@ -111,7 +114,7 @@ export default function Navbar({
           {isSidebarCollapsed ? null : (
             <p className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">Consultório</p>
           )}
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => canAccessModule(item.id)).map((item) => {
             const Icon = item.icon;
             const isActive = appMode === item.id;
             const badge = item.id === 'tarefas' && taskMetrics.todayTotal > 0 ? taskMetrics.todayTotal : null;
@@ -232,6 +235,18 @@ export default function Navbar({
               />
             </div>
 
+            {isOwner ? (
+              <button
+                type="button"
+                onClick={() => setIsTeamModalOpen(true)}
+                className="flex size-11 items-center justify-center rounded-2xl border border-slate-200/65 bg-white/55 text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                title="Equipe & Permissões da Clínica"
+                aria-label="Equipe & Permissões da Clínica"
+              >
+                <Users className="size-[18px]" strokeWidth={1.9} />
+              </button>
+            ) : null}
+
             <button type="button" onClick={signOut} className="flex size-11 items-center justify-center rounded-2xl border border-slate-200/65 bg-white/55 text-slate-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700" title="Sair do sistema" aria-label="Sair do sistema"><LogOut className="size-[18px]" /></button>
 
             <button
@@ -259,6 +274,13 @@ export default function Navbar({
         setActiveModal={setActiveModal}
         taskCount={taskMetrics.todayTotal}
       />
+
+      {isTeamModalOpen ? (
+        <TeamPermissionsModal
+          open={isTeamModalOpen}
+          onClose={() => setIsTeamModalOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

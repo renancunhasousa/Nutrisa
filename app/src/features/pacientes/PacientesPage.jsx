@@ -112,7 +112,7 @@ const formatDate = (value) => value
   : 'Não informado';
 
 export default function PacientesPage({ onNavigate, activeModel }) {
-  const { organizationId } = useAuth();
+  const { organizationId, canAccessModule } = useAuth();
   const { patients, selectedPatient, selectPatient, refreshPatients, loading, error } = usePatient();
   const [search, setSearch] = useState('');
   const detailPanelRef = useRef(null);
@@ -378,7 +378,7 @@ export default function PacientesPage({ onNavigate, activeModel }) {
                     role="toolbar"
                     aria-label={`Ações rápidas vinculadas a ${selectedPatient.full_name}`}
                   >
-                    {PATIENT_SHORTCUTS.map((shortcut) => {
+                    {PATIENT_SHORTCUTS.filter((shortcut) => canAccessModule(shortcut.id)).map((shortcut) => {
                       const Icon = shortcut.icon;
                       return (
                         <button
