@@ -422,6 +422,7 @@ Instruções obrigatórias:
   };
 
   return {
+    hasActivePatient: Boolean(activePatient?.id),
     activeTab, setActiveTab,
     patientData, setPatientData,
     selectedPlan, setSelectedPlan,

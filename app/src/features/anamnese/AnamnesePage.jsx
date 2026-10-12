@@ -3,16 +3,18 @@ import { useAnamnese } from './hooks/useAnamnese.js';
 import { cleanMarkdownToHTML } from './domain/formatting.js';
 import Toast from '../../shared/ui/Toast.jsx';
 import PatientContextBar from '../pacientes/components/PatientContextBar.jsx';
+import ReportRichTextEditor from './components/ReportRichTextEditor.jsx';
 
 export default function AnamnesePage({ activeModel }) {
   const {
+    hasActivePatient,
     patientData, setPatientData,
     doctorData, setDoctorData,
     template,
     savedTemplates,
     selectedTemplateId,
     templateNameInput, setTemplateNameInput,
-    result,
+    result, setResult,
     patientTranslation,
     clinicInsights,
     activeResultView, setActiveResultView,
@@ -20,9 +22,11 @@ export default function AnamnesePage({ activeModel }) {
     activeTab, setActiveTab,
     notification,
     isGenerating,
+    isSavingReport,
     isExtraLoading,
     editorRef,
     generateReport,
+    saveEditedReport,
     handleExtraAnalysis,
     copyToClipboard,
     cleanMarkdownToText,
@@ -228,8 +232,9 @@ export default function AnamnesePage({ activeModel }) {
               </div>
               <h2 className="text-xl font-black mb-2 text-slate-900">Preencher Estrutura com IA</h2>
               <p className="text-xs text-slate-500 mb-6 max-w-md">O motor de inteligência artificial analisará os dados do questionário e as notas para gerar o prontuário completo.</p>
-              <button onClick={generateReport} className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-xs tracking-wider flex items-center gap-2.5 transition-all shadow-sm hover:shadow active:scale-95">
-                <Sparkles size={18} /> <span>Gerar relatório de anamnese</span>
+              <button type="button" onClick={generateReport} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow active:scale-95">
+                {hasActivePatient ? <Save className="size-4" aria-hidden="true" /> : <Sparkles className="size-4" aria-hidden="true" />}
+                <span>{hasActivePatient ? 'Gerar e salvar no prontuário' : 'Gerar relatório de anamnese'}</span>
               </button>
             </div>
           ) : (
@@ -238,7 +243,7 @@ export default function AnamnesePage({ activeModel }) {
                 <div className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden">
                   <div className="bg-white p-4 flex flex-wrap justify-between items-center border-b border-slate-200/80 gap-3">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <button onClick={() => setActiveResultView('main')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${activeResultView === 'main' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'}`}><FileText size={14} /> Documento Finalizado</button>
+                      <button type="button" onClick={() => setActiveResultView('main')} aria-pressed={activeResultView === 'main'} className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 transition-colors hover:text-emerald-800 focus-visible:rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><FileText className="size-[18px] text-emerald-600" aria-hidden="true" /> Documento Finalizado</button>
                       {patientTranslation && (
                         <button onClick={() => setActiveResultView('patient')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 border ${activeResultView === 'patient' ? 'bg-teal-600 text-white border-teal-600 shadow-xs' : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-200'}`}><MessageCircle size={14} /> Tradução p/ Paciente</button>
                       )}
@@ -250,6 +255,11 @@ export default function AnamnesePage({ activeModel }) {
                       <button onClick={() => { const t = activeResultView === 'main' ? result : activeResultView === 'patient' ? patientTranslation : clinicInsights; copyToClipboard(t); }} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95" title="Copiar relatório limpo sem asteriscos">
                         <Copy size={14}/> Copiar Relatório
                       </button>
+                      {hasActivePatient ? (
+                        <button type="button" onClick={saveEditedReport} disabled={isSavingReport} className="inline-flex size-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-2xs transition-all hover:bg-emerald-100 hover:text-emerald-900 active:scale-95 disabled:cursor-wait disabled:opacity-50" aria-label="Salvar texto editado no prontuário" title="Salvar texto editado no prontuário">
+                          <Save className="size-[15px]" aria-hidden="true" />
+                        </button>
+                      ) : null}
                       <button onClick={() => {
                         const raw = activeResultView === 'main' ? result : activeResultView === 'patient' ? patientTranslation : clinicInsights;
                         const clean = cleanMarkdownToText(raw);
@@ -263,16 +273,16 @@ export default function AnamnesePage({ activeModel }) {
                       </button>
                     </div>
                   </div>
-                  <div id="final-anamnese-report" className="p-8 font-sans leading-relaxed text-sm text-slate-800 min-h-[400px] bg-white">
-                    {activeResultView === 'main' && renderFormattedText(result)}
+                  <div id="final-anamnese-report" className="min-h-[400px] bg-white">
+                    {activeResultView === 'main' && <ReportRichTextEditor value={result} onChange={setResult} />}
                     {activeResultView === 'patient' && (
-                      <div className="space-y-4">
+                      <div className="space-y-4 p-8 font-sans text-sm leading-relaxed text-slate-800">
                         <div className="p-3 bg-teal-50 border border-teal-200 text-teal-800 rounded-2xl text-xs font-semibold flex items-center gap-2"><MessageCircle size={16} /> Tradução simples e acolhedora pronta para o paciente:</div>
                         <div>{renderFormattedText(patientTranslation)}</div>
                       </div>
                     )}
                     {activeResultView === 'clinic' && (
-                      <div className="space-y-4">
+                      <div className="space-y-4 p-8 font-sans text-sm leading-relaxed text-slate-800">
                         <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl text-xs font-semibold flex items-center gap-2"><Sparkles size={16} /> Parecer e perguntas recomendadas para a consulta de retorno:</div>
                         <div>{renderFormattedText(clinicInsights)}</div>
                       </div>
@@ -283,7 +293,7 @@ export default function AnamnesePage({ activeModel }) {
               <div className="space-y-4">
                 <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs sticky top-6">
                   <h4 className="text-[10px] font-extrabold uppercase text-slate-400 mb-4 text-center tracking-wider">Opções de IA</h4>
-                  <button onClick={generateReport} className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 shadow-2xs"><RefreshCw size={14}/> Refazer Relatório</button>
+                  <button type="button" onClick={generateReport} disabled={isGenerating} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-200 active:scale-95 disabled:cursor-wait disabled:opacity-50"><RefreshCw className={`size-3.5 ${isGenerating ? 'animate-spin' : ''}`} aria-hidden="true" /> {isGenerating ? 'Gerando…' : 'Refazer Relatório'}</button>
                   <div className="mt-4 space-y-2">
                     <button onClick={() => handleExtraAnalysis('patient')} disabled={isExtraLoading} className={`w-full py-2.5 text-xs font-bold rounded-full flex items-center justify-center transition-all border active:scale-95 shadow-2xs ${patientTranslation ? 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200' : 'bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-700'}`}>
                       {isExtraLoading ? 'Gerando...' : patientTranslation ? '✓ Refazer Tradução' : 'Traduzir p/ Paciente'}

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   Bell,
+  Bot,
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
   Settings,
-  Sparkles,
   Users,
 } from 'lucide-react';
 import logoPlatform from '../assets/logo_new.png';
@@ -170,7 +170,7 @@ export default function Navbar({
                 activeModal === 'ai' ? 'bg-amber-50 text-amber-800' : 'text-slate-600 hover:bg-white/75 hover:text-slate-900'
               }`}
             >
-              <span className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><Sparkles className="size-[17px]" /></span>
+              <span className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><Bot className="size-[17px]" aria-hidden="true" /></span>
               {isSidebarCollapsed ? null : <span>Configurar IA</span>}
             </button>
           ) : null}
@@ -279,7 +279,7 @@ export default function Navbar({
         taskCount={taskMetrics.todayTotal}
       />
 
-      {isTeamModalOpen ? (
+      {isOwner && isTeamModalOpen ? (
         <TeamPermissionsModal
           open={isTeamModalOpen}
           onClose={() => setIsTeamModalOpen(false)}

@@ -15,28 +15,36 @@ return (<>        {/* STEP 3: CUSTOM UNIFIED REPORT (PRINT READY) */}
           <div className="space-y-6">
             
             {/* Top Toolbar (Hidden on Print) - CLEAN LUXURY SAAS STYLE */}
-            <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap justify-between items-center gap-4 print:hidden max-w-4xl mx-auto">
-              <div className="flex items-center space-x-3">
-                <button onClick={saveEvaluation} disabled={isSavingEvaluation} className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs rounded-full transition-all flex items-center space-x-2">
-                  <Save className="w-4 h-4" /><span>{isSavingEvaluation ? 'Salvando…' : savedEvaluationId ? 'Atualizar no prontuário' : 'Salvar no prontuário'}</span>
-                </button>
+            <div className="mx-auto flex max-w-4xl flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs print:hidden md:flex-row md:items-center md:justify-between md:p-5">
+              <div className="flex min-w-0 items-center gap-3">
                 <button
+                  type="button"
                   onClick={() => setCurrentStep(2)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center shadow-2xs active:scale-95"
+                  className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-4 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-200 active:scale-95"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Editar Seleções
+                  <ArrowLeft className="size-3.5" aria-hidden="true" /> Editar Seleções
                 </button>
-                <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+                <span className="hidden text-xs font-medium text-slate-500 lg:inline">
                   Laudo estruturado e pronto para envio ao paciente ou impressão em PDF.
                 </span>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:flex md:shrink-0">
                 <button
-                  onClick={() => window.print()}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95"
+                  type="button"
+                  onClick={saveEvaluation}
+                  disabled={isSavingEvaluation}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
                 >
-                  <Printer className="w-4 h-4 mr-1.5" />
+                  <Save className="size-4 shrink-0" aria-hidden="true" />
+                  <span>{isSavingEvaluation ? 'Salvando…' : savedEvaluationId ? 'Atualizar no prontuário' : 'Salvar no prontuário'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 active:scale-95"
+                >
+                  <Printer className="size-4 shrink-0" aria-hidden="true" />
                   <span>Imprimir / Salvar em PDF</span>
                 </button>
               </div>

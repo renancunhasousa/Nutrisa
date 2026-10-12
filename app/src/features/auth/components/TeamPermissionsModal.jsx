@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import {
   Check,
   Copy,
-  Edit2,
+  Eye,
+  EyeOff,
   KeyRound,
-  Plus,
-  Shield,
+  Pencil,
   Trash2,
-  UserCheck,
   UserPlus,
   Users,
   X,
@@ -23,14 +22,17 @@ import {
 import { useAuth } from '../useAuth.js';
 
 export default function TeamPermissionsModal({ open, onClose }) {
-  const { organizationId, user } = useAuth();
-  const [inviteCode, setInviteCode] = useState(() => getClinicInviteCode(organizationId));
+  const { organizationId, user, isOwner } = useAuth();
+  const [inviteCode, setInviteCode] = useState('');
+  const [showCode, setShowCode] = useState(false);
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [tempCode, setTempCode] = useState(inviteCode);
   const [copied, setCopied] = useState(false);
 
-  const [members, setMembers] = useState(() => listTeamMembers(organizationId, user));
+  const [members, setMembers] = useState([]);
+  const [actionError, setActionError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingMemberId, setEditingMemberId] = useState(null);
 
   // Formulário de novo membro
   const [newMemberName, setNewMemberName] = useState('');
@@ -39,13 +41,19 @@ export default function TeamPermissionsModal({ open, onClose }) {
   const [newMemberModules, setNewMemberModules] = useState(ROLE_PRESETS.receptionist.modules);
 
   useEffect(() => {
-    if (open) {
-      setInviteCode(getClinicInviteCode(organizationId));
-      setMembers(listTeamMembers(organizationId, user));
-    }
-  }, [open, organizationId, user]);
+    if (!open || !organizationId || !isOwner) return undefined;
+    let cancelled = false;
+    Promise.all([getClinicInviteCode(organizationId), listTeamMembers(organizationId)])
+      .then(([code, team]) => {
+        if (cancelled) return;
+        setInviteCode(code); setTempCode(code); setMembers(team);
+        setEditingMemberId(null); setShowAddForm(false);
+      })
+      .catch((error) => { if (!cancelled) setActionError(error.message); });
+    return () => { cancelled = true; };
+  }, [open, organizationId, isOwner]);
 
-  if (!open) return null;
+  if (!open || !isOwner) return null;
 
   const handleCopyCode = async () => {
     try {
@@ -57,9 +65,9 @@ export default function TeamPermissionsModal({ open, onClose }) {
     }
   };
 
-  const handleSaveCode = () => {
+  const handleSaveCode = async () => {
     try {
-      const saved = saveClinicInviteCode(organizationId, tempCode);
+      const saved = await saveClinicInviteCode(organizationId, tempCode);
       setInviteCode(saved);
       setIsEditingCode(false);
     } catch (e) {
@@ -83,6 +91,14 @@ export default function TeamPermissionsModal({ open, onClose }) {
     );
   };
 
+  const persistMember = async (member, role, permissions) => {
+    try {
+      setActionError('');
+      const updated = await saveTeamMember(organizationId, { ...member, role, permissions });
+      setMembers((prev) => prev.map((item) => (item.id === member.id ? { ...updated, id: member.id } : item)));
+    } catch (error) { setActionError(error.message); }
+  };
+
   const handleToggleModuleInMember = (member, moduleId) => {
     if (member.isOwner) return; // Não pode restringir o proprietário
 
@@ -91,25 +107,25 @@ export default function TeamPermissionsModal({ open, onClose }) {
       ? currentModules.filter((id) => id !== moduleId)
       : [...currentModules, moduleId];
 
-    const updated = saveTeamMember(organizationId, {
-      ...member,
-      role: 'custom',
-      permissions: updatedModules,
-    });
-
-    setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    persistMember(member, 'custom', updatedModules);
   };
 
-  const handleCreateMember = (e) => {
+  const handleMemberRoleChange = (member, role) => {
+    const modules = role === 'owner'
+      ? CLINICAL_MODULES.map((module) => module.id)
+      : (ROLE_PRESETS[role]?.modules || member.permissions || []);
+    persistMember(member, role, modules);
+  };
+
+  const handleCreateMember = async (e) => {
     e.preventDefault();
     if (!newMemberName.trim() || !newMemberEmail.trim()) return;
 
-    const created = saveTeamMember(organizationId, {
-      name: newMemberName.trim(),
-      email: newMemberEmail.trim().toLowerCase(),
-      role: newMemberRole,
-      permissions: newMemberModules,
-    });
+    let created;
+    try {
+      setActionError('');
+      created = await saveTeamMember(organizationId, { name: newMemberName.trim(), email: newMemberEmail.trim().toLowerCase(), role: newMemberRole, permissions: newMemberModules });
+    } catch (error) { setActionError(error.message); return; }
 
     setMembers((prev) => [...prev.filter((m) => m.id !== created.id), created]);
     setNewMemberName('');
@@ -119,10 +135,14 @@ export default function TeamPermissionsModal({ open, onClose }) {
     setShowAddForm(false);
   };
 
-  const handleDeleteMember = (memberId) => {
+  const handleDeleteMember = async (memberId) => {
     if (!window.confirm('Remover este membro da clínica?')) return;
-    deleteTeamMember(organizationId, memberId);
-    setMembers((prev) => prev.filter((m) => m.id !== memberId));
+    try {
+      setActionError('');
+      await deleteTeamMember(organizationId, memberId);
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+    } catch (error) { setActionError(error.message); }
+    if (editingMemberId === memberId) setEditingMemberId(null);
   };
 
   return (
@@ -135,36 +155,37 @@ export default function TeamPermissionsModal({ open, onClose }) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative flex flex-col w-full max-w-4xl max-h-[92vh] overflow-hidden bg-white rounded-3xl border border-slate-200 shadow-2xl animate-scaleUp">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 bg-linear-to-r from-emerald-50/70 via-white to-slate-50 p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-xs">
-              <Users className="size-5" />
+      <div className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-scaleUp">
+        {/* Header Padrão dos Modais */}
+        <header className="app-modal-header flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+              <Users className="size-5" aria-hidden="true" />
             </span>
-            <div>
-              <h2 id="team-modal-title" className="text-lg font-black text-slate-900">
-                Equipe & Permissões da Clínica
+            <div className="min-w-0">
+              <h2 id="team-modal-title" className="text-xl font-black text-slate-900">
+                Membros da equipe
               </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Defina o que a Secretária e o Administrativo podem ver marcando os atalhos.
+              <p className="text-xs text-slate-500">
+                Organize colaboradores, cargos e permissões de acesso.
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex size-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            className="flex size-10 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
             aria-label="Fechar"
           >
             <X className="size-5" />
           </button>
-        </div>
+        </header>
 
         {/* Corpo com scroll */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+        <div className="flex-1 space-y-6 overflow-y-auto bg-slate-50/70 p-5 sm:p-6">
+          {actionError ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs font-semibold text-rose-700">{actionError}</p> : null}
           {/* Card do Código de Convite da Clínica */}
-          <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <section className="flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <KeyRound className="size-4 text-emerald-700" />
@@ -176,13 +197,13 @@ export default function TeamPermissionsModal({ open, onClose }) {
                 </span>
               </div>
               <p className="text-xs text-slate-600 max-w-xl">
-                Envie este código para sua secretária ou financeiro. No primeiro login deles, basta informar este código para ingressar na sua clínica.
+                Envie este código para sua secretária ou financeiro. No login, basta inserir o código para acessar a clínica com suas permissões.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               {isEditingCode ? (
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <input
                     type="text"
                     value={tempCode}
@@ -193,7 +214,7 @@ export default function TeamPermissionsModal({ open, onClose }) {
                   <button
                     type="button"
                     onClick={handleSaveCode}
-                    className="min-h-10 px-3 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700"
+                    className="min-h-10 px-3 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 cursor-pointer shadow-xs"
                   >
                     Salvar
                   </button>
@@ -203,16 +224,30 @@ export default function TeamPermissionsModal({ open, onClose }) {
                       setTempCode(inviteCode);
                       setIsEditingCode(false);
                     }}
-                    className="min-h-10 px-2 rounded-xl text-xs text-slate-500 hover:bg-slate-200/60"
+                    className="min-h-10 px-2 rounded-xl text-xs text-slate-500 hover:bg-slate-200/60 cursor-pointer"
                   >
                     Cancelar
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <div className="rounded-xl border border-emerald-300 bg-white px-3.5 py-2 font-mono text-sm font-black tracking-wider text-emerald-900 shadow-2xs">
-                    {inviteCode}
+                  {/* Código com opção de ocultar / mostrar */}
+                  <div className="flex items-center min-w-[130px] justify-center rounded-xl border border-emerald-300 bg-white px-3.5 py-2 font-mono text-sm font-black tracking-wider text-emerald-900 shadow-2xs select-none">
+                    {showCode ? inviteCode : '••••••••••'}
                   </div>
+
+                  {/* Botão de Olhinho */}
+                  <button
+                    type="button"
+                    onClick={() => setShowCode((prev) => !prev)}
+                    className="flex size-10 items-center justify-center rounded-xl border border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100 transition-colors shadow-2xs cursor-pointer"
+                    title={showCode ? 'Ocultar código' : 'Visualizar código'}
+                    aria-label={showCode ? 'Ocultar código' : 'Visualizar código'}
+                  >
+                    {showCode ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+
+                  {/* Botão de Copiar */}
                   <button
                     type="button"
                     onClick={handleCopyCode}
@@ -222,33 +257,44 @@ export default function TeamPermissionsModal({ open, onClose }) {
                     {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
                     <span>{copied ? 'Copiado!' : 'Copiar'}</span>
                   </button>
+
+                  {/* Botão de Editar Código */}
                   <button
                     type="button"
                     onClick={() => setIsEditingCode(true)}
                     className="flex size-10 items-center justify-center rounded-xl border border-emerald-300 bg-white text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                     title="Editar código"
                   >
-                    <Edit2 className="size-3.5" />
+                    <Pencil className="size-3.5" />
                   </button>
                 </div>
               )}
             </div>
           </section>
 
-          {/* Botão de Adicionar Membro */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <UserCheck className="size-4 text-emerald-600" />
-              Membros & Permissões Liberadas
-            </h3>
+          {/* Seção de Membros com Título Padrão */}
+          <section className="space-y-5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-slate-900">
+                <Users className="size-4 text-emerald-600" aria-hidden="true" />
+                Membros da equipe
+              </h3>
+              <p className="text-xs text-slate-500">
+                Controle os acessos e permissões de cada colaborador
+              </p>
+            </div>
             {!showAddForm ? (
               <button
                 type="button"
-                onClick={() => setShowAddForm(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all cursor-pointer shadow-2xs"
+                onClick={() => {
+                  setShowAddForm(true);
+                  setEditingMemberId(null);
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-all cursor-pointer shadow-sm"
               >
-                <UserPlus className="size-3.5" />
-                Adicionar Membro
+                <UserPlus className="size-4" />
+                Adicionar membro
               </button>
             ) : null}
           </div>
@@ -299,7 +345,7 @@ export default function TeamPermissionsModal({ open, onClose }) {
                   >
                     <option value="receptionist">Secretária / Recepção</option>
                     <option value="assistant">Administrativo / Financeiro</option>
-                    <option value="owner">Dra. / Nutricionista (Total)</option>
+                    <option value="owner">Acesso mestre (Total)</option>
                     <option value="custom">Personalizado</option>
                   </select>
                 </div>
@@ -352,7 +398,7 @@ export default function TeamPermissionsModal({ open, onClose }) {
                         title={mod.description}
                       >
                         <Icon className={`size-4 shrink-0 ${isChecked ? 'text-emerald-600' : 'text-slate-400'}`} />
-                        <span className="truncate flex-1">{mod.label}</span>
+                        <span className="min-w-0 flex-1 break-words leading-snug">{mod.label}</span>
                         {isChecked ? <Check className="size-3.5 text-emerald-600 shrink-0" /> : null}
                       </button>
                     );
@@ -364,29 +410,35 @@ export default function TeamPermissionsModal({ open, onClose }) {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="min-h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/50"
+                  className="min-h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/50 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="min-h-9 px-4 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs"
+                  className="inline-flex items-center gap-1.5 min-h-9 px-4 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs cursor-pointer"
                 >
-                  Salvar Membro
+                  <Check className="size-3.5" />
+                  Salvar membro
                 </button>
               </div>
             </form>
           ) : null}
 
           {/* Lista de Membros */}
-          <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-2xs">
+          <div className="space-y-4">
             {members.map((member) => {
               const memberModules = Array.isArray(member.permissions) ? member.permissions : [];
+              const isEditing = editingMemberId === member.id;
+              const isSelf = member.user_id === user?.id;
+
               return (
-                <div key={member.id} className="p-4 sm:p-5 flex flex-col gap-3.5 hover:bg-slate-50/40 transition-colors">
-                  {/* Info do Membro e Ações */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                <div key={member.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs transition-colors hover:border-slate-300 sm:p-5">
+                  {/* Linha Principal do Membro: Acessos Apenas por Ícones */}
+                  <div className="flex flex-col gap-4 border-b border-slate-100 pb-4">
+                    {/* Info do Membro */}
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
                       <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-xs font-black shadow-2xs ${
                         member.isOwner
                           ? 'bg-emerald-600 text-white'
@@ -395,116 +447,197 @@ export default function TeamPermissionsModal({ open, onClose }) {
                         {member.name?.slice(0, 2).toUpperCase() || 'MB'}
                       </span>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-black text-slate-900 truncate">{member.name}</h4>
-                          {member.isOwner ? (
-                            <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-emerald-800">
-                              Proprietária
-                            </span>
-                          ) : (
-                            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
-                              {ROLE_PRESETS[member.role]?.label || 'Equipe'}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 truncate">{member.email}</p>
+                        <h4 className="break-words text-base font-black leading-snug text-slate-900">{member.name}</h4>
+                        <p className="mt-1 break-all text-sm leading-relaxed text-slate-500">{member.email}</p>
                       </div>
+                      </div>
+                      <span className={`mt-0.5 shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase ${
+                        member.isOwner
+                          ? member.user_id === user?.id
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {member.isOwner
+                          ? member.user_id === user?.id ? 'Proprietária' : 'Acesso mestre'
+                          : ROLE_PRESETS[member.role]?.label || 'Equipe'}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      {!member.isOwner ? (
-                        <>
-                          <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
-                            {memberModules.length} de {CLINICAL_MODULES.length} liberados
-                          </span>
+                    {/* Acessos: Apenas por Ícones quando já cadastrado */}
+                    <div className="flex w-full flex-col gap-3">
+                      {/* Barra Compacta Somente com Ícones */}
+                      {!isEditing ? <div className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200/70 bg-slate-50 p-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {CLINICAL_MODULES.map((mod) => {
+                          const hasAccess = member.isOwner || memberModules.includes(mod.id);
+                          const Icon = mod.icon;
+                          return (
+                            <button
+                              key={mod.id}
+                              type="button"
+                              disabled={member.isOwner}
+                              onClick={() => handleToggleModuleInMember(member, mod.id)}
+                              className={`flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs font-bold transition-all ${
+                                hasAccess
+                                  ? 'bg-white border-emerald-300 text-emerald-800 shadow-2xs'
+                                  : 'bg-transparent border-transparent text-slate-300 opacity-25 hover:opacity-60'
+                              } ${member.isOwner ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+                              title={`${mod.label}: ${hasAccess ? 'Liberado (Clique para bloquear)' : 'Bloqueado (Clique para liberar)'}`}
+                              aria-label={`${mod.label}: ${hasAccess ? 'Liberado' : 'Bloqueado'}`}
+                            >
+                              <Icon className="size-4 shrink-0" strokeWidth={hasAccess ? 2.2 : 1.5} />
+                              <span className="min-w-0 flex-1 break-words leading-snug">{mod.label}</span>
+                              {hasAccess ? <Check className="size-4 shrink-0 text-emerald-600" /> : <X className="size-4 shrink-0 text-slate-300" />}
+                            </button>
+                          );
+                        })}
+                      </div> : null}
+
+                      {/* Botões de Ação do Membro */}
+                      {!isSelf ? (
+                        <div className="flex w-full flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              const all = CLINICAL_MODULES.map((m) => m.id);
-                              const updated = saveTeamMember(organizationId, {
-                                ...member,
-                                role: 'custom',
-                                permissions: all,
-                              });
-                              setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-                            }}
-                            className="text-[11px] font-bold text-emerald-600 hover:underline px-1 cursor-pointer"
+                            onClick={() => setEditingMemberId(isEditing ? null : member.id)}
+                            className={`inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border px-4 text-xs font-bold transition-colors cursor-pointer shadow-2xs sm:flex-none ${
+                              isEditing
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
+                            }`}
+                            title={isEditing ? 'Fechar edição detalhada' : 'Editar permissões com texto'}
                           >
-                            Liberar todos
+                            <Pencil className="size-3.5" />
+                            <span>{isEditing ? 'Fechar' : 'Editar'}</span>
                           </button>
-                          <span className="text-slate-300">•</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = saveTeamMember(organizationId, {
-                                ...member,
-                                role: 'custom',
-                                permissions: [],
-                              });
-                              setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-                            }}
-                            className="text-[11px] font-bold text-slate-400 hover:underline px-1 cursor-pointer"
-                          >
-                            Bloquear todos
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMember(member.id)}
-                            className="flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors ml-1 cursor-pointer"
-                            title="Remover membro"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </>
+                          {!member.isOwner ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMember(member.id)}
+                              className="flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                              title="Remover membro"
+                              aria-label={`Remover ${member.name}`}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          ) : null}
+                        </div>
                       ) : (
-                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
-                          Acesso irrestrito a todos os recursos
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
+                          Seu acesso mestre
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* As 13 Opções da Barra Lateral para Marcar/Desmarcar */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-1.5 p-2 rounded-2xl bg-slate-50/80 border border-slate-200/80">
-                    {CLINICAL_MODULES.map((mod) => {
-                      const hasAccess = member.isOwner || memberModules.includes(mod.id);
-                      const Icon = mod.icon;
-                      return (
+                  {/* Painel de Edição Detalhada (Aparece com texto apenas ao clicar em Editar) */}
+                  {isEditing && !isSelf ? (
+                    <div className="mt-1 space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 animate-fadeIn sm:p-5">
+                      <div className="flex flex-col gap-4 border-b border-emerald-200/60 pb-4">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-xs font-black uppercase text-emerald-950">
+                            Editando permissões: {member.name}
+                          </span>
+                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                            {memberModules.length} de {CLINICAL_MODULES.length} liberados
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                          {/* Seletor de Cargo no Modo Edição */}
+                          <div className="flex max-w-md flex-col gap-1.5">
+                            <label htmlFor={`member-role-${member.id}`} className="text-xs font-bold text-slate-600">Cargo e nível de acesso</label>
+                            <select
+                              id={`member-role-${member.id}`}
+                              value={member.role || 'custom'}
+                              onChange={(e) => handleMemberRoleChange(member, e.target.value)}
+                              className="min-h-11 w-full rounded-xl border border-emerald-300 bg-white px-3 text-sm font-bold text-slate-800"
+                            >
+                              <option value="receptionist">Secretária / Recepção</option>
+                              <option value="assistant">Administrativo / Financeiro</option>
+                              <option value="custom">Personalizado</option>
+                              <option value="owner">Acesso mestre</option>
+                            </select>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                            type="button"
+                            onClick={() => {
+                              const all = CLINICAL_MODULES.map((m) => m.id);
+                              persistMember(member, 'custom', all);
+                            }}
+                            className="min-h-9 rounded-xl border border-emerald-200 bg-white px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+                          >
+                            Marcar todos
+                          </button>
+                            <button
+                            type="button"
+                            onClick={() => {
+                              persistMember(member, 'custom', []);
+                            }}
+                            className="min-h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                          >
+                            Desmarcar todos
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Grade Completa com Ícones + Nomes em Texto + Checkmark */}
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {CLINICAL_MODULES.map((mod) => {
+                          const hasAccess = memberModules.includes(mod.id);
+                          const Icon = mod.icon;
+                          return (
+                            <button
+                              key={mod.id}
+                              type="button"
+                              onClick={() => handleToggleModuleInMember(member, mod.id)}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
+                                hasAccess
+                                  ? 'bg-white border-emerald-300 text-emerald-950 shadow-2xs ring-1 ring-emerald-400/30'
+                                  : 'bg-white/60 border-slate-200 text-slate-400 opacity-60 hover:opacity-90'
+                              }`}
+                              title={`${mod.label}: ${hasAccess ? 'Liberado (Clique para bloquear)' : 'Bloqueado (Clique para liberar)'}`}
+                            >
+                              <Icon className={`size-4 shrink-0 ${hasAccess ? 'text-emerald-600' : 'text-slate-400'}`} />
+                              <span className="min-w-0 flex-1 break-words text-xs leading-snug">{mod.label}</span>
+                              {hasAccess ? <Check className="size-3.5 text-emerald-600 shrink-0" /> : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex justify-end pt-1">
                         <button
-                          key={mod.id}
                           type="button"
-                          disabled={member.isOwner}
-                          onClick={() => handleToggleModuleInMember(member, mod.id)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border text-left ${
-                            hasAccess
-                              ? 'bg-white border-emerald-300 text-emerald-900 shadow-2xs ring-1 ring-emerald-400/25'
-                              : 'bg-white/60 border-slate-200 text-slate-400 opacity-50 hover:opacity-80'
-                          } ${member.isOwner ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
-                          title={`${mod.label}: ${hasAccess ? 'Liberado (Clique para bloquear)' : 'Bloqueado (Clique para liberar)'}`}
+                          onClick={() => setEditingMemberId(null)}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-2xs cursor-pointer"
                         >
-                          <Icon className={`size-3.5 shrink-0 ${hasAccess ? 'text-emerald-600' : 'text-slate-400'}`} />
-                          <span className="truncate flex-1 text-[11px]">{mod.label}</span>
-                          {hasAccess ? <Check className="size-3 text-emerald-600 shrink-0" /> : null}
+                          <Check className="size-3.5" />
+                          Salvar alterações
                         </button>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
           </div>
+          </section>
         </div>
 
-        {/* Rodapé */}
+        {/* Rodapé com Botão Concluir Verde e Ícone */}
         <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 p-4 sm:p-5">
           <p className="text-xs text-slate-500">
-            Dica: basta clicar em qualquer ícone para liberar ou bloquear o acesso do membro em tempo real.
+            Dica: clique no ícone para alternar permissões rápidas ou em "Editar" para detalhes em texto.
           </p>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-10 px-5 rounded-xl bg-slate-900 text-xs font-bold text-white hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-2 min-h-10 px-5 rounded-2xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 transition-all cursor-pointer shadow-sm"
           >
+            <Check className="size-4" />
             Concluir
           </button>
         </div>

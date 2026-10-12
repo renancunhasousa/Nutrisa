@@ -52,6 +52,7 @@ function AppRouter() {
 
 function ClinicalApp({ appMode, setMode }) {
   const settings = useAppSettings();
+  const { canAccessModule } = useAuth();
 
   const setAppMode = (mode) => {
     const nextMode = writeAppMode(mode);
@@ -76,7 +77,11 @@ function ClinicalApp({ appMode, setMode }) {
     <AppLayout settings={settings} appMode={appMode} setAppMode={setAppMode}>
       <Suspense fallback={<p className="p-8 text-center">Carregando módulo…</p>}>
         <main className="app-main relative z-10 mx-auto w-full max-w-[1600px] min-w-0 px-3 pb-24 pt-4 sm:px-5 md:pb-8 md:pt-5 print:p-0">
-          {pages[appMode]}
+          {canAccessModule(appMode) ? pages[appMode] : (
+            <section role="alert" className="mx-auto max-w-lg rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-900">
+              Seu perfil não possui permissão para acessar este módulo.
+            </section>
+          )}
         </main>
       </Suspense>
     </AppLayout>

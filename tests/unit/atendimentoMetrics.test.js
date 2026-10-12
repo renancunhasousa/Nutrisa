@@ -137,3 +137,17 @@ test('evaluateSecretaryGoals fails categorization when secretary is not focused 
   assert.equal(evaluation.isBonusAtingido, false);
   assert.equal(evaluation.avaliacaoMetas[3].atingido, false);
 });
+
+test('métricas detalham respostas pelo usuário autenticado sem quebrar os grupos existentes', () => {
+  const rows = [
+    { respondida: true, tempo_espera_minutos: 4, source: 'secretaria', responded_by_user_id: 'u1', responded_by_name: 'Ana', responded_by_role: 'receptionist', responded_by_type: 'secretaria' },
+    { respondida: true, tempo_espera_minutos: 6, source: 'secretaria', responded_by_user_id: 'u1', responded_by_name: 'Ana', responded_by_role: 'receptionist', responded_by_type: 'secretaria' },
+    { respondida: true, tempo_espera_minutos: 3, source: 'primario', responded_by_user_id: 'u2', responded_by_name: 'Dra. Isabela', responded_by_role: 'owner', responded_by_type: 'isabela' },
+  ];
+  const stats = calculateComparisonStats(rows, (item) => item.responded_by_type === 'isabela' ? 'isabela' : 'secretaria');
+  assert.deepEqual(stats.responderBreakdown.map(({ name, total, type }) => ({ name, total, type })), [
+    { name: 'Ana', total: 2, type: 'secretaria' },
+    { name: 'Dra. Isabela', total: 1, type: 'isabela' },
+  ]);
+  assert.equal(stats.totalAnswered, 3);
+});

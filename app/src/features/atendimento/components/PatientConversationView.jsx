@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CalendarDays, Clock3, ExternalLink, LoaderCircle, MessageCircle, RefreshCw, Search, Send, Tag, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CheckCircle2, Clock3, ExternalLink, LoaderCircle, MessageCircle, RefreshCw, Search, Send, Tag, UserRound } from 'lucide-react';
 import PageHeader from '../../../shared/ui/PageHeader.jsx';
 import { fetchPatientConversations, subscribeToPatientConversations } from '../services/conversations.js';
 import { parseWhatsAppFormatting } from '../domain/whatsappFormatting.js';
 import { formatWaitTime } from '../../../shared/utils/formatters.js';
-import { getAttendantType } from '../domain/classification.js';
+import { getAttendantType, getResponderLabel, getResponderType } from '../domain/classification.js';
+import { sendWhatsAppMessage } from '../services/whatsappSender.js';
+import { useAuth } from '../../auth/useAuth.js';
 
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
 
@@ -44,8 +46,10 @@ function WhatsAppText({ children }) {
 }
 
 const PAGE_SIZE = 50;
+const AUTO_REFRESH_INTERVAL_MS = 30_000;
 
 export default function PatientConversationView({ patient, onBack }) {
+  const { user, organizationId, currentMember } = useAuth();
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState([]);
@@ -54,6 +58,10 @@ export default function PatientConversationView({ patient, onBack }) {
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [sendSuccess, setSendSuccess] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
   const scrollRef = useRef(null);
   const initialScrollDone = useRef(false);
   const restoreScrollRef = useRef(null);
@@ -79,6 +87,7 @@ export default function PatientConversationView({ patient, onBack }) {
         setPage(0);
         initialScrollDone.current = false;
       }
+      setLastUpdated(new Date());
     } catch (requestError) {
       setError(requestError.message || 'Não foi possível carregar a conversa.');
     } finally {
@@ -89,6 +98,18 @@ export default function PatientConversationView({ patient, onBack }) {
   useEffect(() => { loadLatest(); }, [loadLatest]);
 
   useEffect(() => subscribeToPatientConversations(patient?.id, () => loadLatest({ preservePosition: true })), [patient?.id, loadLatest]);
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') loadLatest({ preservePosition: true });
+    };
+    const intervalId = window.setInterval(refreshWhenVisible, AUTO_REFRESH_INTERVAL_MS);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [loadLatest]);
 
   useEffect(() => {
     const viewport = scrollRef.current;
@@ -141,6 +162,38 @@ export default function PatientConversationView({ patient, onBack }) {
     window.open(`https://wa.me/${internationalPhone}?text=${encodeURIComponent(draft.trim())}`, '_blank', 'noopener,noreferrer');
   };
 
+  const sendMessage = async (event) => {
+    event.preventDefault();
+    if (sending) return;
+    const message = draft.trim();
+    setSendError('');
+    setSendSuccess('');
+    setSending(true);
+    try {
+      await sendWhatsAppMessage({
+        phone: patient?.phone,
+        message,
+        patientId: patient?.id,
+        requestedBy: user?.id,
+        organizationId,
+        responderName: currentMember?.name || currentMember?.display_name || user?.user_metadata?.full_name || user?.email,
+        responderRole: currentMember?.role,
+        responderType: getResponderType({
+          role: currentMember?.role,
+          name: currentMember?.name || currentMember?.display_name || user?.user_metadata?.full_name,
+          email: currentMember?.email || user?.email,
+        }),
+      });
+      setDraft('');
+      setSendSuccess('Mensagem enviada pelo WhatsApp.');
+      window.setTimeout(() => loadLatest({ preservePosition: true }), 1200);
+    } catch (requestError) {
+      setSendError(requestError.message || 'Não foi possível enviar a mensagem.');
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="animate-fadeIn flex h-[calc(100dvh-7rem)] min-h-0 flex-col gap-5 overflow-hidden">
       <div className="shrink-0">
@@ -163,13 +216,22 @@ export default function PatientConversationView({ patient, onBack }) {
               <p className="truncate text-xs font-medium text-slate-500">{patient?.phone || 'WhatsApp não informado'} · {messages.length} mensagens carregadas</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <label className="relative min-w-0 flex-1 sm:w-64">
               <span className="sr-only">Buscar no histórico</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar na conversa" className="min-h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100" />
             </label>
-            <button type="button" onClick={() => loadLatest()} disabled={loading} aria-label="Atualizar conversa" title="Atualizar conversa" className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /></button>
+            {lastUpdated ? (
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-semibold text-slate-600" title={lastUpdated.toLocaleString('pt-BR')}>
+                <Clock3 aria-hidden="true" className="size-3.5 text-emerald-600" />
+                Atualizado às {lastUpdated.toLocaleTimeString('pt-BR')}
+              </span>
+            ) : null}
+            <button type="button" onClick={() => loadLatest()} disabled={loading} className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-emerald-500 active:scale-95 disabled:cursor-wait disabled:opacity-50">
+              <RefreshCw aria-hidden="true" className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Atualizar</span>
+            </button>
           </div>
         </header>
 
@@ -201,7 +263,7 @@ export default function PatientConversationView({ patient, onBack }) {
               const responseBadge = isIsabela
                 ? 'border-teal-200 bg-white/70'
                 : 'border-purple-200 bg-white/70';
-              const attendantLabel = isIsabela ? 'Dra. Isabela' : 'Secretária';
+              const attendantLabel = getResponderLabel(item);
               return (
                 <li key={item.id || item.id_mensagem} className="space-y-2.5">
                   <div className="flex justify-center"><span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold capitalize text-slate-400 shadow-2xs"><CalendarDays className="size-3" /> {formatDay(receivedAt)}</span></div>
@@ -214,11 +276,22 @@ export default function PatientConversationView({ patient, onBack }) {
         </div>
 
         <footer className="shrink-0 border-t border-slate-100 bg-white p-4 sm:p-5">
-          <div className="mx-auto flex max-w-4xl items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
-            <textarea rows="1" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Escreva uma mensagem" className="min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-slate-700 outline-none" />
-            <button type="button" onClick={openWhatsApp} disabled={!draft.trim() || !normalizePhone(patient?.phone)} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400" aria-label="Abrir mensagem no WhatsApp" title="Abre o WhatsApp com a mensagem preenchida"><Send className="size-4" /><span className="hidden sm:inline">Abrir no WhatsApp</span><ExternalLink className="hidden size-3 sm:block" /></button>
-          </div>
-          <p className="mx-auto mt-2 max-w-4xl text-[10px] text-slate-400">O envio abre o WhatsApp. O envio direto pelo sistema dependerá da conexão com uma API oficial.</p>
+          <form method="POST" action="#" onSubmit={sendMessage} className="mx-auto max-w-4xl" aria-describedby="patient-message-status">
+            <label htmlFor="patient-whatsapp-message" className="sr-only">Mensagem para o paciente</label>
+            <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100">
+              <textarea id="patient-whatsapp-message" name="message" rows="1" required maxLength="4096" value={draft} onChange={(event) => { setDraft(event.target.value); setSendError(''); setSendSuccess(''); }} placeholder="Escreva uma mensagem" className="min-h-12 flex-1 resize-y bg-transparent px-2 py-3 text-base text-slate-700 outline-none sm:text-sm" />
+              <button type="button" onClick={openWhatsApp} disabled={!draft.trim() || !normalizePhone(patient?.phone) || sending} className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Abrir mensagem no WhatsApp" title="Abrir no WhatsApp como alternativa"><ExternalLink className="size-4" /></button>
+              <button type="submit" disabled={!draft.trim() || !normalizePhone(patient?.phone) || sending} className="inline-flex min-h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400" aria-label="Enviar mensagem pelo WhatsApp">
+                {sending ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+                <span className="hidden sm:inline">{sending ? 'Enviando…' : 'Enviar'}</span>
+              </button>
+            </div>
+            <div id="patient-message-status" aria-live="polite" className="mt-2 min-h-4 text-xs">
+              {sendError ? <p role="alert" className="font-semibold text-rose-700">{sendError} O texto foi preservado para tentar novamente.</p> : null}
+              {sendSuccess ? <p className="inline-flex items-center gap-1.5 font-semibold text-emerald-700"><CheckCircle2 className="size-3.5" />{sendSuccess}</p> : null}
+              {!sendError && !sendSuccess ? <p className="text-slate-400">Envio direto pela conexão WhatsApp da NutrIsa. Use o botão externo como alternativa.</p> : null}
+            </div>
+          </form>
         </footer>
       </section>
     </div>

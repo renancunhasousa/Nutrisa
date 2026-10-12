@@ -16,3 +16,7 @@ export const GOOGLE_CALENDAR_ID = env.VITE_GOOGLE_CALENDAR_ID || 'primary';
 
 /** Client ID OAuth do Google (para login do Google Calendar) */
 export const GOOGLE_CLIENT_ID = env.VITE_GOOGLE_CLIENT_ID || '';
+
+/** Webhook do n8n que envia mensagens de texto pela instância WhatsApp da NutrIsa */
+export const WHATSAPP_SEND_WEBHOOK_URL = env.VITE_N8N_WHATSAPP_SEND_URL
+  || 'https://n8n.srv1277139.hstgr.cloud/webhook/nutrisa-whatsapp-send';

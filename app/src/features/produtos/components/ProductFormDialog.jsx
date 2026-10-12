@@ -273,8 +273,7 @@ export default function ProductFormDialog({ open, product, onClose, onSave, onBa
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm"><Apple className="size-5" aria-hidden="true" /></span>
             <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">Catálogo nutricional</p>
-            <h2 id="product-form-title" className="truncate text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">{product?.id ? 'Editar item' : 'Novo item nutricional'}</h2>
+            <h2 id="product-form-title" className="text-xl font-black text-slate-900">{product?.id ? 'Editar item' : 'Novo item nutricional'}</h2>
             <p className="text-xs text-slate-500">Organize os dados do alimento, porção e nutrientes.</p>
             </div>
           </div>

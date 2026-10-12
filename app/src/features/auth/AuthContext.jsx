@@ -3,11 +3,12 @@ import { isSupabaseConfigured, supabase } from '../../shared/services/supabase.j
 import { cleanAuthTokensFromUrl, extractAuthErrorFromHash, getGoogleOAuthOptions } from './oauth.js';
 import { AuthStateContext } from './useAuth.js';
 import { hasModulePermission } from './permissions.js';
-import { findOrganizationByInviteCode, getMemberForUser } from './services/teamService.js';
+import { getCurrentMembership, joinOrganizationWithInviteCode } from './services/teamService.js';
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [organizationId, setOrganizationId] = useState(null);
+  const [currentMember, setCurrentMember] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState('');
   const userId = session?.user?.id;
@@ -36,6 +37,7 @@ export function AuthProvider({ children }) {
       setSession(nextSession);
       if (!nextSession) {
         setOrganizationId(null);
+        setCurrentMember(null);
       } else {
         cleanAuthTokensFromUrl();
       }
@@ -58,12 +60,17 @@ export function AuthProvider({ children }) {
       try {
         const pendingCode = localStorage.getItem('nutrisa_pending_invite_code');
         if (pendingCode) {
-          const matchedOrg = findOrganizationByInviteCode(pendingCode);
-          if (matchedOrg && matchedOrg !== 'nutrisa-default') {
+          try {
+            const matchedOrg = await joinOrganizationWithInviteCode(pendingCode);
+            localStorage.removeItem('nutrisa_pending_invite_code');
             if (cancelled) return;
             setOrganizationId(matchedOrg);
+            setCurrentMember(await getCurrentMembership());
             setLoading(false);
             return;
+          } catch (inviteError) {
+            localStorage.removeItem('nutrisa_pending_invite_code');
+            setError(inviteError.message);
           }
         }
       } catch {
@@ -79,24 +86,27 @@ export function AuthProvider({ children }) {
         setOrganizationId(null);
       } else {
         setOrganizationId(data);
+        setCurrentMember(await getCurrentMembership());
       }
       setLoading(false);
     };
 
-    loadOrganization();
+    loadOrganization().catch((loadError) => {
+      if (cancelled) return;
+      setError(loadError?.message || 'Não foi possível carregar as permissões da clínica.');
+      setOrganizationId(null);
+      setCurrentMember(null);
+      setLoading(false);
+    });
     return () => { cancelled = true; };
   }, [userId]);
-
-  const currentMember = useMemo(() => {
-    return getMemberForUser(organizationId, session?.user);
-  }, [organizationId, session?.user]);
 
   const value = useMemo(() => ({
     session,
     user: session?.user ?? null,
     organizationId,
     currentMember,
-    isOwner: Boolean(currentMember?.isOwner ?? true),
+    isOwner: Boolean(currentMember?.isOwner),
     canAccessModule: (moduleId) => hasModulePermission(currentMember, moduleId),
     loading,
     error,
@@ -120,9 +130,9 @@ export function AuthProvider({ children }) {
       if (linkError) throw linkError;
     },
     joinWithInviteCode: async (inviteCode) => {
-      const orgId = findOrganizationByInviteCode(inviteCode);
-      if (!orgId) throw new Error('Código de clínica não encontrado ou inválido.');
+      const orgId = await joinOrganizationWithInviteCode(inviteCode);
       setOrganizationId(orgId);
+      setCurrentMember(await getCurrentMembership());
       return orgId;
     },
     signOut: () => supabase?.auth.signOut(),
@@ -130,4 +140,3 @@ export function AuthProvider({ children }) {
 
   return <AuthStateContext.Provider value={value}>{children}</AuthStateContext.Provider>;
 }
-

@@ -176,6 +176,23 @@ export default function WhatsAppAttendantCards({ comparisonStats }) {
       </div>
       </div>
 
+      {comparisonStats.responderBreakdown?.length ? (
+        <section aria-labelledby="identified-responders-title" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs md:p-7">
+          <h3 id="identified-responders-title" className="text-sm font-extrabold text-slate-900">Respostas identificadas por usuário</h3>
+          <p className="mt-1 text-xs text-slate-500">Mensagens enviadas diretamente pela NutrIsa, separadas pelo usuário autenticado.</p>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {comparisonStats.responderBreakdown.map((responder) => (
+              <li key={responder.userId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <strong className="block truncate text-sm text-slate-900">{responder.name}</strong>
+                <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">{responder.type}</span>
+                <span className="mt-3 block text-2xl font-black text-emerald-700">{responder.total}</span>
+                <span className="text-[10px] text-slate-500">respostas no período</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section aria-labelledby="indicator-status-title" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs md:p-7">
         <h3 id="indicator-status-title" className="flex items-center text-sm font-extrabold text-slate-900">
           <CheckCircle2 className="mr-2 size-4 text-emerald-600" aria-hidden="true" />

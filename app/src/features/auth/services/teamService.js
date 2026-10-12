@@ -1,146 +1,73 @@
-import { ROLE_PRESETS } from '../permissions.js';
-
-const STORAGE_INVITE_CODE_KEY = (orgId) => `nutrisa_clinic_invite_code_${orgId || 'default'}`;
-const STORAGE_TEAM_MEMBERS_KEY = (orgId) => `nutrisa_clinic_team_members_${orgId || 'default'}`;
-const GLOBAL_CLINIC_DIRECTORY_KEY = 'nutrisa_clinic_codes_directory';
+import { supabase } from '../../../shared/services/supabase.js';
 
 export function normalizeInviteCode(code = '') {
-  return String(code || '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, '')
-    .trim();
+  return String(code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').trim();
 }
 
-export function getClinicInviteCode(organizationId) {
-  if (!organizationId) return 'NUTRISA-2026';
-  const saved = localStorage.getItem(STORAGE_INVITE_CODE_KEY(organizationId));
-  if (saved) return saved;
-
-  const defaultCode = `NUTRISA-${String(organizationId).slice(0, 4).toUpperCase()}`;
-  saveClinicInviteCode(organizationId, defaultCode);
-  return defaultCode;
+function requireClient() {
+  if (!supabase) throw new Error('O Supabase precisa estar configurado para gerenciar a equipe.');
+  return supabase;
 }
 
-export function saveClinicInviteCode(organizationId, rawCode) {
+function unwrap({ data, error }) {
+  if (error) throw error;
+  return data;
+}
+
+export async function getClinicInviteCode(organizationId) {
+  if (!organizationId) return '';
+  return unwrap(await requireClient().rpc('get_clinic_invite_code', { p_organization_id: organizationId }));
+}
+
+export async function saveClinicInviteCode(organizationId, rawCode) {
   const code = normalizeInviteCode(rawCode);
-  if (!code) throw new Error('O código não pode ser vazio.');
-
-  localStorage.setItem(STORAGE_INVITE_CODE_KEY(organizationId), code);
-
-  // Registra no diretório global local para permitir busca durante o login
-  try {
-    const directory = JSON.parse(localStorage.getItem(GLOBAL_CLINIC_DIRECTORY_KEY) || '{}');
-    directory[code] = organizationId;
-    localStorage.setItem(GLOBAL_CLINIC_DIRECTORY_KEY, JSON.stringify(directory));
-  } catch {
-    // fallback seguro
-  }
-
-  return code;
+  if (code.length < 6) throw new Error('O código precisa ter ao menos 6 caracteres.');
+  return unwrap(await requireClient().rpc('set_clinic_invite_code', { p_organization_id: organizationId, p_code: code }));
 }
 
-export function findOrganizationByInviteCode(rawCode) {
+export async function listTeamMembers(organizationId) {
+  if (!organizationId) return [];
+  const rows = unwrap(await requireClient().rpc('list_clinic_team', { p_organization_id: organizationId })) || [];
+  return rows.map((row) => ({ ...row, permissions: row.permissions || [], isOwner: row.is_owner }));
+}
+
+export async function saveTeamMember(organizationId, memberData) {
+  const id = unwrap(await requireClient().rpc('save_clinic_team_member', {
+    p_organization_id: organizationId, p_id: memberData.id || null, p_name: memberData.name,
+    p_email: memberData.email, p_role: memberData.role, p_permissions: memberData.permissions || [],
+  }));
+  return { ...memberData, id, isOwner: memberData.role === 'owner' };
+}
+
+export async function deleteTeamMember(organizationId, memberId) {
+  unwrap(await requireClient().rpc('delete_clinic_team_member', { p_organization_id: organizationId, p_id: memberId }));
+}
+
+export async function joinOrganizationWithInviteCode(rawCode) {
   const code = normalizeInviteCode(rawCode);
-  if (!code) return null;
-  try {
-    const directory = JSON.parse(localStorage.getItem(GLOBAL_CLINIC_DIRECTORY_KEY) || '{}');
-    if (directory[code]) return directory[code];
-  } catch {
-    // ignore
-  }
-
-  // Se o código for padrão para a clínica da Dra. Isabela
-  if (code.startsWith('NUTRISA') || code.includes('ISABELA')) {
-    return 'nutrisa-default';
-  }
-  return null;
+  if (!code) throw new Error('Informe o código da clínica.');
+  return unwrap(await requireClient().rpc('join_clinic_with_code', { p_code: code }));
 }
 
-export function listTeamMembers(organizationId, currentUser) {
-  const key = STORAGE_TEAM_MEMBERS_KEY(organizationId);
-  let members = [];
-  try {
-    members = JSON.parse(localStorage.getItem(key) || '[]');
-  } catch {
-    members = [];
+export async function getCurrentMembership() {
+  if (!supabase) return null;
+  const rpcResult = await supabase.rpc('get_my_clinic_membership');
+  if (rpcResult.error?.code === 'PGRST202' || rpcResult.error?.status === 404) {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    const userId = authData.user?.id;
+    if (!userId) return null;
+    const fallback = await supabase
+      .from('organization_members')
+      .select('organization_id,user_id,display_name,email,role,permissions')
+      .eq('user_id', userId)
+      .order('created_at')
+      .limit(1)
+      .maybeSingle();
+    const row = unwrap(fallback);
+    return row ? { ...row, permissions: row.permissions || [], isOwner: row.role === 'owner' } : null;
   }
-
-  // Garante que o usuário logado (proprietário/Dra.) exista na lista
-  const ownerEmail = currentUser?.email || 'dra.isabela@nutrisa.com';
-  const hasOwner = members.some((m) => m.role === 'owner');
-  if (!hasOwner) {
-    const ownerMember = {
-      id: currentUser?.id || 'owner-main',
-      name: currentUser?.user_metadata?.full_name || 'Dra. Isabela Munoz',
-      email: ownerEmail,
-      role: 'owner',
-      permissions: ROLE_PRESETS.owner.modules,
-      isOwner: true,
-      created_at: new Date().toISOString(),
-    };
-    members.unshift(ownerMember);
-    localStorage.setItem(key, JSON.stringify(members));
-  }
-
-  return members;
-}
-
-export function saveTeamMember(organizationId, memberData) {
-  const key = STORAGE_TEAM_MEMBERS_KEY(organizationId);
-  let members = [];
-  try {
-    members = JSON.parse(localStorage.getItem(key) || '[]');
-  } catch {
-    members = [];
-  }
-
-  const existingIndex = members.findIndex((m) => m.id === memberData.id || (memberData.email && m.email === memberData.email));
-  const newMember = {
-    ...memberData,
-    id: memberData.id || `member-${Date.now()}`,
-    updated_at: new Date().toISOString(),
-  };
-
-  if (existingIndex >= 0) {
-    members[existingIndex] = { ...members[existingIndex], ...newMember };
-  } else {
-    members.push({
-      ...newMember,
-      created_at: new Date().toISOString(),
-    });
-  }
-
-  localStorage.setItem(key, JSON.stringify(members));
-  return newMember;
-}
-
-export function deleteTeamMember(organizationId, memberId) {
-  const key = STORAGE_TEAM_MEMBERS_KEY(organizationId);
-  let members = [];
-  try {
-    members = JSON.parse(localStorage.getItem(key) || '[]');
-  } catch {
-    members = [];
-  }
-
-  const filtered = members.filter((m) => m.id !== memberId && !m.isOwner);
-  localStorage.setItem(key, JSON.stringify(filtered));
-  return filtered;
-}
-
-export function getMemberForUser(organizationId, user) {
-  if (!user) return null;
-  const members = listTeamMembers(organizationId, user);
-  const found = members.find((m) => m.id === user.id || m.email?.toLowerCase() === user.email?.toLowerCase());
-  if (found) return found;
-
-  // Se for o primeiro usuário ou tiver o papel de owner
-  return members.find((m) => m.role === 'owner') || {
-    id: user.id,
-    name: user.email,
-    email: user.email,
-    role: 'owner',
-    permissions: ROLE_PRESETS.owner.modules,
-    isOwner: true,
-  };
+  const rows = unwrap(rpcResult) || [];
+  const row = rows[0];
+  return row ? { ...row, permissions: row.permissions || [], isOwner: row.is_owner } : null;
 }

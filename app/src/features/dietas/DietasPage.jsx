@@ -18,6 +18,7 @@ import PatientContextBar from '../pacientes/components/PatientContextBar.jsx';
 
 export default function DietasPage({ settings = {} }) {
   const {
+    hasActivePatient,
     plan,
     totals,
     targetComparison,
@@ -194,12 +195,12 @@ export default function DietasPage({ settings = {} }) {
               type="button"
               onClick={() => handleSave(true)}
               disabled={isSaving}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
             >
-              <CheckCircle className="w-4 h-4" />
-              <span>Publicar Dieta</span>
+              {hasActivePatient ? <Save className="size-4" aria-hidden="true" /> : <CheckCircle className="size-4" aria-hidden="true" />}
+              <span>{isSaving ? 'Salvando…' : hasActivePatient ? 'Salvar no prontuário' : 'Publicar dieta'}</span>
             </button>
-            {saveStatus === 'saved' ? <span className="text-xs font-semibold text-emerald-700">Rascunho salvo</span> : null}
+            {saveStatus === 'saved' ? <span className="text-xs font-semibold text-emerald-700">{hasActivePatient ? 'Salvo no prontuário' : 'Dieta salva'}</span> : null}
             {saveStatus === 'error' ? <span className="text-xs font-semibold text-rose-700">Falha ao salvar</span> : null}
           </div>
         }

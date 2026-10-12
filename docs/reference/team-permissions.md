@@ -10,9 +10,9 @@ A plataforma permite que a **Dra. Isabela (Proprietária / Owner)** adicione col
 
 ### Recursos Principais
 1. **Código de Convite da Clínica**:
-   - Cada clínica possui um código exclusivo e legível (ex.: `NUTRISA-2026` ou personalizado como `ISABELA-2026`).
+   - Cada clínica possui um código exclusivo e legível (ex.: `NUTRISA-2026` ou personalizado como `ISABELA-2026`), persistido no Supabase.
    - A Dra. pode copiar ou editar o código no painel de equipe.
-   - Funcionários e secretárias podem inserir esse código na tela de login (`LoginPage.jsx`) para se conectar diretamente à clínica da Dra.
+   - Funcionários e secretárias podem inserir esse código na tela de login (`LoginPage.jsx`). O ingresso só é aceito quando o e-mail autenticado corresponde a um convite previamente cadastrado pela proprietária.
 2. **Presets de Papéis (Roles)**:
    - `owner` (**Dra. / Proprietária**): Acesso total e irrestrito a todos os módulos clínicos e financeiros, além de gerenciar a equipe.
    - `receptionist` (**Secretária / Recepção**): Acesso pré-configurado a Agenda, Atendimento WhatsApp, Tarefas e CRM / Relacionamento.
@@ -52,6 +52,10 @@ A plataforma permite que a **Dra. Isabela (Proprietária / Owner)** adicione col
    - Tanto os botões da barra inferior quanto o menu drawer "Mais" filtram módulos restritos.
 3. **`PacientesPage.jsx` (Atalhos do Paciente)**:
    - A barra horizontal de atalhos rápidos do paciente ativo (`PATIENT_SHORTCUTS`) oculta os módulos que a secretária/assistente não tiver permissão de acessar.
+4. **`App.jsx` (Proteção central de rota)**:
+   - Mesmo que a URL/hash seja alterada manualmente, módulos não autorizados não são renderizados.
+5. **Supabase (fonte de verdade e RLS)**:
+   - Vínculos, convites e permissões são persistidos no banco. As tabelas clínicas verificam a capacidade do módulo nas políticas RLS, além do isolamento por organização.
 
 ---
 

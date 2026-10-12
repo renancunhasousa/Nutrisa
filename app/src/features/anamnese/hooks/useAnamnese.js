@@ -70,6 +70,7 @@ export function useAnamnese({ activeModel }) {
   const [activeTab, setActiveTab] = useState(() => openedRecord ? 'result' : 'input');
   const [notification, setNotification] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSavingReport, setIsSavingReport] = useState(false);
   const [isExtraLoading, setIsExtraLoading] = useState(false);
   const editorRef = useRef(null);
   const savedAnamneseIdRef = useRef(openedRecord?.id || null);
@@ -253,6 +254,19 @@ export function useAnamnese({ activeModel }) {
     }
   };
 
+  const saveEditedReport = async () => {
+    if (!result || !activePatient?.id) return;
+    setIsSavingReport(true);
+    try {
+      await persistGeneratedAnamnese(result);
+      showNotification('Anamnese atualizada no prontuário!', 'success');
+    } catch (error) {
+      showNotification(`Erro ao atualizar prontuário: ${error.message}`, 'error');
+    } finally {
+      setIsSavingReport(false);
+    }
+  };
+
   // ── Clipboard e download ──────────────────────────────────
   const copyToClipboard = async (text) => {
     if (!text) return;
@@ -326,13 +340,14 @@ export function useAnamnese({ activeModel }) {
 
   return {
     // Estado de dados
+    hasActivePatient: Boolean(activePatient?.id),
     patientData, setPatientData,
     doctorData, setDoctorData,
     template, setTemplate,
     savedTemplates,
     selectedTemplateId,
     templateNameInput, setTemplateNameInput,
-    result,
+    result, setResult,
     patientTranslation,
     clinicInsights,
     activeResultView, setActiveResultView,
@@ -341,10 +356,12 @@ export function useAnamnese({ activeModel }) {
     activeTab, setActiveTab,
     notification,
     isGenerating,
+    isSavingReport,
     isExtraLoading,
     editorRef,
     // Handlers
     generateReport,
+    saveEditedReport,
     handleExtraAnalysis,
     copyToClipboard,
     cleanMarkdownToText,

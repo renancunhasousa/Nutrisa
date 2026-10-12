@@ -46,6 +46,20 @@ export function calculateComparisonStats(filteredData = [], getAttendantType) {
 
   const isabelaStats = { ...getStats(isabelaConvs), pendingCount: isabelaPendingCount };
   const secretariaStats = { ...getStats(secretariaConvs), pendingCount: secretariaPendingCount };
+  const responderMap = new Map();
+  filteredData.filter((item) => item.respondida && item.responded_by_user_id).forEach((item) => {
+    const key = item.responded_by_user_id;
+    const current = responderMap.get(key) || {
+      userId: key,
+      name: item.responded_by_name || 'Membro da equipe',
+      role: item.responded_by_role || 'custom',
+      type: item.responded_by_type || 'personalizado',
+      total: 0,
+    };
+    current.total += 1;
+    responderMap.set(key, current);
+  });
+  const responderBreakdown = [...responderMap.values()].sort((a, b) => b.total - a.total);
   const totalAnswered = isabelaStats.answeredCount + secretariaStats.answeredCount;
   const totalMsgs = filteredData.length;
 
@@ -74,7 +88,8 @@ export function calculateComparisonStats(filteredData = [], getAttendantType) {
     secretariaAgendamentoCount,
     secretariaAgendamentoPct,
     isabelaClinicalCount,
-    isabelaClinicalPct
+    isabelaClinicalPct,
+    responderBreakdown
   };
 }
 

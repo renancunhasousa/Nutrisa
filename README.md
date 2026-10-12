@@ -65,9 +65,9 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Montagem de Dietas & Tabela TACO](docs/reference/diet-plan-builder.md): regras de macronutrientes, medidas caseiras, base de alimentos e sincronização com Supabase.
 - [Catálogo Nutricional — Alimentos e Produtos](docs/reference/product-catalog.md): cadastro unificado, base de cálculo, medidas caseiras, código de barras e liberação de itens verificados para dietas.
 - [Central de Tarefas & Follow-up](docs/reference/tasks-module.md): demandas clínicas, sincronização da agenda com regras de prazo e follow-up no WhatsApp.
+- [Atendimento WhatsApp](docs/reference/atendimento-metrics.md): métricas operacionais, conversa por paciente e envio direto de mensagens via n8n/Evolution API.
 - [Atendimento & Metas de Bonificação](docs/reference/atendimento-metrics.md): métricas de SLA, teto de intervenção médica (<= 25%) e foco em agendamentos no relatório executivo.
 - [Estúdio de Posts & IA (Instagram)](docs/reference/marketing-studio.md): gerador de publicações e carrosséis (1080×1350), 7 formatos clínicos, 3 paletas (marrom, tiffany, bege), pautas inteligentes (WhatsApp & Busca Web), exportação ZIP e legendas prontas com IA.
 - [Provedores de IA & Cadeia de Fallback](docs/reference/ai-providers-fallback.md): resiliência automática entre Gemini (titular), OpenAI GPT-4o-mini (1º fallback) e DeepSeek Flash (2º fallback) com suporte a visão e formato JSON.
 
 Os PDFs em `model/` são referências existentes e não são importados pela aplicação. O protótipo antigo foi preservado em `docs/reference/anamnese-prototype.jsx.txt` e não é executável nesta plataforma.
-

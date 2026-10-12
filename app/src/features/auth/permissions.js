@@ -1,5 +1,6 @@
 import {
   Activity,
+  Bot,
   Calendar,
   CheckSquare,
   FileSignature,
@@ -25,7 +26,7 @@ export const CLINICAL_MODULES = [
   { id: 'tarefas', label: 'Tarefas', icon: CheckSquare, description: 'Demandas do dia e follow-up' },
   { id: 'contratos', label: 'Contratos', icon: FileSignature, description: 'Termos de adesão e assinaturas digitais' },
   { id: 'marketing', label: 'Marketing', icon: Sparkles, description: 'Estúdio de posts para Instagram' },
-  { id: 'ai', label: 'Configurar IA', icon: Sparkles, description: 'Ajustes de inteligência artificial' },
+  { id: 'ai', label: 'Configurar IA', icon: Bot, description: 'Ajustes de inteligência artificial' },
   { id: 'configuracoes', label: 'Configurações', icon: Settings, description: 'Perfil da clínica e parâmetros gerais' },
 ];
 

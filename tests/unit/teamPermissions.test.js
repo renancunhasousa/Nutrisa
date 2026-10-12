@@ -2,10 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CLINICAL_MODULES, ROLE_PRESETS, hasModulePermission } from '../../app/src/features/auth/permissions.js';
 import {
-  findOrganizationByInviteCode,
-  getClinicInviteCode,
   normalizeInviteCode,
-  saveClinicInviteCode,
 } from '../../app/src/features/auth/services/teamService.js';
 
 // Setup de localStorage mock para ambiente Node
@@ -86,18 +83,35 @@ test('normalizeInviteCode sanitiza e normaliza o código da clínica', () => {
   assert.equal(normalizeInviteCode('nutrisa-sp'), 'NUTRISA-SP');
 });
 
-test('salva e recupera código de convite da clínica com persistência', () => {
-  const orgId = 'clinica-moema-123';
-  saveClinicInviteCode(orgId, 'DRA-MOEMA');
-
-  const retrieved = getClinicInviteCode(orgId);
-  assert.equal(retrieved, 'DRA-MOEMA');
-
-  const matchedOrg = findOrganizationByInviteCode('dra-moema');
-  assert.equal(matchedOrg, orgId);
+test('serviço de equipe não usa localStorage como fonte de autorização', async () => {
+  const source = await import('node:fs/promises').then((fs) => fs.readFile(
+    new URL('../../app/src/features/auth/services/teamService.js', import.meta.url),
+    'utf8',
+  ));
+  assert.doesNotMatch(source, /localStorage/);
+  assert.match(source, /join_clinic_with_code/);
+  assert.match(source, /get_my_clinic_membership/);
+  assert.match(source, /PGRST202/);
 });
 
-test('findOrganizationByInviteCode reconhece prefixo padrão NUTRISA ou ISABELA', () => {
-  assert.equal(findOrganizationByInviteCode('NUTRISA-2026'), 'nutrisa-default');
-  assert.equal(findOrganizationByInviteCode('ISABELA-CLINICA'), 'nutrisa-default');
+test('permissões de equipe são persistidas e fiscalizadas no Supabase', async () => {
+  const migration = await import('node:fs/promises').then((fs) => fs.readFile(
+    new URL('../../supabase/migrations/20261012190000_secure_team_permissions.sql', import.meta.url),
+    'utf8',
+  ));
+  assert.match(migration, /private\.team_invitations/);
+  assert.match(migration, /lower\(i\.email\)=v_email/);
+  assert.match(migration, /private\.has_module_permission/);
+  assert.match(migration, /enable row level security/);
+  assert.match(migration, /revoke all on table private\.clinic_invite_codes/);
+  assert.match(migration, /notify pgrst, 'reload schema'/);
+});
+
+test('App bloqueia acesso direto a módulo sem permissão', async () => {
+  const app = await import('node:fs/promises').then((fs) => fs.readFile(
+    new URL('../../app/src/App.jsx', import.meta.url),
+    'utf8',
+  ));
+  assert.match(app, /canAccessModule\(appMode\)/);
+  assert.match(app, /não possui permissão/);
 });

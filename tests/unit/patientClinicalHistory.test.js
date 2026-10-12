@@ -20,6 +20,9 @@ test('ficha consulta múltiplos registros clínicos e oferece reabertura', () =>
   assert.match(history, /eq\('patient_id', patientId\)/);
   assert.match(component, /Visualizar/);
   assert.match(component, /writeClinicalRecordHandoff/);
+  assert.match(component, /deletePatientClinicalRecord/);
+  assert.match(component, /window\.confirm/);
+  assert.match(history, /\.delete\(\)/);
 });
 
 test('avaliação possui salvamento explícito e atualização do registro aberto', () => {
@@ -28,4 +31,13 @@ test('avaliação possui salvamento explícito e atualização do registro abert
   assert.match(report, /Salvar no prontuário/);
   assert.match(report, /Atualizar no prontuário/);
   assert.match(service, /\.update\(payload\)\.eq\('id', id\)/);
+});
+
+test('módulos clínicos identificam visualmente quando salvam no prontuário', () => {
+  const anamnese = readSource('app/src/features/anamnese/AnamnesePage.jsx');
+  const dietas = readSource('app/src/features/dietas/DietasPage.jsx');
+  const contratos = readSource('app/src/features/contratos/ContratosPage.jsx');
+  assert.match(anamnese, /Gerar e salvar no prontuário/);
+  assert.match(dietas, /Salvar no prontuário/);
+  assert.match(contratos, /Salvar no prontuário e gerar link/);
 });

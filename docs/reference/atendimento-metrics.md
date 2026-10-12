@@ -1,5 +1,15 @@
 # Métricas de Atendimento WhatsApp & Bonificação da Recepção
 
+## Envio direto na conversa do paciente
+
+A tela `PatientConversationView.jsx` permite responder ao paciente sem sair da NutrIsa. O serviço `whatsappSender.js` envia um `POST` ao webhook configurado em `VITE_N8N_WHATSAPP_SEND_URL`, usando o contrato `{ phone, message, patient_id, requested_by }`. Na ausência da variável, a aplicação usa a URL de produção da NutrIsa como fallback. O texto só é limpo após confirmação de sucesso; em caso de falha, permanece no compositor para nova tentativa. O botão externo continua disponível como fallback para abrir a mensagem no WhatsApp.
+
+O workflow n8n responsável é **🍏 [Nutrisa] Envio de Mensagens WhatsApp** (`46SQKSw3VnbrLEev`). Ele valida o telefone e a mensagem, envia pela instância `IsaNutri` da Evolution API e devolve uma resposta JSON estável. Chaves da Evolution API não devem ser expostas no frontend.
+
+Cada envio direto também carrega o usuário autenticado e grava em `log_conversas` os campos `responded_by_user_id`, `responded_by_name`, `responded_by_role`, `responded_by_type` e `response_channel`. O agrupamento operacional diferencia `isabela`, `secretaria`, `administrativo`, `profissional` e `personalizado`. Para preservar as metas históricas, somente `isabela` permanece no grupo clínico; os demais cargos integram o volume operacional da equipe, enquanto o detalhamento por usuário aparece separadamente.
+
+A conversa combina três mecanismos de atualização: Supabase Realtime, recarga após envio e polling de fallback a cada 30 segundos. O polling é suspenso enquanto a aba está oculta e uma atualização é executada ao retornar. O cabeçalho mostra `Atualizado às HH:mm` com base na última consulta concluída com sucesso.
+
 Documento de referência para apuração de metas e geração do Relatório Executivo de Atendimento em PDF da plataforma **NutrIsa**.
 
 ---

@@ -380,8 +380,9 @@ export default function ContratosPage({ activeModel }) {
               )}
 
               <div className="pt-4 border-t border-slate-200 flex justify-center">
-                <button type="button" onClick={ctx.handleGerarLink} disabled={ctx.isGenerating} className="bg-[#25D366] text-white shadow-sm hover:bg-[#20b858] text-xs px-4 py-2 rounded-full font-bold flex items-center transition-colors disabled:opacity-50">
-                  <LinkIcon className="w-3.5 h-3.5 mr-1.5" /> {ctx.isGenerating ? 'Gerando...' : 'Gerar Link WhatsApp'}
+                <button type="button" onClick={ctx.handleGerarLink} disabled={ctx.isGenerating} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow disabled:cursor-not-allowed disabled:opacity-50 active:scale-95">
+                  {ctx.hasActivePatient ? <Save className="size-4" aria-hidden="true" /> : <LinkIcon className="size-4" aria-hidden="true" />}
+                  <span>{ctx.isGenerating ? 'Salvando…' : ctx.hasActivePatient ? 'Salvar no prontuário e gerar link' : 'Gerar link de assinatura'}</span>
                 </button>
               </div>
             </div>

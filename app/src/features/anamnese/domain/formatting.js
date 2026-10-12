@@ -25,9 +25,17 @@ export function cleanMarkdownToHTML(text) {
  */
 export function cleanMarkdownToText(text) {
   if (!text) return '';
-  return text
+  const cleaned = text
     .replace(/\*\*([\s\S]*?)\*\*/g, '$1')
-    .replace(/\*([\s\S]*?)\*/g, '$1');
+    .replace(/\*([\s\S]*?)\*/g, '$1')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|h[1-6]|li|blockquote)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '');
+  if (typeof document === 'undefined') return cleaned;
+  const decoder = document.createElement('textarea');
+  decoder.innerHTML = cleaned;
+  return decoder.value.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /**

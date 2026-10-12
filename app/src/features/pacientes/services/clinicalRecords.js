@@ -18,6 +18,18 @@ export async function listPatientClinicalRecords(patientId) {
   return groups.flat().sort((a, b) => new Date(b.recordDate || 0) - new Date(a.recordDate || 0));
 }
 
+export async function deletePatientClinicalRecord(record) {
+  const config = TABLES.find((item) => item.type === record?.recordType);
+  if (!config || !record?.id || !record?.patient_id) throw new Error('Registro clínico inválido.');
+  const supabase = requireSupabase();
+  const { error } = await supabase
+    .from(config.table)
+    .delete()
+    .eq('id', record.id)
+    .eq('patient_id', record.patient_id);
+  if (error) throw new Error(error.message || `Erro ao excluir ${config.type}`);
+}
+
 const OPEN_RECORD_KEY = 'nutrisa_open_clinical_record';
 let recentlyOpened = null;
 export function writeClinicalRecordHandoff(record) {

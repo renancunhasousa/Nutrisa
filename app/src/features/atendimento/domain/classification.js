@@ -7,9 +7,34 @@ export const CLINICAL_CATEGORIES = [
   'Feedback e Motivação'
 ];
 
+export function getResponderType({ role, name, email } = {}) {
+  const identity = `${name || ''} ${email || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (identity.includes('isabela') || identity.includes('bela.munoz')) return 'isabela';
+  if (role === 'receptionist') return 'secretaria';
+  if (role === 'assistant') return 'administrativo';
+  if (role === 'professional') return 'profissional';
+  if (role === 'custom') return 'personalizado';
+  return role === 'owner' ? 'administrativo' : 'personalizado';
+}
+
+export function getResponderLabel(item = {}) {
+  if (item.responded_by_name) return item.responded_by_name;
+  const labels = {
+    isabela: 'Dra. Isabela',
+    secretaria: 'Secretária',
+    administrativo: 'Administrativo',
+    profissional: 'Profissional',
+    personalizado: 'Equipe',
+  };
+  return labels[item.responded_by_type] || (getAttendantType(item) === 'isabela' ? 'Dra. Isabela' : 'Secretária');
+}
+
 // Helper para identificar o atendente responsável / que efetivamente respondeu
 export const getAttendantType = (item) => {
   if (!item) return 'secretaria';
+
+  if (item.responded_by_type === 'isabela') return 'isabela';
+  if (item.responded_by_type) return 'secretaria';
 
   const src = (item.source || '').toLowerCase();
   const resp = (item.resposta_secretaria || '').toLowerCase();
