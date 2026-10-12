@@ -23,20 +23,23 @@ A plataforma permite que a **Dra. Isabela (Proprietária / Owner)** adicione col
 
 ---
 
-## 2. Módulos Controlados
+## 2. Módulos Controlados (13 Opções da Barra Lateral)
 
-| ID do Módulo | Nome Exibido | Ícone | Finalidade Principal |
-|---|---|---|---|
-| `dietas` | Dieta | `UtensilsCrossed` | Criação e edição de planos alimentares |
-| `anamnese` | Anamnese | `FileText` | Questionários e prontuários clínicos |
-| `avaliacao` | Avaliação | `Activity` | Medições corporais, dobras e laudos |
-| `atendimento` | Atendimento | `MessageSquare` | WhatsApp e conversas com pacientes |
-| `agenda` | Agenda | `Calendar` | Consultas, horários e compromissos |
-| `tarefas` | Tarefas | `CheckSquare` | Gestão de tarefas diárias e follow-up |
-| `contratos` | Contratos | `FileSignature` | Termos de adesão e assinaturas digitais |
-| `crm` | Relacionamento | `Radar` | Radar de retenção, oportunidades e aniversários |
-| `produtos` | Produtos | `ShoppingBag` | Catálogo de alimentos e suplementos |
-| `marketing` | Marketing | `Sparkles` | Estúdio de criação de posts para Instagram |
+| # | ID do Módulo | Nome Exibido | Ícone | Finalidade Principal |
+|---|---|---|---|---|
+| 1 | `pacientes` | Pacientes | `Users` | Cadastro e gestão de pacientes |
+| 2 | `crm` | Relacionamento | `Radar` | Radar de retenção, oportunidades e aniversariantes |
+| 3 | `laudo` | Avaliação | `Activity` | Medições corporais, dobras e laudos de bioimpedância |
+| 4 | `anamnese` | Anamnese | `FileText` | Questionários e prontuários clínicos |
+| 5 | `dietas` | Dietas | `UtensilsCrossed` | Criação e edição de planos alimentares |
+| 6 | `produtos` | Cadastros | `PackageSearch` | Catálogo de alimentos, preparações e suplementos |
+| 7 | `dashboard` | Atendimento | `MessageSquare` | WhatsApp e conversas com pacientes |
+| 8 | `agenda` | Agenda | `Calendar` | Consultas, horários e compromissos |
+| 9 | `tarefas` | Tarefas | `CheckSquare` | Gestão de tarefas diárias e follow-up |
+| 10 | `contratos` | Contratos | `FileSignature` | Termos de adesão e assinaturas digitais |
+| 11 | `marketing` | Marketing | `Sparkles` | Estúdio de criação de posts para Instagram |
+| 12 | `ai` | Configurar IA | `Sparkles` | Parâmetros e provedores de Inteligência Artificial |
+| 13 | `configuracoes` | Configurações | `Settings` | Perfil da nutricionista e preferências da clínica |
 
 ---
 

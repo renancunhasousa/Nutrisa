@@ -104,24 +104,30 @@ export default function MobileNavigation({
               })}
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
-              <button
-                type="button"
-                onClick={() => openSettings('ai')}
-                className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-amber-50 px-3 text-sm font-bold text-amber-800"
-              >
-                <Sparkles className="size-4" />
-                Configurar IA
-              </button>
-              <button
-                type="button"
-                onClick={() => openSettings('profile')}
-                className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-3 text-sm font-bold text-slate-700"
-              >
-                <Settings className="size-4" />
-                Perfil
-              </button>
-            </div>
+            {(canAccessModule('ai') || canAccessModule('configuracoes')) ? (
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                {canAccessModule('ai') ? (
+                  <button
+                    type="button"
+                    onClick={() => openSettings('ai')}
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-amber-50 px-3 text-sm font-bold text-amber-800"
+                  >
+                    <Sparkles className="size-4" />
+                    Configurar IA
+                  </button>
+                ) : null}
+                {canAccessModule('configuracoes') ? (
+                  <button
+                    type="button"
+                    onClick={() => openSettings('profile')}
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-3 text-sm font-bold text-slate-700"
+                  >
+                    <Settings className="size-4" />
+                    Configurações
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </section>
         </div>
       ) : null}

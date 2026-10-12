@@ -19,14 +19,24 @@ if (typeof globalThis.localStorage === 'undefined') {
   };
 }
 
-test('CLINICAL_MODULES lista os módulos clínicos e operacionais esperados', () => {
+test('CLINICAL_MODULES lista os 13 módulos do menu lateral exatamente', () => {
   const ids = CLINICAL_MODULES.map((m) => m.id);
-  assert.ok(ids.includes('dietas'));
-  assert.ok(ids.includes('anamnese'));
-  assert.ok(ids.includes('avaliacao'));
-  assert.ok(ids.includes('agenda'));
-  assert.ok(ids.includes('crm'));
-  assert.ok(ids.includes('contratos'));
+  assert.equal(ids.length, 13);
+  assert.deepEqual(ids, [
+    'pacientes',
+    'crm',
+    'laudo',
+    'anamnese',
+    'dietas',
+    'produtos',
+    'dashboard',
+    'agenda',
+    'tarefas',
+    'contratos',
+    'marketing',
+    'ai',
+    'configuracoes',
+  ]);
 });
 
 test('hasModulePermission concede acesso total irrestrito para owner/Dra.', () => {

@@ -157,36 +157,40 @@ export default function Navbar({
         </nav>
 
         <div className="shrink-0 space-y-1 border-t border-slate-200/55 p-3">
-          <button
-            type="button"
-            onClick={() => openSettings('ai')}
-            aria-pressed={activeModal === 'ai'}
-            aria-label={isSidebarCollapsed ? 'Configurar inteligência artificial' : undefined}
-            title={isSidebarCollapsed ? 'Configurar IA' : undefined}
-            className={`flex min-h-11 w-full items-center rounded-2xl text-sm font-semibold transition-colors ${
-              isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
-            } ${
-              activeModal === 'ai' ? 'bg-amber-50 text-amber-800' : 'text-slate-600 hover:bg-white/75 hover:text-slate-900'
-            }`}
-          >
-            <span className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><Sparkles className="size-[17px]" /></span>
-            {isSidebarCollapsed ? null : <span>Configurar IA</span>}
-          </button>
-          <button
-            type="button"
-            onClick={() => openSettings('profile')}
-            aria-pressed={activeModal === 'profile'}
-            aria-label={isSidebarCollapsed ? 'Abrir configurações' : undefined}
-            title={isSidebarCollapsed ? 'Configurações' : undefined}
-            className={`flex min-h-11 w-full items-center rounded-2xl text-sm font-semibold transition-colors ${
-              isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
-            } ${
-              activeModal === 'profile' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-white/75 hover:text-slate-900'
-            }`}
-          >
-            <span className="flex size-8 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><Settings className="size-[17px]" /></span>
-            {isSidebarCollapsed ? null : <span>Configurações</span>}
-          </button>
+          {canAccessModule('ai') ? (
+            <button
+              type="button"
+              onClick={() => openSettings('ai')}
+              aria-pressed={activeModal === 'ai'}
+              aria-label={isSidebarCollapsed ? 'Configurar inteligência artificial' : undefined}
+              title={isSidebarCollapsed ? 'Configurar IA' : undefined}
+              className={`flex min-h-11 w-full items-center rounded-2xl text-sm font-semibold transition-colors ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+              } ${
+                activeModal === 'ai' ? 'bg-amber-50 text-amber-800' : 'text-slate-600 hover:bg-white/75 hover:text-slate-900'
+              }`}
+            >
+              <span className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><Sparkles className="size-[17px]" /></span>
+              {isSidebarCollapsed ? null : <span>Configurar IA</span>}
+            </button>
+          ) : null}
+          {canAccessModule('configuracoes') ? (
+            <button
+              type="button"
+              onClick={() => openSettings('profile')}
+              aria-pressed={activeModal === 'profile'}
+              aria-label={isSidebarCollapsed ? 'Abrir configurações' : undefined}
+              title={isSidebarCollapsed ? 'Configurações' : undefined}
+              className={`flex min-h-11 w-full items-center rounded-2xl text-sm font-semibold transition-colors ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+              } ${
+                activeModal === 'profile' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-white/75 hover:text-slate-900'
+              }`}
+            >
+              <span className="flex size-8 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><Settings className="size-[17px]" /></span>
+              {isSidebarCollapsed ? null : <span>Configurações</span>}
+            </button>
+          ) : null}
         </div>
       </aside>
 
