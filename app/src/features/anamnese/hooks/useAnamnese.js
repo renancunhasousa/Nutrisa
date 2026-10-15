@@ -5,6 +5,7 @@ import { extractVariables, extractVariableNames, replaceVariable } from '../doma
 import { syncHTMLToTemplate, formatTemplateToHTML, cleanMarkdownToText } from '../domain/formatting.js';
 import { buildGenerationPrompt, buildPatientTranslationPrompt, buildClinicInsightsPrompt } from '../prompts/generate.js';
 import { KEY_ANAMNESE_TEMPLATES, KEY_ANAMNESE_DRAFT } from '../../../config/storageKeys.js';
+import { importLocalDocumentTemplates, listDocumentTemplates, saveDocumentTemplate } from '../../../shared/services/documentTemplates.js';
 import { useAuth } from '../../auth/useAuth.js';
 import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
 import { createPatientAnamnese, updatePatientAnamnese } from '../services/anamneses.js';
@@ -72,6 +73,7 @@ export function useAnamnese({ activeModel }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingReport, setIsSavingReport] = useState(false);
   const [isExtraLoading, setIsExtraLoading] = useState(false);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const editorRef = useRef(null);
   const savedAnamneseIdRef = useRef(openedRecord?.id || null);
 
@@ -88,13 +90,31 @@ export function useAnamnese({ activeModel }) {
 
   // ── Persistência ─────────────────────────────────────────
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(KEY_ANAMNESE_TEMPLATES);
-      if (saved) setSavedTemplates(JSON.parse(saved));
-      const draft = localStorage.getItem(KEY_ANAMNESE_DRAFT);
-      if (draft) setTemplate(draft);
-    } catch (e) { console.error('Erro ao carregar dados', e); }
-  }, []);
+    if (!organizationId) return undefined;
+    let cancelled = false;
+    const loadTemplates = async () => {
+      setIsLoadingTemplates(true);
+      try {
+        const raw = localStorage.getItem(KEY_ANAMNESE_TEMPLATES);
+        const localTemplates = raw ? JSON.parse(raw) : [];
+        if (localTemplates.length) {
+          await importLocalDocumentTemplates({ organizationId, templateType: 'anamnese', templates: localTemplates });
+          localStorage.removeItem(KEY_ANAMNESE_TEMPLATES);
+        }
+        const remoteTemplates = await listDocumentTemplates(organizationId, 'anamnese');
+        if (!cancelled) setSavedTemplates(remoteTemplates);
+        const draft = localStorage.getItem(KEY_ANAMNESE_DRAFT);
+        if (!cancelled && draft) setTemplate(draft);
+      } catch (e) {
+        console.error('Erro ao carregar modelos de anamnese', e);
+        if (!cancelled) showNotification(`Erro ao carregar modelos: ${e.message}`, 'error');
+      } finally {
+        if (!cancelled) setIsLoadingTemplates(false);
+      }
+    };
+    loadTemplates();
+    return () => { cancelled = true; };
+  }, [organizationId]);
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -102,10 +122,6 @@ export function useAnamnese({ activeModel }) {
     }, 1500);
     return () => clearTimeout(id);
   }, [template]);
-
-  useEffect(() => {
-    localStorage.setItem(KEY_ANAMNESE_TEMPLATES, JSON.stringify(savedTemplates));
-  }, [savedTemplates]);
 
   // ── Variáveis detectadas ──────────────────────────────────
   useEffect(() => {
@@ -301,19 +317,27 @@ export function useAnamnese({ activeModel }) {
   };
 
   // ── Gestão de templates ───────────────────────────────────
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     if (!template.trim()) return;
-    if (selectedTemplateId) {
-      setSavedTemplates(prev =>
-        prev.map(t => t.id === selectedTemplateId ? { ...t, content: template, name: templateNameInput || t.name } : t)
-      );
-    } else {
-      if (!templateNameInput.trim()) return showNotification('Informe um nome para o modelo!', 'error');
-      const newId = 'tmp_' + Date.now();
-      setSavedTemplates(prev => [...prev, { id: newId, name: templateNameInput, content: template }]);
-      setSelectedTemplateId(newId);
+    if (!templateNameInput.trim() && !selectedTemplateId) return showNotification('Informe um nome para o modelo!', 'error');
+    try {
+      const current = savedTemplates.find(item => item.id === selectedTemplateId);
+      const saved = await saveDocumentTemplate({
+        id: selectedTemplateId || null,
+        organizationId,
+        templateType: 'anamnese',
+        name: templateNameInput || current?.name || 'Modelo de anamnese',
+        content: template,
+      });
+      setSavedTemplates(prev => selectedTemplateId
+        ? prev.map(item => item.id === saved.id ? saved : item)
+        : [saved, ...prev]);
+      setSelectedTemplateId(saved.id);
+      setTemplateNameInput(saved.name);
+      showNotification('Modelo salvo na nuvem!', 'success');
+    } catch (error) {
+      showNotification(`Erro ao salvar modelo: ${error.message}`, 'error');
     }
-    showNotification('Modelo salvo localmente!', 'success');
   };
 
   const loadTemplate = (id) => {
@@ -358,6 +382,7 @@ export function useAnamnese({ activeModel }) {
     isGenerating,
     isSavingReport,
     isExtraLoading,
+    isLoadingTemplates,
     editorRef,
     // Handlers
     generateReport,

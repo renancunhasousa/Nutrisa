@@ -27,7 +27,9 @@ O estado de avaliação existe em memória durante a edição. Ao abrir o laudo 
 
 ## Anamnese
 
-Modelos e rascunho de template são locais ao navegador. Quando iniciada pelo atalho do paciente, a geração salva questionário, notas, relatório, tradução e insights em `anamnese`.
+Modelos salvos de anamnese e contrato pertencem à organização e ficam na tabela `document_templates`, com RLS e permissão pelo respectivo módulo. Assim, eles podem ser reutilizados em qualquer computador autenticado na mesma clínica. Modelos legados do `localStorage` são migrados automaticamente uma vez; somente o rascunho corrente da anamnese continua local ao navegador. Veja [Modelos compartilhados de documentos](reference/document-templates.md).
+
+Quando iniciada pelo atalho do paciente, a geração salva questionário, notas, relatório, tradução e insights em `anamnese`.
 
 ## Agenda
 

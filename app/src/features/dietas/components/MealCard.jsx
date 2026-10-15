@@ -18,8 +18,9 @@ export function MealCard({
   onOpenFoodSearch,
   onUpdateFood,
   onRemoveFood,
-  onAddSubstitution,
+  onUpdateSubstitution,
   onRemoveSubstitution,
+  onOpenSubstitutionSearch,
 }) {
   const [showNotes, setShowNotes] = useState(Boolean(meal.notes));
   const [expandedSubIndex, setExpandedSubIndex] = useState(null);
@@ -290,12 +291,35 @@ export function MealCard({
 
                       {hasSubs ? (
                         <div className="space-y-1.5">
-                          {item.substitutions.map((sub, sIdx) => (
-                            <div key={sub.id || sIdx} className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-slate-200">
-                              <span className="font-medium text-slate-700">
-                                <strong>OU:</strong> {sub.quantity} {sub.unit} de {sub.name}
-                                {sub.nutrition_snapshot && ` (${sub.nutrition_snapshot.calories} kcal)`}
-                              </span>
+                          {item.substitutions.map((sub, sIdx) => {
+                            const subSnap = sub.nutrition_snapshot || {};
+                            return (
+                            <div key={sub.id || sIdx} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-white px-2.5 py-2 rounded-lg border border-slate-200">
+                              <span className="flex-1 min-w-0 font-semibold text-slate-700 truncate"><strong className="text-teal-700">OU:</strong> {sub.name}</span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number" min="0.1" step="0.1" value={sub.quantity}
+                                  onChange={(e) => onUpdateSubstitution(mealIndex, itemIdx, sIdx, { quantity: Number(e.target.value) || 0 })}
+                                  className="w-16 text-center font-bold bg-slate-50 border border-slate-200 rounded-lg p-1.5 focus:border-teal-500 focus:outline-hidden"
+                                  aria-label={`Quantidade de ${sub.name}`}
+                                />
+                                <select
+                                  value={sub.unit}
+                                  onChange={(e) => onUpdateSubstitution(mealIndex, itemIdx, sIdx, { unit: e.target.value })}
+                                  className="w-36 sm:w-44 truncate bg-slate-50 border border-slate-200 rounded-lg p-1.5 focus:border-teal-500 focus:outline-hidden"
+                                  aria-label={`Medida de ${sub.name}`}
+                                >
+                                  <option value="g">gramas (g)</option>
+                                  <option value="ml">ml</option>
+                                  {(sub.household_measures || []).map((measure) => (
+                                    <option key={measure.name} value={measure.name}>{measure.name} ({measure.grams}g)</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="sm:w-36 sm:text-right tabular-nums">
+                                <span className="block font-bold text-slate-800">{subSnap.calories || 0} kcal</span>
+                                <span className="block text-[10px] text-slate-400">P: {subSnap.protein || 0}g • C: {subSnap.carbs || 0}g • G: {subSnap.fat || 0}g</span>
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => onRemoveSubstitution(mealIndex, itemIdx, sIdx)}
@@ -305,7 +329,7 @@ export function MealCard({
                                 <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
-                          ))}
+                          );})}
                         </div>
                       ) : (
                         <p className="text-[11px] text-slate-500">
@@ -316,15 +340,10 @@ export function MealCard({
                       <div className="pt-1 flex gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            const name = prompt('Nome do alimento substituto (ex: Batata doce cozida):');
-                            if (!name) return;
-                            const qty = prompt('Quantidade (ex: 100):', '100');
-                            onAddSubstitution(mealIndex, itemIdx, { id: 'custom_sub_' + Date.now(), name }, Number(qty) || 100, 'g');
-                          }}
+                          onClick={() => onOpenSubstitutionSearch(mealIndex, itemIdx)}
                           className="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg text-[10px] transition-all cursor-pointer"
                         >
-                          + Adicionar Substituto Rápido
+                          <Plus className="inline w-3 h-3 mr-1" /> Adicionar alimento substituto
                         </button>
                       </div>
                     </div>

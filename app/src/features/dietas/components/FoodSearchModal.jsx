@@ -9,6 +9,7 @@ export function FoodSearchModal({
   isOpen,
   onClose,
   mealTitle = 'Refeição',
+  actionLabel = 'Adicionar à Refeição',
   onSelectFood,
   onOpenCreateCustom,
 }) {
@@ -429,7 +430,7 @@ export function FoodSearchModal({
                 onClick={handleConfirmAdd}
                 className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
-                <Check className="w-4 h-4" /> Adicionar à Refeição
+                <Check className="w-4 h-4" /> {actionLabel}
               </button>
             </div>
           )}

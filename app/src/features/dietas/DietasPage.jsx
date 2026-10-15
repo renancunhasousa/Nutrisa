@@ -35,6 +35,7 @@ export default function DietasPage({ settings = {} }) {
     updateFoodInMeal,
     removeFoodFromMeal,
     addSubstitution,
+    updateSubstitution,
     removeSubstitution,
     handleSave,
     handleCreateNew,
@@ -46,7 +47,9 @@ export default function DietasPage({ settings = {} }) {
     isFoodModalOpen,
     setIsFoodModalOpen,
     activeMealIndex,
+    substitutionTarget,
     openFoodSearchForMeal,
+    openFoodSearchForSubstitution,
     isCustomFoodModalOpen,
     setIsCustomFoodModalOpen,
     isHistoryModalOpen,
@@ -220,6 +223,20 @@ export default function DietasPage({ settings = {} }) {
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto border-b border-slate-200 pb-2 no-scrollbar" aria-label="Seções da dieta">
         <button
           type="button"
+          onClick={() => setActiveTab('metas')}
+          aria-current={activeTab === 'metas' ? 'page' : undefined}
+          className={`flex shrink-0 cursor-pointer items-center gap-2 px-4 py-2 text-xs transition-colors ${
+            activeTab === 'metas'
+              ? 'font-extrabold text-emerald-700'
+              : 'font-semibold text-slate-500 hover:text-emerald-700'
+          }`}
+        >
+          <Target className="w-4 h-4" />
+          <span className={activeTab === 'metas' ? 'underline decoration-2 underline-offset-[6px]' : undefined}>Paciente & Metas</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('refeicoes')}
           aria-current={activeTab === 'refeicoes' ? 'page' : undefined}
           className={`flex shrink-0 cursor-pointer items-center gap-2 px-4 py-2 text-xs transition-colors ${
@@ -233,20 +250,6 @@ export default function DietasPage({ settings = {} }) {
           <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
             {plan.meals?.length || 0}
           </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('metas')}
-          aria-current={activeTab === 'metas' ? 'page' : undefined}
-          className={`flex shrink-0 cursor-pointer items-center gap-2 px-4 py-2 text-xs transition-colors ${
-            activeTab === 'metas'
-              ? 'font-extrabold text-emerald-700'
-              : 'font-semibold text-slate-500 hover:text-emerald-700'
-          }`}
-        >
-          <Target className="w-4 h-4" />
-          <span className={activeTab === 'metas' ? 'underline decoration-2 underline-offset-[6px]' : undefined}>Paciente & Metas</span>
         </button>
 
         <button
@@ -295,8 +298,9 @@ export default function DietasPage({ settings = {} }) {
                 onOpenFoodSearch={openFoodSearchForMeal}
                 onUpdateFood={updateFoodInMeal}
                 onRemoveFood={removeFoodFromMeal}
-                onAddSubstitution={addSubstitution}
+                onUpdateSubstitution={updateSubstitution}
                 onRemoveSubstitution={removeSubstitution}
+                onOpenSubstitutionSearch={openFoodSearchForSubstitution}
               />
             ))}
           </div>
@@ -335,9 +339,14 @@ export default function DietasPage({ settings = {} }) {
       <FoodSearchModal
         isOpen={isFoodModalOpen}
         onClose={() => setIsFoodModalOpen(false)}
-        mealTitle={activeMealIndex !== null ? plan.meals?.[activeMealIndex]?.title : 'Refeição'}
+        mealTitle={substitutionTarget
+          ? `substituição de ${plan.meals?.[substitutionTarget.mealIndex]?.items?.[substitutionTarget.itemIndex]?.name || 'alimento'}`
+          : (activeMealIndex !== null ? plan.meals?.[activeMealIndex]?.title : 'Refeição')}
+        actionLabel={substitutionTarget ? 'Adicionar como substituição' : 'Adicionar à Refeição'}
         onSelectFood={(food, qty, unit) => {
-          if (activeMealIndex !== null) {
+          if (substitutionTarget) {
+            addSubstitution(substitutionTarget.mealIndex, substitutionTarget.itemIndex, food, qty, unit);
+          } else if (activeMealIndex !== null) {
             addFoodToMeal(activeMealIndex, food, qty, unit);
           }
         }}
@@ -348,7 +357,9 @@ export default function DietasPage({ settings = {} }) {
         isOpen={isCustomFoodModalOpen}
         onClose={() => setIsCustomFoodModalOpen(false)}
         onFoodCreated={(newFood) => {
-          if (activeMealIndex !== null) {
+          if (substitutionTarget) {
+            addSubstitution(substitutionTarget.mealIndex, substitutionTarget.itemIndex, newFood, 100, 'g');
+          } else if (activeMealIndex !== null) {
             addFoodToMeal(activeMealIndex, newFood, 100, 'g');
           }
           setIsFoodModalOpen(false);

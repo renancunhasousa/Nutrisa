@@ -31,6 +31,9 @@ export const KEY_GOOGLE_MEET = 'nutriisa_google_meet_link';
 /** Configurações padrão dos contratos (cláusulas, etc) */
 export const KEY_CONTRACTS_CONFIG = 'nutrisa_contracts_config';
 
+/** Modelos legados de contrato; usados uma vez para migração ao Supabase. */
+export const KEY_CONTRACT_TEMPLATES = 'nutrisa_contratos_templates';
+
 /** Histórico e preços dos últimos planos selecionados em contratos */
 export const KEY_CONTRACTS_PLAN_HISTORY = 'nutrisa_contracts_plan_history';
 

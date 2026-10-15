@@ -1,227 +1,258 @@
 import React from 'react';
-import { ArrowLeft, Printer, Droplets, Flame, Beef, Wheat, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Beef, PackageOpen, Printer, Droplets, Flame, Wheat } from 'lucide-react';
 import logoPdf from '../../../assets/logo.png';
 import signatureImg from '../../../assets/assinatura.png';
 import { calculateMealTotals } from '../domain/nutritionCalculations.js';
+import { LipidIcon } from '../components/LipidIcon.jsx';
+
+const PAGE_CAPACITY = 17;
+const MEAL_FRAGMENT_CAPACITY = 12;
+
+function itemWeight(item) {
+  const substitutions = item.substitutions?.length || 0;
+  const nameLines = Math.max(1, Math.ceil(String(item.name || '').length / 72));
+  return nameLines + substitutions * 0.75;
+}
+
+function splitMeal(meal, mealIndex) {
+  const items = meal.items || [];
+  if (!items.length) return [{ type: 'meal', meal, mealIndex, items: [], continuation: false, weight: 3 }];
+
+  const fragments = [];
+  let current = [];
+  let weight = 2;
+  items.forEach((item) => {
+    const nextWeight = itemWeight(item);
+    if (current.length && weight + nextWeight > MEAL_FRAGMENT_CAPACITY) {
+      fragments.push({ items: current, weight });
+      current = [];
+      weight = 2;
+    }
+    current.push(item);
+    weight += nextWeight;
+  });
+  if (current.length) fragments.push({ items: current, weight });
+
+  return fragments.map((fragment, index) => ({
+    type: 'meal',
+    meal,
+    mealIndex,
+    items: fragment.items,
+    continuation: index > 0,
+    showNotes: index === fragments.length - 1,
+    weight: fragment.weight + (index === fragments.length - 1 && meal.notes ? 1 : 0),
+  }));
+}
+
+function splitText(text, maxLength = 520) {
+  const paragraphs = String(text || '').split('\n').filter((line) => line.trim());
+  const chunks = [];
+  let current = '';
+  paragraphs.forEach((paragraph) => {
+    const words = paragraph.split(/\s+/);
+    words.forEach((word) => {
+      if (current && `${current} ${word}`.length > maxLength) {
+        chunks.push(current.trim());
+        current = '';
+      }
+      current += `${current ? ' ' : ''}${word}`;
+    });
+    if (current) current += '\n';
+  });
+  if (current.trim()) chunks.push(current.trim());
+  return chunks;
+}
+
+function createReportBlocks(plan) {
+  const mealBlocks = (plan.meals || []).flatMap(splitMeal);
+  const sections = [
+    ['Marcas e produtos recomendados', plan.recommended_brands],
+    ['Suplementos', plan.supplement_recommendations],
+    ['Receitas e preparações', plan.recipe_suggestions],
+    ['Orientações e recados gerais', plan.general_notes],
+  ];
+  const recommendationBlocks = sections.flatMap(([title, content]) =>
+    content?.trim()
+      ? splitText(content).map((text, index) => ({
+          type: 'recommendation', title, text, continuation: index > 0,
+          weight: 2.5 + Math.ceil(text.length / 90),
+        }))
+      : []
+  );
+  const visibility = plan.recommendation_card_visibility || {};
+  const cardItems = (plan.recommendation_card_items || []).filter((item) => visibility[item.recommendation_field]);
+  const cardBlocks = [];
+  for (let index = 0; index < cardItems.length; index += 3) {
+    cardBlocks.push({ type: 'recommendation-cards', items: cardItems.slice(index, index + 3), weight: 4.5 });
+  }
+  return [...mealBlocks, ...recommendationBlocks, ...cardBlocks];
+}
+
+function paginateBlocks(blocks) {
+  if (!blocks.length) return [[]];
+  const pages = [];
+  let cursor = 0;
+  while (cursor < blocks.length) {
+    const remaining = blocks.slice(cursor);
+    const remainingWeight = remaining.reduce((sum, block) => sum + block.weight, 0);
+    const remainingPages = Math.max(1, Math.ceil(remainingWeight / PAGE_CAPACITY));
+    const balancedTarget = Math.min(PAGE_CAPACITY, remainingWeight / remainingPages);
+    const page = [];
+    let used = 0;
+
+    while (cursor < blocks.length) {
+      const block = blocks[cursor];
+      const wouldExceedTarget = page.length && used + block.weight > balancedTarget;
+      const mustLeaveBlocks = blocks.length - cursor <= remainingPages - 1;
+      if (wouldExceedTarget && !mustLeaveBlocks) break;
+      if (page.length && used + block.weight > PAGE_CAPACITY) break;
+      page.push(block);
+      used += block.weight;
+      cursor += 1;
+    }
+
+    if (!page.length) {
+      page.push(blocks[cursor]);
+      cursor += 1;
+    }
+    pages.push(page);
+  }
+  return pages;
+}
+
+function ReportHeader({ nut, plan, totals, formattedDate }) {
+  return (
+    <header className="shrink-0 border-b-2 border-emerald-800 pb-5 print:pb-3">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row print:flex-row">
+        <div className="flex items-center space-x-3.5">
+          <img src={logoPdf} alt="Logo" className="size-12 shrink-0 object-contain" />
+          <div className="min-w-0">
+            <h1 className="truncate whitespace-nowrap text-xl font-black uppercase tracking-tight text-emerald-950 sm:text-2xl print:text-lg">{nut.name}</h1>
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 print:text-[10px]">{nut.title}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500 print:text-[9px]">{nut.crn} • {nut.clinic}</p>
+          </div>
+        </div>
+        <div className="shrink-0 sm:text-right">
+          <span className="inline-block rounded-full bg-emerald-900 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white print:text-[9px]">Plano Alimentar Individualizado</span>
+          <p className="mt-1.5 text-xs text-slate-500 print:text-[10px]">Emissão: <strong className="text-slate-800">{formattedDate}</strong></p>
+        </div>
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs sm:grid-cols-4 print:mt-3 print:grid-cols-4 print:gap-2 print:p-2">
+        <div className="min-w-0"><span className="block text-[9px] font-bold uppercase text-slate-400">Paciente</span><strong className="block truncate text-sm font-bold text-slate-900 print:text-xs">{plan.patient_name || 'Paciente'}</strong></div>
+        <div><span className="block text-[9px] font-bold uppercase text-slate-400">Objetivo</span><span className="font-semibold text-slate-800">{plan.objective || 'Emagrecimento'}</span></div>
+        <div><span className="block text-[9px] font-bold uppercase text-slate-400">Meta Calórica</span><span className="font-bold text-slate-800">{plan.target_calories} kcal</span></div>
+        <div><span className="block text-[9px] font-bold uppercase text-slate-400">Meta de Água</span><span className="flex items-center gap-1 font-bold text-sky-700"><Droplets className="size-3 text-sky-600" /> {plan.water_intake_ml || 2500} ml/dia</span></div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/70 p-2.5 text-xs font-semibold text-emerald-950">
+        <div className="flex items-center gap-1.5"><Flame className="size-4 text-orange-600" aria-hidden="true" /><span>Total diário: <strong>{totals.calories} kcal</strong></span></div>
+        <div className="flex flex-wrap items-center gap-3 text-[11px]">
+          <span className="inline-flex items-center gap-1"><Beef className="size-3.5 text-rose-600" aria-hidden="true" /> Proteínas: <strong>{totals.protein}g</strong> ({totals.percentages?.protein || 0}%)</span>
+          <span className="inline-flex items-center gap-1"><Wheat className="size-3.5 text-amber-600" aria-hidden="true" /> Carboidratos: <strong>{totals.carbs}g</strong> ({totals.percentages?.carbs || 0}%)</span>
+          <span className="inline-flex items-center gap-1"><LipidIcon className="size-3.5 text-teal-600" aria-hidden="true" /> Gorduras: <strong>{totals.fat}g</strong> ({totals.percentages?.fat || 0}%)</span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function MealBlock({ block }) {
+  const { meal, items, continuation, showNotes } = block;
+  const totals = calculateMealTotals(meal.items || []);
+  return (
+    <section className="break-inside-avoid rounded-xl border border-slate-200 print:border-slate-300">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/80 px-4 py-2">
+        <div className="flex items-center gap-2"><span className="rounded-md bg-emerald-700 px-2 py-0.5 text-[11px] font-black text-white">{meal.time || '08:00'}</span><h3 className="text-sm font-bold text-slate-900">{meal.title}{continuation ? ' — continuação' : ''}</h3></div>
+        <div className="text-[11px] font-semibold text-slate-500">{totals.calories} kcal • P: {totals.protein}g • C: {totals.carbs}g • G: {totals.fat}g</div>
+      </div>
+      <div className="space-y-2.5 p-3 sm:p-4 print:p-3">
+        {items.length ? <ul className="space-y-1.5 text-xs">{items.map((item, index) => (
+          <li key={item.id || index} className="border-b border-slate-100 pb-1.5 last:border-0 last:pb-0">
+            <div className="flex items-baseline justify-between gap-2"><span className="font-semibold text-slate-900">• {item.quantity} {item.unit !== 'g' && item.unit !== 'ml' ? item.unit : ''} {item.name}{item.unit !== 'g' && item.nutrition_snapshot?.grams ? ` (${item.nutrition_snapshot.grams}g)` : (item.unit === 'g' ? 'g' : '')}</span><span className="shrink-0 text-[11px] font-medium text-slate-400">{item.nutrition_snapshot?.calories} kcal</span></div>
+            {item.substitutions?.length > 0 && <div className="ml-4 mt-0.5 space-y-0.5 text-[11px] text-teal-800">{item.substitutions.map((sub, subIndex) => <div key={sub.id || subIndex} className="flex flex-wrap justify-between gap-x-2 italic"><span>↳ <em>Substituição:</em> {sub.quantity} {sub.unit} de {sub.name}</span><span className="not-italic text-slate-500">{sub.nutrition_snapshot?.calories || 0} kcal • P: {sub.nutrition_snapshot?.protein || 0}g • C: {sub.nutrition_snapshot?.carbs || 0}g • G: {sub.nutrition_snapshot?.fat || 0}g</span></div>)}</div>}
+          </li>
+        ))}</ul> : <p className="text-xs italic text-slate-400">Nenhum alimento prescrito para este horário.</p>}
+        {showNotes && meal.notes && <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-2 text-[11px] text-amber-900"><strong>Orientação do horário:</strong> {meal.notes}</div>}
+      </div>
+    </section>
+  );
+}
+
+function RecommendationBlock({ block }) {
+  return (
+    <section className="break-inside-avoid rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+      <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900">Recomendações e recados</h4>
+      <h5 className="mt-2 text-[10px] font-bold uppercase tracking-wide text-slate-500">{block.title}{block.continuation ? ' — continuação' : ''}</h5>
+      <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-700">{block.text}</p>
+    </section>
+  );
+}
+
+function RecommendationCardsBlock({ block }) {
+  return (
+    <section className="break-inside-avoid rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+      <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-900">Itens recomendados</h4>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 print:grid-cols-3">
+        {block.items.map((item) => (
+          <article key={`${item.recommendation_field}-${item.id}`} className="flex min-w-0 rounded-lg border border-slate-200 bg-white p-2">
+            <div className="size-14 shrink-0 rounded-md bg-slate-100">
+              {item.image_url ? <img src={item.image_url} alt="" className="size-full rounded-md object-cover" /> : <span className="flex size-full items-center justify-center"><PackageOpen className="size-5 text-slate-300" aria-hidden="true" /></span>}
+            </div>
+            <div className="min-w-0 flex-1 pl-2">
+              <p className="truncate text-[7px] font-black uppercase tracking-wide text-emerald-700">{{ produto: 'Produto', suplemento: 'Suplemento', preparacao: 'Preparação', alimento: 'Alimento' }[item.item_type || item.category] || 'Item'}</p>
+              <p className="truncate text-[10px] font-bold text-slate-900">{item.name}</p>
+              <p className="truncate text-[8px] text-slate-500">{item.brand ? `${item.brand} · ` : ''}Base {Number(item.reference_quantity || item.serving_size) || 100} {item.reference_unit || item.serving_unit || 'g'}</p>
+              <div className="mt-1 grid grid-cols-4 gap-0.5 text-center text-[7px] font-bold text-slate-600">
+                <span><Flame className="mx-auto size-2.5 text-orange-600" />{Number(item.calories) || 0}</span>
+                <span><Beef className="mx-auto size-2.5 text-rose-600" />{Number(item.protein_g) || 0}g</span>
+                <span><Wheat className="mx-auto size-2.5 text-amber-600" />{Number(item.carbs_g) || 0}g</span>
+                <span><LipidIcon className="mx-auto size-2.5 text-teal-600" />{Number(item.fat_g) || 0}g</span>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ReportFooter({ nut, pageNumber, totalPages }) {
+  return (
+    <footer className="a4-print-footer mt-auto shrink-0 border-t border-slate-300 pt-5 print:pt-3">
+      <div className="flex flex-col items-end justify-between gap-3 text-center sm:flex-row sm:text-left print:flex-row print:text-left">
+        <div className="space-y-0.5 text-xs text-slate-500"><p className="font-bold text-slate-800">{nut.name}</p><p>{nut.title} • {nut.crn}</p>{nut.address && <p>{nut.address}</p>}{(nut.phone || nut.email) && <p>{[nut.phone, nut.email].filter(Boolean).join(' • ')}</p>}</div>
+        <div className="flex flex-col items-center sm:items-end print:items-end"><img src={signatureImg} alt="Assinatura da Nutricionista" className="h-16 w-auto object-contain drop-shadow-xs" /><p className="text-right text-[10px] font-bold text-emerald-800">Página {pageNumber} de {totalPages}</p></div>
+      </div>
+    </footer>
+  );
+}
 
 export function DietReport({ plan, totals, nutritionist, onBack }) {
-  const nut = nutritionist || {
-    name: 'Dra. Isabela Muñoz',
-    title: 'Nutricionista Clínica & Funcional',
-    crn: 'CRN-3 12345/P',
-    clinic: 'NutrIsa Clínica Integrada',
-  };
-
+  const nut = { name: 'Dra. Isabela Muñoz', title: 'Nutricionista Clínica & Funcional', crn: 'CRN-3 12345/P', clinic: 'NutrIsa Clínica Integrada', address: '', phone: '', email: '', ...nutritionist };
   const formattedDate = new Date(plan.created_at || Date.now()).toLocaleDateString('pt-BR');
-  const recommendationSections = [
-    { title: 'Marcas e produtos recomendados', content: plan.recommended_brands },
-    { title: 'Suplementos', content: plan.supplement_recommendations },
-    { title: 'Receitas e preparações', content: plan.recipe_suggestions },
-    { title: 'Orientações e recados gerais', content: plan.general_notes },
-  ].filter((section) => section.content?.trim());
+  const pages = paginateBlocks(createReportBlocks(plan));
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Toolbar (Oculta na Impressão) */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap justify-between items-center gap-4 print:hidden max-w-4xl mx-auto">
-        <div className="flex items-center space-x-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center shadow-2xs active:scale-95 cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Voltar ao Editor
-          </button>
-          <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-            Plano alimentar diagramado para impressão e entrega ao paciente em PDF.
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95 cursor-pointer"
-        >
-          <Printer className="w-4 h-4 mr-1.5" />
-          <span>Imprimir / Salvar em PDF</span>
-        </button>
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs print:hidden">
+        <div className="flex items-center space-x-3"><button type="button" onClick={onBack} className="flex items-center rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-200 active:scale-95"><ArrowLeft className="mr-1.5 size-3.5" /> Voltar ao Editor</button><span className="hidden text-xs font-medium text-slate-500 sm:inline">Plano alimentar paginado para impressão e entrega em PDF.</span></div>
+        <button type="button" onClick={() => window.print()} className="flex items-center rounded-full bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-500 hover:shadow active:scale-95"><Printer className="mr-1.5 size-4" /> Imprimir / Salvar em PDF</button>
       </div>
 
-      {/* PLANO ALIMENTAR FINAL - ESTILO A4 IMPRESSÃO */}
-      <div className="bg-white border border-slate-300 rounded-none md:rounded-2xl shadow-xl p-6 sm:p-10 text-slate-800 max-w-4xl mx-auto space-y-6 print:space-y-4 print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none">
-        
-        {/* CABEÇALHO CLÍNICO */}
-        <div className="border-b-2 border-emerald-800 pb-5 print:pb-3">
-          <div className="flex flex-col sm:flex-row justify-between items-start print:flex-row gap-4">
-            <div className="flex items-center space-x-3.5">
-              <img src={logoPdf} alt="Logo" className="w-12 h-12 object-contain shrink-0" />
-              <div>
-                <h1 className="text-xl sm:text-2xl print:text-lg font-black tracking-tight text-emerald-950 uppercase whitespace-nowrap">
-                  {nut.name}
-                </h1>
-                <p className="text-xs print:text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">
-                  {nut.title}
-                </p>
-                <p className="text-[11px] print:text-[9px] text-slate-500 mt-0.5">
-                  {nut.crn} • {nut.clinic}
-                </p>
-              </div>
-            </div>
-
-            <div className="sm:text-right shrink-0">
-              <span className="inline-block bg-emerald-900 text-white text-[10px] print:text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Plano Alimentar Individualizado
-              </span>
-              <p className="text-xs print:text-[10px] text-slate-500 mt-1.5">
-                Emissão: <strong className="text-slate-800">{formattedDate}</strong>
-              </p>
-            </div>
-          </div>
-
-          {/* Dados do Paciente e Metas */}
-          <div className="mt-5 print:mt-3 grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4 gap-3 print:gap-2 bg-slate-50 p-3 print:p-2 rounded-xl border border-slate-200 text-xs">
-            <div className="min-w-0">
-              <span className="text-slate-400 uppercase text-[9px] font-bold block">Paciente</span>
-              <strong className="text-slate-900 text-sm print:text-xs font-bold block truncate">
-                {plan.patient_name || 'Paciente'}
-              </strong>
-            </div>
-            <div>
-              <span className="text-slate-400 uppercase text-[9px] font-bold block">Objetivo</span>
-              <span className="text-slate-800 font-semibold">{plan.objective || 'Emagrecimento'}</span>
-            </div>
-            <div>
-              <span className="text-slate-400 uppercase text-[9px] font-bold block">Meta Calórica</span>
-              <span className="text-slate-800 font-bold">{plan.target_calories} kcal</span>
-            </div>
-            <div>
-              <span className="text-slate-400 uppercase text-[9px] font-bold block">Meta de Água</span>
-              <span className="text-teal-700 font-bold flex items-center gap-1">
-                <Droplets className="w-3 h-3" /> {plan.water_intake_ml || 2500} ml/dia
-              </span>
-            </div>
-          </div>
-
-          {/* Resumo de Macronutrientes Realizados */}
-          <div className="mt-3 p-2.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex flex-wrap items-center justify-between text-xs text-emerald-950 font-semibold gap-2">
-            <div className="flex items-center gap-1.5">
-              <Flame className="w-4 h-4 text-emerald-700" />
-              <span>Total Diário Calculado: <strong>{totals.calories} kcal</strong></span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px]">
-              <span>Proteínas: <strong>{totals.protein}g</strong> ({totals.percentages?.protein || 0}%)</span>
-              <span>•</span>
-              <span>Carboidratos: <strong>{totals.carbs}g</strong> ({totals.percentages?.carbs || 0}%)</span>
-              <span>•</span>
-              <span>Gorduras: <strong>{totals.fat}g</strong> ({totals.percentages?.fat || 0}%)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* LISTAGEM DAS REFEIÇÕES */}
-        <div className="space-y-4 print:space-y-3">
-          {(plan.meals || []).map((meal, idx) => {
-            const mTotals = calculateMealTotals(meal.items || []);
-            return (
-              <div 
-                key={meal.id || idx}
-                className="border border-slate-200 rounded-xl overflow-hidden print:border-slate-300 break-inside-avoid"
-              >
-                {/* Cabeçalho da refeição */}
-                <div className="bg-slate-100/80 px-4 py-2 flex items-center justify-between border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-emerald-700 text-white text-[11px] font-black px-2 py-0.5 rounded-md">
-                      {meal.time || '08:00'}
-                    </span>
-                    <h3 className="text-sm font-bold text-slate-900">
-                      {meal.title}
-                    </h3>
-                  </div>
-
-                  <div className="text-[11px] font-semibold text-slate-500">
-                    {mTotals.calories} kcal • P: {mTotals.protein}g • C: {mTotals.carbs}g • G: {mTotals.fat}g
-                  </div>
-                </div>
-
-                {/* Itens e alimentos */}
-                <div className="p-3 sm:p-4 space-y-2.5">
-                  {meal.items && meal.items.length > 0 ? (
-                    <ul className="space-y-1.5 text-xs">
-                      {meal.items.map((item, itemIdx) => (
-                        <li key={item.id || itemIdx} className="border-b border-slate-100 pb-1.5 last:border-b-0 last:pb-0">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span className="font-semibold text-slate-900">
-                              • {item.quantity} {item.unit !== 'g' && item.unit !== 'ml' ? item.unit : ''} {item.name}
-                              {item.unit !== 'g' && item.nutrition_snapshot?.grams ? ` (${item.nutrition_snapshot.grams}g)` : (item.unit === 'g' ? 'g' : '')}
-                            </span>
-                            <span className="text-[11px] text-slate-400 font-medium shrink-0">
-                              {item.nutrition_snapshot?.calories} kcal
-                            </span>
-                          </div>
-
-                          {/* Substituições disponíveis */}
-                          {item.substitutions && item.substitutions.length > 0 && (
-                            <div className="ml-4 mt-0.5 space-y-0.5 text-[11px] text-teal-800">
-                              {item.substitutions.map((sub, sIdx) => (
-                                <div key={sIdx} className="italic">
-                                  ↳ <em>Substituição:</em> {sub.quantity} {sub.unit} de {sub.name}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">Nenhum alimento prescrito para este horário.</p>
-                  )}
-
-                  {/* Observação específica da refeição */}
-                  {meal.notes && (
-                    <div className="mt-2 p-2 bg-amber-50/60 rounded-lg border border-amber-100 text-[11px] text-amber-900">
-                      <strong>Orientação do horário:</strong> {meal.notes}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ORIENTAÇÕES GERAIS E RECADOS */}
-        {recommendationSections.length > 0 && (
-          <div className="break-inside-avoid space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900">
-              Recomendações e recados
-            </h4>
-            <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
-              {recommendationSections.map((section) => (
-                <div key={section.title} className="break-inside-avoid">
-                  <h5 className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{section.title}</h5>
-                  <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-700">{section.content}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* RODAPÉ DO LAUDO COM ASSINATURA */}
-        <div className="pt-6 border-t-2 border-slate-200 flex flex-col sm:flex-row justify-between items-center break-inside-avoid gap-4">
-          <div className="text-xs text-slate-500">
-            <p className="font-semibold text-slate-700">{nut.clinic}</p>
-            <p className="text-[10px]">NutrIsa Platform • Documento emitido eletronicamente</p>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <img src={signatureImg} alt="Assinatura" className="h-12 object-contain" />
-            <span className="text-xs font-bold text-slate-800">{nut.name}</span>
-            <span className="text-[10px] text-slate-500 font-semibold">{nut.crn}</span>
-          </div>
-        </div>
-
+      <div className="space-y-6 print:space-y-0">
+        {pages.map((blocks, pageIndex) => (
+          <article key={pageIndex} className="a4-print-page mx-auto flex min-h-[1120px] max-w-4xl flex-col gap-5 rounded-none border border-slate-300 bg-white p-6 text-slate-800 shadow-xl sm:p-10 md:rounded-2xl print:gap-3 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+            <ReportHeader nut={nut} plan={plan} totals={totals} formattedDate={formattedDate} />
+            <main className="flex-1 space-y-3">
+              {blocks.map((block, blockIndex) => {
+                if (block.type === 'meal') return <MealBlock key={`meal-${block.mealIndex}-${blockIndex}`} block={block} />;
+                if (block.type === 'recommendation-cards') return <RecommendationCardsBlock key={`cards-${pageIndex}-${blockIndex}`} block={block} />;
+                return <RecommendationBlock key={`recommendation-${pageIndex}-${blockIndex}`} block={block} />;
+              })}
+            </main>
+            <ReportFooter nut={nut} pageNumber={pageIndex + 1} totalPages={pages.length} />
+          </article>
+        ))}
       </div>
-
     </div>
   );
 }

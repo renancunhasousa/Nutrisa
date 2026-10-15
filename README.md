@@ -46,6 +46,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 | Comunicação com a IA no servidor | `server/ai` e `api/ai.js` |
 | Consulta de produtos por código de barras | `server/products` e `api/products.js` |
 | Migrações e configuração do Supabase | `supabase` |
+| Persistência dos modelos de anamnese e contrato | `app/src/shared/services/documentTemplates.js` |
 | Componentes e UI compartilhada | `app/src/shared/ui` |
 | Estilos globais e impressão | `app/src/styles` |
 
@@ -56,6 +57,7 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Gestão de Equipe & Permissões](docs/reference/team-permissions.md): controle de papéis (Dra./Owner, Secretária, Administrativo), código de convite da clínica e liga/desliga de módulos por barra de atalhos.
 - [Configuração e publicação](docs/deployment.md)
 - [Contratos de dados e persistência](docs/data-contracts.md)
+- [Modelos compartilhados de documentos](docs/reference/document-templates.md): modelos de anamnese e contrato sincronizados por clínica no Supabase, incluindo a migração automática dos modelos locais.
 - [Roteiro de verificação](docs/testing.md)
 - [Roadmap Estratégico](docs/roadmap.md) e [Checklist de Tarefas](docs/tasks.md): visão de produto, matriz de impacto e tarefas de implementação.
 - [Plano de implementação CRM + Patient 360](docs/crm-patient360-implementation-plan.md): modelo de dados, telas, segurança, fluxos, migração e fases de execução.

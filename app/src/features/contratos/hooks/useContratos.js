@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { KEY_CONTRACTS_PLAN_HISTORY, KEY_CONTRACTS_CONFIG } from '../../../config/storageKeys';
-import { defaultClauses } from '../domain/defaultClauses';
+import { KEY_CONTRACTS_PLAN_HISTORY, KEY_CONTRACT_TEMPLATES } from '../../../config/storageKeys';
 import { createRemoteContract, getRemoteContract } from '../services/contracts';
 import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
 import { useAuth } from '../../auth/useAuth.js';
 import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
 import { usePatient } from '../../pacientes/usePatient.js';
 import { consumeClinicalRecordHandoff } from '../../pacientes/services/clinicalRecords.js';
+import { importLocalDocumentTemplates, listDocumentTemplates, saveDocumentTemplate } from '../../../shared/services/documentTemplates.js';
 
 const createPage = (label) => ({
   id: Date.now().toString() + Math.random().toString(36).slice(2),
@@ -45,6 +45,7 @@ export function useContratos(activeModel) {
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [templateNameInput, setTemplateNameInput] = useState('');
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   // Array de páginas: [{ id, label, content }]
   const [pages, setPages] = useState([createPage('Página 1')]);
@@ -112,15 +113,29 @@ export function useContratos(activeModel) {
 
   // Carregar templates (Passo 2)
   useEffect(() => {
-    try {
-      const templatesStr = localStorage.getItem('nutrisa_contratos_templates');
-      if (templatesStr) {
-        setSavedTemplates(JSON.parse(templatesStr));
+    if (!organizationId) return undefined;
+    let cancelled = false;
+    const loadTemplates = async () => {
+      setIsLoadingTemplates(true);
+      try {
+        const templatesStr = localStorage.getItem(KEY_CONTRACT_TEMPLATES);
+        const localTemplates = templatesStr ? JSON.parse(templatesStr) : [];
+        if (localTemplates.length) {
+          await importLocalDocumentTemplates({ organizationId, templateType: 'contrato', templates: localTemplates });
+          localStorage.removeItem(KEY_CONTRACT_TEMPLATES);
+        }
+        const remoteTemplates = await listDocumentTemplates(organizationId, 'contrato');
+        if (!cancelled) setSavedTemplates(remoteTemplates);
+      } catch (error) {
+        console.error('Erro ao carregar modelos de contrato:', error);
+        if (!cancelled) alert('Erro ao carregar modelos de contrato: ' + error.message);
+      } finally {
+        if (!cancelled) setIsLoadingTemplates(false);
       }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+    };
+    loadTemplates();
+    return () => { cancelled = true; };
+  }, [organizationId]);
 
   const handleSalvarPreco = () => {
     try {
@@ -216,18 +231,25 @@ export function useContratos(activeModel) {
   };
 
   // Templates
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     if (!templateNameInput.trim()) return alert('Dê um nome ao modelo!');
     const currentContent = editorRef.current?.innerHTML || '';
     const allPages = pages.map((p, i) =>
       i === activePageIndex ? { ...p, content: currentContent } : p
     );
-    const newTemplate = { id: Date.now().toString(), name: templateNameInput, pages: allPages };
-    const updated = [...savedTemplates, newTemplate];
-    setSavedTemplates(updated);
-    localStorage.setItem('nutrisa_contratos_templates', JSON.stringify(updated));
-    setSelectedTemplateId(newTemplate.id);
-    alert('Modelo de contrato salvo!');
+    try {
+      const saved = await saveDocumentTemplate({
+        organizationId,
+        templateType: 'contrato',
+        name: templateNameInput,
+        content: allPages,
+      });
+      setSavedTemplates(prev => [saved, ...prev]);
+      setSelectedTemplateId(saved.id);
+      alert('Modelo de contrato salvo na nuvem!');
+    } catch (error) {
+      alert('Erro ao salvar modelo de contrato: ' + error.message);
+    }
   };
 
   const loadTemplate = (id) => {
@@ -430,6 +452,7 @@ Instruções obrigatórias:
     formaPagamento, setFormaPagamento,
     consultas, setConsultas,
     savedTemplates, selectedTemplateId,
+    isLoadingTemplates,
     templateNameInput, setTemplateNameInput,
     // Sistema de páginas
     pages, activePageIndex,

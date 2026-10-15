@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  Activity, Flame, Sparkles, Loader2, Check, Calendar, 
-  Droplets, TrendingDown, TrendingUp, Info, AlertCircle, X, ChevronRight
+import {
+  Activity, Flame, Loader2, Check, Calendar, Droplets,
+  TrendingDown, TrendingUp, Target, AlertCircle, X
 } from 'lucide-react';
 import { getLatestPatientEvaluation } from '../../avaliacao/services/evaluations.js';
 import { extractEvaluationEnergy } from '../domain/evaluationIntegration.js';
@@ -9,10 +9,9 @@ import { extractEvaluationEnergy } from '../domain/evaluationIntegration.js';
 export function EvaluationEnergyImporter({
   activePatient,
   hasActivePatient,
-  currentTargetCalories,
   onApplyCalories,
   onApplyWater,
-  currentObjective,
+  onEvaluationWeight,
   showAppNotification,
 }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +52,7 @@ export function EvaluationEnergyImporter({
       }
 
       setEvaluationData(extracted);
+      if (extracted.weight) onEvaluationWeight?.(extracted.weight);
       setAppliedCalories(null);
       setAppliedWater(false);
 
@@ -113,24 +113,13 @@ export function EvaluationEnergyImporter({
       {/* Botão de Puxar Dados quando ainda não foi carregado */}
       {!evaluationData && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 via-teal-50/50 to-white p-3.5 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 shadow-2xs">
-              <Activity className="size-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-800">
-                  Avaliação Física de {patientName}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                  <Sparkles className="size-3 text-emerald-600" />
-                  Prontuário Ativo
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Puxe a Taxa Metabólica Basal (TMB), peso e hidratação da última avaliação para calibrar as metas.
-              </p>
-            </div>
+          <div>
+            <span className="text-xs font-bold text-slate-800">
+              Avaliação Física de {patientName}
+            </span>
+            <p className="text-[11px] text-slate-500">
+              Puxe a Taxa Metabólica Basal (TMB), peso e hidratação da última avaliação para calibrar as metas.
+            </p>
           </div>
 
           <button
@@ -183,15 +172,9 @@ export function EvaluationEnergyImporter({
                 <Flame className="size-4.5 text-amber-300" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-emerald-950">
-                    Dados da Última Avaliação Física
-                  </h4>
-                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                    <Calendar className="size-3" />
-                    {evaluationData.evaluationDate}
-                  </span>
-                </div>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-emerald-950">
+                  Dados da Última Avaliação Física
+                </h4>
                 <p className="text-[11px] text-slate-500">
                   Selecione o cenário calórico desejado para aplicar à meta da prescrição:
                 </p>
@@ -199,6 +182,10 @@ export function EvaluationEnergyImporter({
             </div>
 
             <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                <Calendar className="size-3" aria-hidden="true" />
+                Última avaliação: {evaluationData.evaluationDate}
+              </span>
               <button
                 type="button"
                 onClick={handleFetchEvaluation}
@@ -222,10 +209,10 @@ export function EvaluationEnergyImporter({
 
           {/* Cards com Métricas Corporais da Avaliação */}
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-emerald-200 bg-white p-2.5 text-center shadow-2xs">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">TMB (Basal)</span>
-              <strong className="text-base font-black text-emerald-950">{evaluationData.tmb}</strong>
-              <span className="text-[10px] font-bold text-emerald-600"> kcal</span>
+            <div className="rounded-xl border border-slate-200 bg-white p-2.5 text-center shadow-2xs">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">TMB (Basal)</span>
+              <strong className="text-base font-black text-slate-800">{evaluationData.tmb}</strong>
+              <span className="text-[10px] font-bold text-slate-500"> kcal</span>
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-white p-2.5 text-center shadow-2xs">
@@ -265,7 +252,10 @@ export function EvaluationEnergyImporter({
               >
                 <div className="flex w-full items-center justify-between">
                   <span className={`text-[11px] font-bold ${appliedCalories === evaluationData.suggestedScenarios.maintenance ? 'text-white' : 'text-slate-700'}`}>
-                    🎯 Manutenção (TMB)
+                    <span className="inline-flex items-center gap-1.5">
+                      <Target className="size-3.5" aria-hidden="true" />
+                      Manutenção (TMB)
+                    </span>
                   </span>
                   {appliedCalories === evaluationData.suggestedScenarios.maintenance && (
                     <Check className="size-3.5 text-white" />
@@ -291,7 +281,10 @@ export function EvaluationEnergyImporter({
               >
                 <div className="flex w-full items-center justify-between">
                   <span className={`text-[11px] font-bold ${appliedCalories === evaluationData.suggestedScenarios.deficitModerate ? 'text-white' : 'text-slate-700'}`}>
-                    📉 Déficit Moderado (-350)
+                    <span className="inline-flex items-center gap-1.5">
+                      <TrendingDown className="size-3.5" aria-hidden="true" />
+                      Déficit Moderado (-350)
+                    </span>
                   </span>
                   {appliedCalories === evaluationData.suggestedScenarios.deficitModerate && (
                     <Check className="size-3.5 text-white" />
@@ -311,22 +304,25 @@ export function EvaluationEnergyImporter({
                 onClick={() => handleSelectCalories(evaluationData.suggestedScenarios.surplusModerate)}
                 className={`flex flex-col items-start rounded-xl border p-2.5 text-left transition-all cursor-pointer ${
                   appliedCalories === evaluationData.suggestedScenarios.surplusModerate
-                    ? 'border-teal-500 bg-teal-600 text-white shadow-xs'
-                    : 'border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50/50 text-slate-800'
+                    ? 'border-amber-500 bg-amber-600 text-white shadow-xs'
+                    : 'border-slate-200 bg-white hover:border-amber-300 hover:bg-amber-50/50 text-slate-800'
                 }`}
               >
                 <div className="flex w-full items-center justify-between">
                   <span className={`text-[11px] font-bold ${appliedCalories === evaluationData.suggestedScenarios.surplusModerate ? 'text-white' : 'text-slate-700'}`}>
-                    📈 Superávit (+350)
+                    <span className="inline-flex items-center gap-1.5">
+                      <TrendingUp className="size-3.5" aria-hidden="true" />
+                      Superávit (+350)
+                    </span>
                   </span>
                   {appliedCalories === evaluationData.suggestedScenarios.surplusModerate && (
                     <Check className="size-3.5 text-white" />
                   )}
                 </div>
-                <strong className={`text-base font-black mt-0.5 ${appliedCalories === evaluationData.suggestedScenarios.surplusModerate ? 'text-white' : 'text-teal-600'}`}>
+                <strong className={`text-base font-black mt-0.5 ${appliedCalories === evaluationData.suggestedScenarios.surplusModerate ? 'text-white' : 'text-amber-600'}`}>
                   {evaluationData.suggestedScenarios.surplusModerate} kcal
                 </strong>
-                <span className={`text-[10px] mt-0.5 ${appliedCalories === evaluationData.suggestedScenarios.surplusModerate ? 'text-teal-100' : 'text-slate-400'}`}>
+                <span className={`text-[10px] mt-0.5 ${appliedCalories === evaluationData.suggestedScenarios.surplusModerate ? 'text-amber-100' : 'text-slate-400'}`}>
                   Ideal p/ ganho de massa
                 </span>
               </button>

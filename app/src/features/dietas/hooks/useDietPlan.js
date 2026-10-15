@@ -30,9 +30,10 @@ export function useDietPlan() {
     });
   });
 
-  const [activeTab, setActiveTab] = useState('refeicoes'); // 'refeicoes' | 'metas' | 'orientacoes' | 'relatorio'
+  const [activeTab, setActiveTab] = useState('metas'); // 'metas' | 'refeicoes' | 'orientacoes' | 'relatorio'
   const [isFoodModalOpen, setIsFoodModalOpen] = useState(false);
   const [activeMealIndex, setActiveMealIndex] = useState(null);
+  const [substitutionTarget, setSubstitutionTarget] = useState(null);
   const [isCustomFoodModalOpen, setIsCustomFoodModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -216,8 +217,18 @@ export function useDietPlan() {
       id: 'sub_' + Date.now(),
       food_id: subFood.id,
       name: subFood.name,
+      category: subFood.category,
       quantity,
       unit,
+      household_measures: subFood.household_measures || [],
+      portion_base_grams: Number(subFood.portion_base_grams) || 100,
+      base_nutrition: {
+        calories: Number(subFood.calories ?? subFood.nutrition_per_100g?.calories) || 0,
+        protein: Number(subFood.protein ?? subFood.nutrition_per_100g?.protein) || 0,
+        carbs: Number(subFood.carbs ?? subFood.nutrition_per_100g?.carbs) || 0,
+        fat: Number(subFood.fat ?? subFood.nutrition_per_100g?.fat) || 0,
+        fiber: Number(subFood.fiber ?? subFood.nutrition_per_100g?.fiber) || 0,
+      },
       nutrition_snapshot: nutrition,
     };
 
@@ -233,6 +244,39 @@ export function useDietPlan() {
       newItems[itemIndex] = { ...item, substitutions: subs };
       updatedMeals[mealIndex] = { ...meal, items: newItems };
 
+      return { ...prev, meals: updatedMeals };
+    });
+  }, []);
+
+  const updateSubstitution = useCallback((mealIndex, itemIndex, subIndex, updates) => {
+    setPlan(prev => {
+      const updatedMeals = [...prev.meals];
+      const meal = updatedMeals[mealIndex];
+      const item = meal?.items?.[itemIndex];
+      const current = item?.substitutions?.[subIndex];
+      if (!current) return prev;
+
+      const merged = { ...current, ...updates };
+      const currentGrams = Number(current.nutrition_snapshot?.grams) || 100;
+      const base = current.base_nutrition || {
+        calories: (Number(current.nutrition_snapshot?.calories) || 0) / (currentGrams / 100),
+        protein: (Number(current.nutrition_snapshot?.protein) || 0) / (currentGrams / 100),
+        carbs: (Number(current.nutrition_snapshot?.carbs) || 0) / (currentGrams / 100),
+        fat: (Number(current.nutrition_snapshot?.fat) || 0) / (currentGrams / 100),
+        fiber: (Number(current.nutrition_snapshot?.fiber) || 0) / (currentGrams / 100),
+      };
+      merged.base_nutrition = base;
+      merged.nutrition_snapshot = calculateFoodItemNutrition({
+        ...base,
+        portion_base_grams: merged.portion_base_grams || 100,
+        household_measures: merged.household_measures || [],
+      }, merged.quantity, merged.unit);
+
+      const substitutions = [...item.substitutions];
+      substitutions[subIndex] = merged;
+      const items = [...meal.items];
+      items[itemIndex] = { ...item, substitutions };
+      updatedMeals[mealIndex] = { ...meal, items };
       return { ...prev, meals: updatedMeals };
     });
   }, []);
@@ -307,7 +351,14 @@ export function useDietPlan() {
   }, []);
 
   const openFoodSearchForMeal = (mealIndex) => {
+    setSubstitutionTarget(null);
     setActiveMealIndex(mealIndex);
+    setIsFoodModalOpen(true);
+  };
+
+  const openFoodSearchForSubstitution = (mealIndex, itemIndex) => {
+    setActiveMealIndex(mealIndex);
+    setSubstitutionTarget({ mealIndex, itemIndex });
     setIsFoodModalOpen(true);
   };
 
@@ -329,6 +380,7 @@ export function useDietPlan() {
     updateFoodInMeal,
     removeFoodFromMeal,
     addSubstitution,
+    updateSubstitution,
     removeSubstitution,
     handleSave,
     handleCreateNew,
@@ -340,7 +392,9 @@ export function useDietPlan() {
     isFoodModalOpen,
     setIsFoodModalOpen,
     activeMealIndex,
+    substitutionTarget,
     openFoodSearchForMeal,
+    openFoodSearchForSubstitution,
     isCustomFoodModalOpen,
     setIsCustomFoodModalOpen,
     isHistoryModalOpen,

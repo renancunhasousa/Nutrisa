@@ -18,6 +18,14 @@ export function sanitizeMealPlan(plan = {}) {
     supplement_recommendations: plan.supplement_recommendations || '',
     recipe_suggestions: plan.recipe_suggestions || '',
     general_notes: plan.general_notes || '',
+    recommendation_card_visibility: plan.recommendation_card_visibility && typeof plan.recommendation_card_visibility === 'object'
+      ? plan.recommendation_card_visibility
+      : {
+          recommended_brands: Boolean(plan.show_recommendation_cards),
+          supplement_recommendations: Boolean(plan.show_recommendation_cards),
+          recipe_suggestions: Boolean(plan.show_recommendation_cards),
+        },
+    recommendation_card_items: Array.isArray(plan.recommendation_card_items) ? plan.recommendation_card_items : [],
     status: plan.status || 'rascunho', // 'rascunho' | 'publicada' | 'arquivada'
     version: Number(plan.version) || 1,
     meals: Array.isArray(plan.meals) ? plan.meals.map(sanitizeMeal) : getDefaultMeals(),
