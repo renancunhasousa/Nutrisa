@@ -24,3 +24,8 @@ Thumbs.db
 .idea/
 
 .vercel
+
+# Temporary / Local Scripts & Data
+scripts/
+*.sql.bak
+
