@@ -66,14 +66,14 @@ export async function pingAllProviders({ env = process.env, fetchImpl = fetch } 
       if (!hasOpenAi) return { configured: false, online: false };
       const start = Date.now();
       try {
-        const res = await callOpenAiApi('gpt-4o-mini', PING_PAYLOAD, { env, fetchImpl });
+        const res = await callOpenAiApi('gpt-6-luna', PING_PAYLOAD, { env, fetchImpl });
         const latencyMs = Date.now() - start;
         return {
           configured: true,
           online: res.ok,
           latencyMs,
           status: res.status,
-          model: 'gpt-4o-mini',
+          model: 'gpt-6-luna',
           ...(res.ok ? {} : { error: `HTTP ${res.status}` }),
         };
       } catch (err) {
@@ -81,7 +81,7 @@ export async function pingAllProviders({ env = process.env, fetchImpl = fetch } 
           configured: true,
           online: false,
           latencyMs: Date.now() - start,
-          model: 'gpt-4o-mini',
+          model: 'gpt-6-luna',
           error: err.message,
         };
       }

@@ -55,6 +55,15 @@ export const TASK_CATEGORIES = {
     dotBg: 'bg-amber-500',
     defaultModule: 'agenda',
   },
+  relacionamento: {
+    id: 'relacionamento',
+    label: 'Relacionamento',
+    iconName: 'Sparkles',
+    color: 'emerald',
+    badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    dotBg: 'bg-emerald-500',
+    defaultModule: 'crm',
+  },
   geral: {
     id: 'geral',
     label: 'Geral',
@@ -70,22 +79,22 @@ export const TASK_PRIORITIES = {
     id: 'alta',
     label: 'Alta Prioridade',
     color: 'rose',
-    badgeBg: 'bg-rose-50 text-rose-700 border-rose-200',
+    badgeBg: 'bg-rose-50 text-rose-700 border-rose-300 ring-rose-500/20',
     dot: 'bg-rose-500',
   },
   media: {
     id: 'media',
     label: 'Média',
     color: 'amber',
-    badgeBg: 'bg-amber-50 text-amber-700 border-amber-200',
+    badgeBg: 'bg-amber-50 text-amber-700 border-amber-300 ring-amber-500/20',
     dot: 'bg-amber-400',
   },
   baixa: {
     id: 'baixa',
     label: 'Baixa',
-    color: 'slate',
-    badgeBg: 'bg-slate-50 text-slate-600 border-slate-200',
-    dot: 'bg-slate-300',
+    color: 'emerald',
+    badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-emerald-500/20',
+    dot: 'bg-emerald-500',
   },
 };
 

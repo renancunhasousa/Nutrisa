@@ -1,12 +1,19 @@
-/**
- * postGeneratorService.js
- * Serviço central de gerenciamento de templates, paletas e geração com IA para Instagram da Dra. Isabela Muñoz
- */
+import { DRA_ISABELA_ORG_ID, isDraIsabelaOrganization } from '../../configuracoes/defaultProfile.js';
+
+export function checkIsDraIsabela(authorInfo = {}) {
+  if (authorInfo.organization_id && !isDraIsabelaOrganization(authorInfo.organization_id)) {
+    return false;
+  }
+  if (authorInfo.name && !/isabela/i.test(authorInfo.name)) {
+    return false;
+  }
+  return true;
+}
 
 export const POST_FORMATS = [
   {
     id: 'autoridade',
-    label: '1. Dra. Isabela Explica',
+    label: '1. Autoridade Explica',
     subtitle: 'Autoridade & Elegância',
     description: 'Post com a foto oficial da Dra., focado em autoridade médica, desmistificação e posicionamento de luxo.'
   },
@@ -47,6 +54,43 @@ export const POST_FORMATS = [
     description: 'Lâmina editorial com número grande em destaque, título, explicação fisiológica profunda e card dourado de conduta clínica com lâmpada.'
   }
 ];
+
+export function getPostFormats(authorInfo = {}) {
+  const isIsabela = checkIsDraIsabela(authorInfo);
+  let format1Label = '1. Dra. Isabela Explica';
+  if (!isIsabela) {
+    if (authorInfo?.name && authorInfo.name.trim()) {
+      const parts = authorInfo.name.trim().split(' ');
+      const cleanFirst = parts[0].toLowerCase().startsWith('dra') && parts[1]
+        ? `${parts[0]} ${parts[1]}`
+        : parts[0];
+      format1Label = `1. ${cleanFirst} Explica`;
+    } else {
+      format1Label = '1. Nutri Explica';
+    }
+  }
+
+  return POST_FORMATS.map((fmt) => {
+    if (fmt.id === 'autoridade') {
+      return {
+        ...fmt,
+        label: format1Label,
+        description: isIsabela
+          ? fmt.description
+          : 'Post com a foto oficial da nutricionista, focado em autoridade clínica, desmistificação e posicionamento de destaque.'
+      };
+    }
+    if (fmt.id === 'cta') {
+      return {
+        ...fmt,
+        description: isIsabela
+          ? fmt.description
+          : 'Post de conversão poderoso com chamada direta para agendamento de consulta com a nutricionista.'
+      };
+    }
+    return fmt;
+  });
+}
 
 export const POST_THEMES = [
   {
@@ -257,9 +301,18 @@ export const DEFAULT_POST_DATA = {
 /**
  * Cria o prompt para a IA para post único ou carrossel completo
  */
-export function buildAiPrompt({ topic, format = 'autoridade' }) {
+export function buildAiPrompt({ topic, format = 'autoridade', authorInfo = {} }) {
+  const isIsabela = checkIsDraIsabela(authorInfo);
+  const authorName = (authorInfo.name || '').trim() || (isIsabela ? 'Dra. Isabela Muñoz' : 'Nutricionista Responsável');
+  const authorTitle = authorInfo.title || (isIsabela ? 'Nutricionista Clínica e Esportiva de elite, certificada ACSM' : 'Nutricionista Clínica e Esportiva');
+  const clinicText = authorInfo.clinic ? `da clínica "${authorInfo.clinic}"` : '';
+
   if (format === 'carrossel') {
-    return `Você é a inteligência artificial da Dra. Isabela Muñoz (Nutricionista Clínica e Esportiva de elite, certificada ACSM).
+    const aiPersona = isIsabela
+      ? 'Você é a inteligência artificial da Dra. Isabela Muñoz (Nutricionista Clínica e Esportiva de elite, certificada ACSM).'
+      : `Você é a inteligência artificial de ${authorName} (${authorTitle} ${clinicText}).`;
+
+    return `${aiPersona}
 Gere um CARROSSEL COMPLETO (sequência de 5 slides) de altíssimo engajamento para o Instagram sobre o tema: "${topic}".
 
 Retorne OBRIGATORIAMENTE um JSON válido com esta estrutura exata:
@@ -319,13 +372,18 @@ Retorne OBRIGATORIAMENTE um JSON válido com esta estrutura exata:
 }`;
   }
 
-  return `Você é a inteligência artificial da Dra. Isabela Muñoz (Nutricionista Clínica e Esportiva, certificada ACSM).
+  const aiPersonaSingle = isIsabela
+    ? 'Você é a inteligência artificial da Dra. Isabela Muñoz (Nutricionista Clínica e Esportiva, certificada ACSM).'
+    : `Você é a inteligência artificial de ${authorName} (${authorTitle} ${clinicText}).`;
+  const ctaMention = isIsabela ? 'Dra. Isabela Muñoz' : authorName;
+
+  return `${aiPersonaSingle}
 Gere o conteúdo para um post de alta conversão e autoridade no Instagram para o formato: "${format}".
 Tema solicitado: "${topic}".
 
 Retorne OBRIGATORIAMENTE um JSON válido com esta estrutura exata:
 {
-  "badge": "Frase curta (ex: Nutrição de Precisão ou ACSM)",
+  "badge": "${isIsabela ? 'Frase curta (ex: Nutrição de Precisão ou ACSM)' : 'Frase curta (ex: Nutrição de Precisão)'}",
   "tagline": "Frase de efeito elegante (ex: Performance & Longevidade)",
   "headline": "Título instigante em formato de pergunta ou afirmação forte",
   "highlightText": "Parte do título que deve ficar com destaque dourado (2 a 4 palavras)",
@@ -337,20 +395,25 @@ Retorne OBRIGATORIAMENTE um JSON válido com esta estrutura exata:
   "dishProteina": "Ex: 38g",
   "dishCarbos": "Ex: 52g",
   "dishGorduras": "Ex: 12g",
-  "cienciaBadge": "American College of Sports Medicine",
+  "cienciaBadge": "${isIsabela ? 'American College of Sports Medicine' : 'Evidências Científicas'}",
   "cienciaTitle": "Pergunta central do mito vs verdade",
   "debateWrongTitle": "O que as pessoas acreditam erroneamente",
   "debateWrongText": "Explicação do porquê esse senso comum prejudica o paciente",
-  "debateRightTitle": "O que a evidência científica e o ACSM comprovam",
+  "debateRightTitle": "${isIsabela ? 'O que a evidência científica e o ACSM comprovam' : 'O que a evidência científica comprova'}",
   "debateRightText": "A recomendação clínica precisa com base em bioquímica e fisiologia do exercício",
-  "caption": "Legenda completa do Instagram pronta para publicar: com gancho de abertura magnético, explicação sem termos inacessíveis, chamada para ação convidando para consulta com Dra. Isabela Muñoz, e hashtags estratégicas de nutrição esportiva e clínica."
+  "caption": "Legenda completa do Instagram pronta para publicar: com gancho de abertura magnético, explicação sem termos inacessíveis, chamada para ação convidando para consulta com ${ctaMention}, e hashtags estratégicas de nutrição esportiva e clínica."
 }`;
 }
 
 /**
  * Normaliza os dados gerados pela IA ou fallback
  */
-export function sanitizePostData(raw = {}, currentData = DEFAULT_POST_DATA) {
+export function sanitizePostData(raw = {}, currentData = DEFAULT_POST_DATA, authorInfo = {}) {
+  const fallbackAuthorName = (authorInfo.name && !/isabela/i.test(authorInfo.name))
+    ? authorInfo.name
+    : (currentData.authorName || 'Isabela Muñoz');
+  const fallbackAuthorTitle = authorInfo.title || currentData.authorTitle || 'Nutrição Clínica, Esportiva & Performance';
+
   let slides = currentData.slides || DEFAULT_CAROUSEL_SLIDES;
   if (Array.isArray(raw.slides) && raw.slides.length > 0) {
     slides = raw.slides.map((s, idx) => ({
@@ -367,8 +430,8 @@ export function sanitizePostData(raw = {}, currentData = DEFAULT_POST_DATA) {
       tip: (s.tip || '').trim(),
       ctaIndicator: (s.ctaIndicator || 'Deslize para ver ➔').trim(),
       ctaBoxText: (s.ctaBoxText || 'Salve este carrossel e agende sua consulta pelo link da bio!').trim(),
-      authorName: s.authorName || 'Isabela Muñoz',
-      authorTitle: s.authorTitle || 'Nutrição Clínica, Esportiva & Performance • ACSM'
+      authorName: s.authorName || fallbackAuthorName,
+      authorTitle: s.authorTitle || fallbackAuthorTitle
     }));
   }
 
@@ -392,6 +455,8 @@ export function sanitizePostData(raw = {}, currentData = DEFAULT_POST_DATA) {
     debateWrongText: (raw.debateWrongText || currentData.debateWrongText || '').trim(),
     debateRightTitle: (raw.debateRightTitle || currentData.debateRightTitle || '').trim(),
     debateRightText: (raw.debateRightText || currentData.debateRightText || '').trim(),
+    authorName: (raw.authorName || fallbackAuthorName).trim(),
+    authorTitle: (raw.authorTitle || fallbackAuthorTitle).trim(),
     slides,
     caption: (raw.caption || currentData.caption || '').trim()
   };
@@ -400,12 +465,12 @@ export function sanitizePostData(raw = {}, currentData = DEFAULT_POST_DATA) {
 /**
  * Gera post ou carrossel completo via IA ou fallback inteligente
  */
-export async function generatePostContent({ topic, format = 'autoridade', model, callAiFn }) {
+export async function generatePostContent({ topic, format = 'autoridade', authorInfo, model, callAiFn }) {
   if (!topic || !topic.trim()) {
     throw new Error('Informe um tema ou selecione uma sugestão para gerar o post.');
   }
 
-  const prompt = buildAiPrompt({ topic: topic.trim(), format });
+  const prompt = buildAiPrompt({ topic: topic.trim(), format, authorInfo });
 
   if (typeof callAiFn === 'function') {
     try {
@@ -418,7 +483,7 @@ export async function generatePostContent({ topic, format = 'autoridade', model,
 
       const parsed = response.json || (response.text ? JSON.parse(response.text) : null);
       if (parsed) {
-        return sanitizePostData(parsed);
+        return sanitizePostData(parsed, DEFAULT_POST_DATA, authorInfo);
       }
     } catch (err) {
       console.warn('Falha na chamada remota de IA, utilizando gerador inteligente local:', err.message);
@@ -426,21 +491,24 @@ export async function generatePostContent({ topic, format = 'autoridade', model,
   }
 
   // Fallback inteligente caso a IA externa não esteja disponível
-  return getOfflinePreset(topic, format);
+  return getOfflinePreset(topic, format, authorInfo);
 }
 
 /**
  * Gerador de presets offline quando a API de IA estiver indisponível
  */
-export function getOfflinePreset(topic = '', format = 'autoridade') {
+export function getOfflinePreset(topic = '', format = 'autoridade', authorInfo = {}) {
   const clean = topic.toLowerCase();
+  const isIsabela = checkIsDraIsabela(authorInfo);
+  const authorName = (authorInfo.name || '').trim() || (isIsabela ? 'Dra. Isabela Muñoz' : 'Nutricionista Responsável');
+  const authorHashtag = isIsabela ? '#DraIsabelaMunoz' : (authorName !== 'Nutricionista Responsável' ? `#${authorName.replace(/[^a-zA-Z0-9]/g, '')}` : '#Nutricao');
   
   if (format === 'carrossel' || clean.includes('erros') || clean.includes('passos') || clean.includes('guia')) {
     return {
       ...DEFAULT_POST_DATA,
       format: 'carrossel',
       slides: DEFAULT_CAROUSEL_SLIDES,
-      caption: `Você sabia que pequenos desajustes na rotina de treino e alimentação podem estagnar seu metabolismo?\n\nDeslize para o lado para conferir os 3 pontos mais comuns no consultório e como corrigi-los com precisão clínica.\n\nSalva este post para não esquecer e agende sua consulta pelo link da bio! ✨\n\n#NutricaoEsportiva #DraIsabelaMunoz #CarrosselNutricao #Hipertrofia #ACSM`
+      caption: `Você sabia que pequenos desajustes na rotina de treino e alimentação podem estagnar seu metabolismo?\n\nDeslize para o lado para conferir os 3 pontos mais comuns no consultório e como corrigi-los com precisão clínica.\n\nSalva este post para não esquecer e agende sua consulta pelo link da bio! ✨\n\n#NutricaoEsportiva ${authorHashtag} #CarrosselNutricao #Hipertrofia #ACSM`
     };
   }
 
@@ -467,7 +535,7 @@ export function getOfflinePreset(topic = '', format = 'autoridade') {
     format,
     headline: topic,
     highlightText: topic.split(' ').slice(0, 3).join(' '),
-    caption: `Tema do dia: ${topic}\n\nUma abordagem individualizada faz toda a diferença para o seu metabolismo e objetivos esportivos.\n\nAgende sua consulta com a Dra. Isabela Muñoz clicando no link da bio! ✨\n\n#NutricaoEsportiva #IsabelaMunoz #Performance`
+    caption: `Tema do dia: ${topic}\n\nUma abordagem individualizada faz toda a diferença para o seu metabolismo e objetivos esportivos.\n\nAgende sua consulta com ${authorName} clicando no link da bio! ✨\n\n#NutricaoEsportiva ${authorHashtag} #Performance`
   };
 }
 
@@ -533,7 +601,7 @@ Chamada Final: ${postData.ctaCallout || ''}`;
   if (format === 'manifesto') {
     return `FORMATO: MANIFESTO CLÍNICO & EDITORIAL DE MARCA
 Citação de Posicionamento: "${postData.manifestoCitacao || ''}"
-Autora: ${postData.manifestoAutor || 'Dra. Isabela Muñoz'} (${postData.manifestoTitulo || 'Nutricionista Clínica & Esportiva - ACSM'})`;
+Autora: ${postData.manifestoAutor || 'Profissional responsável'} (${postData.manifestoTitulo || 'Nutricionista Clínica & Esportiva - ACSM'})`;
   }
 
   // Autoridade / Padrão
@@ -541,17 +609,22 @@ Autora: ${postData.manifestoAutor || 'Dra. Isabela Muñoz'} (${postData.manifest
 Tag: ${postData.badge || 'Nutrição de Precisão'}
 Headline: ${postData.headline || ''}
 Explicação Clínica: ${postData.description || ''}
-Autora: ${postData.authorName || 'Dra. Isabela Muñoz'}`;
+Autora: ${postData.authorName || 'Profissional responsável'}`;
 }
 
 /**
  * Gera legenda completa e persuasiva para o Instagram via IA com base no contexto
  */
-export async function generateInstagramCaption({ postData, model, callAiFn }) {
+export async function generateInstagramCaption({ postData, authorInfo = {}, model, callAiFn }) {
   const context = extractPostContextForCaption(postData);
   const isCarousel = postData.format === 'carrossel';
 
-  const prompt = `Você é um estrategista sênior de marketing e copywriter para a Dra. Isabela Muñoz, nutricionista clínica, esportiva e com certificação ACSM.
+  const isIsabela = checkIsDraIsabela(authorInfo) && (!postData.authorName || /isabela/i.test(postData.authorName));
+  const authorName = (authorInfo.name || postData.authorName || '').trim() || (isIsabela ? 'Dra. Isabela Muñoz' : 'Nutricionista Responsável');
+  const authorTitle = authorInfo.title || postData.authorTitle || (isIsabela ? 'nutricionista clínica, esportiva e com certificação ACSM' : 'nutricionista clínica e esportiva');
+  const hashtagAuthor = isIsabela ? '#DraIsabelaMunoz' : (authorName !== 'Nutricionista Responsável' ? `#${authorName.replace(/[^a-zA-Z0-9]/g, '')}` : '#Nutricao');
+
+  const prompt = `Você é um estrategista sênior de marketing e copywriter para ${authorName}, ${authorTitle}.
 
 Sua missão é escrever a LEGENDA DEFINITIVA para este post no Instagram, aproveitando integralmente o contexto e a mensagem das lâminas/artes:
 
@@ -573,10 +646,10 @@ ESTRUTURA OBRIGATÓRIA DA LEGENDA:
    - Entregue um valor prático que o leitor consiga aplicar ou compreender.
 
 4. 📲 CHAMADA PARA AÇÃO (CTA):
-   - Conduza o leitor a salvar o post para consultar depois, compartilhar com amigos que treinam ou tocar no link da bio para agendar sua consulta individualizada com a Dra. Isabela.
+   - Conduza o leitor a salvar o post para consultar depois, compartilhar com amigos que treinam ou tocar no link da bio para agendar sua consulta individualizada com ${authorName}.
 
 5. 🏷️ HASHTAGS ESTRATÉGICAS:
-   - No final, insira de 6 a 8 hashtags altamente relevantes no nicho de nutrição esportiva e clínica (ex: #NutricaoEsportiva #DraIsabelaMunoz #Metabolismo #Hipertrofia #ACSM #NutricaoDePrecisao).
+   - No final, insira de 6 a 8 hashtags altamente relevantes no nicho de nutrição esportiva e clínica (ex: #NutricaoEsportiva ${hashtagAuthor} #Metabolismo #Hipertrofia #ACSM #NutricaoDePrecisao).
 
 IMPORTANTE: Devolva APENAS o texto puro pronto da legenda para ser postado no Instagram, sem introduções como "Aqui está a sua legenda:" e sem aspas no início ou fim.`;
 
@@ -598,17 +671,21 @@ IMPORTANTE: Devolva APENAS o texto puro pronto da legenda para ser postado no In
   }
 
   // Fallback local se a API estiver sem conexão
-  return generateLocalFallbackCaption(postData);
+  return generateLocalFallbackCaption(postData, authorInfo);
 }
 
-function generateLocalFallbackCaption(postData) {
+function generateLocalFallbackCaption(postData, authorInfo = {}) {
   const isCarousel = postData.format === 'carrossel';
   const slides = postData.slides || [];
   const mainTitle = postData.headline || postData.dishHeadline || postData.cienciaTitle || postData.dicasTitle || postData.ctaTitle || 'Estratégia Nutricional';
 
+  const isIsabela = checkIsDraIsabela(authorInfo) && (!postData.authorName || /isabela/i.test(postData.authorName));
+  const authorName = (authorInfo.name || postData.authorName || '').trim() || (isIsabela ? 'Dra. Isabela Muñoz' : 'Nutricionista Responsável');
+  const hashtagAuthor = isIsabela ? '#DraIsabelaMunoz' : (authorName !== 'Nutricionista Responsável' ? `#${authorName.replace(/[^a-zA-Z0-9]/g, '')}` : '#Nutricao');
+
   if (isCarousel && slides.length > 0) {
-    return `${mainTitle} — você já parou para analisar como pequenos desajustes afetam sua performance e seu metabolismo?\n\nDeslize as lâminas para conferir o passo a passo completo que estruturei com base em fisiologia e evidências clínicas.\n\n🎯 Cada organismo exige uma periodização única, ajustada à sua rotina real de treinos e exames bioquímicos.\n\n👉 Salve este carrossel para consultar na sua semana e agende sua consulta individualizada pelo link da bio!\n\n#NutricaoEsportiva #DraIsabelaMunoz #CarrosselClinico #Metabolismo #ACSM #Performance`;
+    return `${mainTitle} — você já parou para analisar como pequenos desajustes afetam sua performance e seu metabolismo?\n\nDeslize as lâminas para conferir o passo a passo completo que estruturei com base em fisiologia e evidências clínicas.\n\n🎯 Cada organismo exige uma periodização única, ajustada à sua rotina real de treinos e exames bioquímicos.\n\n👉 Salve este carrossel para consultar na sua semana e agende sua consulta individualizada pelo link da bio!\n\n#NutricaoEsportiva ${hashtagAuthor} #CarrosselClinico #Metabolismo #ACSM #Performance`;
   }
 
-  return `${mainTitle}\n\nA restrição severa ou o treino sem estratégia nutricional calculada são os principais motivos de estagnação metabólica e perda de rendimento.\n\n🔬 Com uma periodização precisa, garantimos energia, preservação de massa muscular e resultados sustentáveis no seu dia a dia.\n\nToque no link da bio para agendar sua consulta e transformar sua performance! ✨\n\n#NutricaoEsportiva #DraIsabelaMunoz #NutricaoDePrecisao #SaudeEPerformance #ACSM`;
+  return `${mainTitle}\n\nA restrição severa ou o treino sem estratégia nutricional calculada são os principais motivos de estagnação metabólica e perda de rendimento.\n\n🔬 Com uma periodização precisa, garantimos energia, preservação de massa muscular e resultados sustentáveis no seu dia a dia.\n\nToque no link da bio para agendar sua consulta com ${authorName} e transformar sua performance! ✨\n\n#NutricaoEsportiva ${hashtagAuthor} #NutricaoDePrecisao #SaudeEPerformance #ACSM`;
 }

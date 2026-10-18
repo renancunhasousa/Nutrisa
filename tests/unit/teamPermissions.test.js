@@ -16,9 +16,9 @@ if (typeof globalThis.localStorage === 'undefined') {
   };
 }
 
-test('CLINICAL_MODULES lista os 13 módulos do menu lateral exatamente', () => {
+test('CLINICAL_MODULES lista os 14 módulos do menu lateral exatamente', () => {
   const ids = CLINICAL_MODULES.map((m) => m.id);
-  assert.equal(ids.length, 13);
+  assert.equal(ids.length, 14);
   assert.deepEqual(ids, [
     'pacientes',
     'crm',
@@ -30,6 +30,7 @@ test('CLINICAL_MODULES lista os 13 módulos do menu lateral exatamente', () => {
     'agenda',
     'tarefas',
     'contratos',
+    'financas',
     'marketing',
     'ai',
     'configuracoes',

@@ -14,7 +14,7 @@ Para garantir que a nutricionista nunca fique sem resposta em consultas clínica
 flowchart TD
     Req["Requisição Clínico/Operacional"] --> Srv["server/ai/service.js"]
     Srv --> G1["1º Provedor (Titular): Google Gemini"]
-    G1 -- "Cota esgotada (429) ou erro 5xx" --> OA["2º Provedor (1º Fallback): OpenAI (gpt-4o-mini)"]
+    G1 -- "Cota esgotada (429) ou erro 5xx" --> OA["2º Provedor (1º Fallback): OpenAI (gpt-6-luna)"]
     OA -- "Cota esgotada (429) ou erro 5xx" --> DS["3º Provedor (2º Fallback): DeepSeek (deepseek-flash)"]
     G1 -- "Sucesso" --> Resp["Resposta Unificada"]
     OA -- "Sucesso" --> Resp
@@ -30,7 +30,7 @@ O painel de configurações de IA (`AiSettings.jsx`) inclui um botão **"Testar 
 | Ordem | Provedor | Modelo Padrão | Capacidade Multimodal (Visão) | Variável de Ambiente | Papel no NutrIsa |
 | :---: | :--- | :--- | :---: | :--- | :--- |
 | **1º** | **Google Gemini** | `gemini-3.8-flash` (ou configurado em `GEMINI_MODELS`) | ✅ Sim (imagens e PDFs) | `GEMINI_API_KEY` | **Titular:** Rápido, econômico e com ampla janela de contexto. |
-| **2º** | **OpenAI** | `gpt-4o-mini` | ✅ Sim (imagens base64) | `OPENAI_API_KEY` | **1º Fallback:** Altíssima estabilidade, baixa latência e compatibilidade multimodal para laudos e texto. |
+| **2º** | **OpenAI** | `gpt-6-luna` | ✅ Sim (imagens base64) | `OPENAI_API_KEY` | **1º Fallback:** Altíssima estabilidade, baixa latência e compatibilidade multimodal para laudos e texto. |
 | **3º** | **DeepSeek** | `deepseek-flash` | ✅ Sim (imagens base64 via API padrão) | `DEEPSEEK_API_KEY` | **2º Fallback:** Custo ultrabaixo, suporte a modo JSON e alta fidelidade em tarefas clínicas e contratuais. |
 
 ---
@@ -46,7 +46,7 @@ server/ai/
 ├── productResearch.js          # Leitura de rótulos de produtos com Gemini interactions
 └── providers/
     ├── gemini.js               # Transporte HTTP para Google Generative Language
-    ├── openai.js               # Transporte HTTP para OpenAI Chat Completions (gpt-4o-mini)
+    ├── openai.js               # Transporte HTTP para OpenAI Chat Completions (gpt-6-luna)
     ├── deepseek.js             # Transporte HTTP para DeepSeek Chat Completions (deepseek-flash)
     └── openAiCompatible.js     # Adaptador universal de payload (Gemini ⇄ Chat Completions)
 ```
@@ -70,7 +70,7 @@ Todo o código consumidor no frontend (`useAvaliacao.js`, `PatientAiSummary.jsx`
       }
     ]
   },
-  usedModel: 'gemini-3.8-flash' // ou 'gpt-4o-mini' / 'deepseek-flash'
+  usedModel: 'gemini-3.8-flash' // ou 'gpt-6-luna' / 'deepseek-flash'
 }
 ```
 

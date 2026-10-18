@@ -6,6 +6,7 @@ import { conversationsCsv } from '../domain/conversations.js';
 import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
 import { downloadText } from '../../../shared/utils/download.js';
 import { formatWaitTime } from '../../../shared/utils/formatters.js';
+import { getActiveNutritionist, getOwnerShortLabel, formatDoctorShortName } from '../../configuracoes/services/clinicProfileService.js';
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -20,6 +21,7 @@ const MONTH_NAMES = [
 export function useAtendimento({ activeModel }) {
   // ── Dados ────────────────────────────────────────────────
   const [conversations, setConversations] = useState([]);
+  const ownerLabel = getOwnerShortLabel();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -130,10 +132,10 @@ export function useAtendimento({ activeModel }) {
   }, [filteredData]);
 
   const attendantComparisonBarData = useMemo(() => ([
-    { metrica: 'Tempo Médio', 'Dra. Isabela': comparisonStats.isabela.avg, 'Secretária': comparisonStats.secretaria.avg },
-    { metrica: 'Mais Rápida', 'Dra. Isabela': comparisonStats.isabela.min, 'Secretária': comparisonStats.secretaria.min },
-    { metrica: 'Mais Demorada', 'Dra. Isabela': comparisonStats.isabela.max, 'Secretária': comparisonStats.secretaria.max },
-  ]), [comparisonStats]);
+    { metrica: 'Tempo Médio', [ownerLabel]: comparisonStats.isabela.avg, 'Secretária': comparisonStats.secretaria.avg },
+    { metrica: 'Mais Rápida', [ownerLabel]: comparisonStats.isabela.min, 'Secretária': comparisonStats.secretaria.min },
+    { metrica: 'Mais Demorada', [ownerLabel]: comparisonStats.isabela.max, 'Secretária': comparisonStats.secretaria.max },
+  ]), [comparisonStats, ownerLabel]);
 
   const topCategoriesComparisonData = useMemo(() => {
     const catMap = {};
@@ -237,8 +239,12 @@ export function useAtendimento({ activeModel }) {
       const secAgendamentoPct = comparisonStats.secretariaAgendamentoPct ?? 0;
       const secAgendamentoCount = comparisonStats.secretariaAgendamentoCount ?? 0;
 
+      const activeNutri = getActiveNutritionist();
+      const nutriName = formatDoctorShortName(activeNutri?.name);
+      const clinicName = activeNutri?.clinic || 'NutrIsa • Nutrição Avançada';
+
       const prompt = `
-Você é o Consultor Executivo e Estratégico de Operações da clínica de nutrição "NutrIsa", liderada pela Dra. Isabela Muñoz.
+Você é o Consultor Executivo e Estratégico de Operações da clínica "${clinicName}", liderada por ${nutriName}.
 Gere um Parecer de Desempenho e Alinhamento de Atendimento WhatsApp para a secretária.
 
 DADOS CONSOLIDADOS DO PERÍODO:
@@ -247,13 +253,13 @@ DADOS CONSOLIDADOS DO PERÍODO:
 - Taxa de Resposta: ${globalStats.responseRate}%
 - Tempo Médio Geral: ${globalStats.avgWaitMinutes} min
 - Secretária: ${comparisonStats.secretaria.total} respostas | Média: ${comparisonStats.secretaria.avg} min | Rápidas (<=15m): ${comparisonStats.secretaria.fastRate}% | Agendamento e Horários: ${secAgendamentoCount} msgs (${secAgendamentoPct}% do total da secretária)
-- Dra. Isabela: ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions} (${intervPct}% do total de mensagens)
+- Profissional/Nutricionista (${nutriName}): ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions} (${intervPct}% do total de mensagens)
 - Temas Mais Frequentes: ${topPatientThemes}
 
 METAS E DIRETRIZES:
 1. Tempo: SLA < 30 min (Meta Ouro <= 15 min).
 2. Volume: Secretária liderar o volume de mensagens (absorver a maior parte das conversas).
-3. Intervenção: Intervenções da Dra. Isabela em agendamentos/recepção no máximo 25% do total de mensagens (atualmente em ${intervPct}%).
+3. Intervenção: Intervenções de ${nutriName} em agendamentos/recepção no máximo 25% do total de mensagens (atualmente em ${intervPct}%).
 4. Categorização: Espera-se que a principal categoria de mensagens enviada pela secretária seja em relação a "Agendamento e Horários" (atualmente em ${secAgendamentoPct}%).
 5. Bônus Individual da Secretária atrelado ao cumprimento destas 4 metas (Tempo, Volume, Intervenção <= 25% e Categorização em Agendamentos).
 

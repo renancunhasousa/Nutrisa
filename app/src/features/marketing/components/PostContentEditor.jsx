@@ -14,9 +14,11 @@ import {
   MessageSquare,
   Flame,
   Check,
-  Globe
+  Globe,
+  FileText
 } from 'lucide-react';
-import { SUGGESTED_TOPICS } from '../services/postGeneratorService.js';
+import { SUGGESTED_TOPICS, checkIsDraIsabela } from '../services/postGeneratorService.js';
+import { getActiveNutritionist, getOwnerLabel } from '../../configuracoes/services/clinicProfileService.js';
 
 export function PostContentEditor({
   postData,
@@ -30,7 +32,8 @@ export function PostContentEditor({
   onLoadWhatsAppIdeas,
   trendingWebTopics = [],
   isLoadingWeb = false,
-  onLoadWebTopics
+  onLoadWebTopics,
+  hideAIAssistant = false
 }) {
   const [promptTopic, setPromptTopic] = useState('');
   const [activeIdeaSource, setActiveIdeaSource] = useState('whatsapp');
@@ -91,8 +94,13 @@ export function PostContentEditor({
     onGenerateWithAI(promptTopic.trim() || postData.headline);
   };
 
+  const activeNutri = getActiveNutritionist();
+  const isIsabela = checkIsDraIsabela(activeNutri);
+  const firstName = activeNutri?.name ? activeNutri.name.split(' ')[0] : 'Nutri';
+  const format1Label = isIsabela ? '1. Dra. Isabela Explica' : `1. ${firstName} Explica`;
+
   const formatLabels = {
-    autoridade: '1. Dra. Isabela Explica',
+    autoridade: format1Label,
     prato: '2. Prato & Performance',
     ciencia: '3. Ciência vs Senso Comum',
     dicas: '4. Dicas 01 / 02 / 03',
@@ -117,8 +125,9 @@ export function PostContentEditor({
 
   return (
     <div className="space-y-6 flex flex-col h-full">
-      {/* 1. ASSISTENTE DE IA */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden shrink-0">
+      {/* 1. ASSISTENTE DE IA (Opcional se renderizado em aba dedicada) */}
+      {!hideAIAssistant && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden shrink-0">
         <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <label className="flex items-center text-slate-800 font-extrabold text-[11px] uppercase tracking-wider">
@@ -324,64 +333,68 @@ export function PostContentEditor({
           </form>
         </div>
       </div>
+      )}
 
       {/* 2. CAMPOS PARA EDITAR O CONTEÚDO ESPECÍFICO DO FORMATO */}
       <div className="bg-slate-50 rounded-3xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4 flex-1 flex flex-col">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <FormatIcon className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-xs font-extrabold uppercase tracking-[0.04em] text-slate-900">
-              {isCarousel
-                ? `Editando Slide ${currentSlideIndex + 1} de ${totalSlides} • ${formatLabels[activeFormat] || activeFormat}`
-                : `Conteúdo da Publicação • ${formatLabels[activeFormat] || activeFormat}`}
-            </h3>
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 truncate">
+              {totalSlides > 1 ? `Slide ${currentSlideIndex + 1} de ${totalSlides}` : 'Conteúdo da Publicação'}
+            </span>
           </div>
 
-          {isCarousel && (
-            <button
-              type="button"
-              onClick={() => onRemoveSlide(currentSlideIndex)}
-              className="text-[11px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors px-2 py-1 rounded-lg hover:bg-rose-50"
-              title="Excluir este slide"
-            >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+              {formatLabels[activeFormat] || activeFormat}
+            </span>
+
+            {totalSlides > 1 && (
+              <button
+                type="button"
+                onClick={() => onRemoveSlide(currentSlideIndex)}
+                className="text-[11px] font-normal text-rose-500 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors px-1.5 py-0.5 rounded-md hover:bg-rose-50"
+                title="Excluir este slide"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* =========================================================
             FORMATO 1: DRA. ISABELA EXPLICA (AUTORIDADE)
             ========================================================= */}
         {activeFormat === 'autoridade' && (
-          <div className="space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Badge Superior
-                </label>
-                <input
-                  type="text"
-                  value={activeData.badge || ''}
-                  onChange={(e) => handleFieldChange('badge', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Tagline Cursiva
-                </label>
-                <input
-                  type="text"
-                  value={activeData.tagline || ''}
-                  onChange={(e) => handleFieldChange('tagline', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
+          <div className="space-y-3.5 flex flex-col">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Badge Superior
+              </label>
+              <input
+                type="text"
+                value={activeData.badge || ''}
+                onChange={(e) => handleFieldChange('badge', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Tagline Cursiva
+              </label>
+              <input
+                type="text"
+                value={activeData.tagline || ''}
+                onChange={(e) => handleFieldChange('tagline', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Título Principal (Headline)
               </label>
               <textarea
@@ -393,7 +406,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Palavras com Destaque Dourado
               </label>
               <input
@@ -405,7 +418,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Descrição Clínica (2 a 3 frases)
               </label>
               <textarea
@@ -416,29 +429,28 @@ export function PostContentEditor({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Nome da Autora
-                </label>
-                <input
-                  type="text"
-                  value={activeData.authorName || 'Isabela Muñoz'}
-                  onChange={(e) => handleFieldChange('authorName', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Especialidade / Subtítulo
-                </label>
-                <input
-                  type="text"
-                  value={activeData.authorTitle || 'Nutrição Clínica, Esportiva & Performance'}
-                  onChange={(e) => handleFieldChange('authorTitle', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Nome da Autora
+              </label>
+              <input
+                type="text"
+                value={activeData.authorName || getOwnerLabel()}
+                onChange={(e) => handleFieldChange('authorName', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Especialidade / Subtítulo
+              </label>
+              <input
+                type="text"
+                value={activeData.authorTitle || 'Nutrição Clínica, Esportiva & Performance'}
+                onChange={(e) => handleFieldChange('authorTitle', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
             </div>
           </div>
         )}
@@ -447,34 +459,33 @@ export function PostContentEditor({
             FORMATO 2: PRATO & PERFORMANCE
             ========================================================= */}
         {activeFormat === 'prato' && (
-          <div className="space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Categoria do Prato
-                </label>
-                <input
-                  type="text"
-                  value={activeData.dishCategory || ''}
-                  onChange={(e) => handleFieldChange('dishCategory', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Título da Estratégia
-                </label>
-                <input
-                  type="text"
-                  value={activeData.dishHeadline || ''}
-                  onChange={(e) => handleFieldChange('dishHeadline', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
+          <div className="space-y-3.5 flex flex-col">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Categoria do Prato
+              </label>
+              <input
+                type="text"
+                value={activeData.dishCategory || ''}
+                onChange={(e) => handleFieldChange('dishCategory', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Título da Estratégia
+              </label>
+              <input
+                type="text"
+                value={activeData.dishHeadline || ''}
+                onChange={(e) => handleFieldChange('dishHeadline', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Explicação Nutricional
               </label>
               <textarea
@@ -486,7 +497,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1.5 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block ml-0.5">
                 Macronutrientes do HUD Nutricional
               </label>
               <div className="grid grid-cols-4 gap-2">
@@ -535,9 +546,9 @@ export function PostContentEditor({
             FORMATO 3: CIÊNCIA VS SENSO COMUM
             ========================================================= */}
         {activeFormat === 'ciencia' && (
-          <div className="space-y-3.5">
+          <div className="space-y-3.5 flex flex-col">
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Badge de Chancela
               </label>
               <input
@@ -547,8 +558,9 @@ export function PostContentEditor({
                 className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
               />
             </div>
+
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Pergunta / Título Central
               </label>
               <input
@@ -605,34 +617,33 @@ export function PostContentEditor({
             FORMATO 4: DICAS 01 / 02 / 03
             ========================================================= */}
         {activeFormat === 'dicas' && (
-          <div className="space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Badge Superior
-                </label>
-                <input
-                  type="text"
-                  value={activeData.dicasBadge || ''}
-                  onChange={(e) => handleFieldChange('dicasBadge', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Destaque Dourado do Título
-                </label>
-                <input
-                  type="text"
-                  value={activeData.dicasHighlight || ''}
-                  onChange={(e) => handleFieldChange('dicasHighlight', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
+          <div className="space-y-3.5 flex flex-col">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Badge Superior
+              </label>
+              <input
+                type="text"
+                value={activeData.dicasBadge || ''}
+                onChange={(e) => handleFieldChange('dicasBadge', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Destaque Dourado do Título
+              </label>
+              <input
+                type="text"
+                value={activeData.dicasHighlight || ''}
+                onChange={(e) => handleFieldChange('dicasHighlight', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Título Principal
               </label>
               <textarea
@@ -707,7 +718,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Texto do Rodapé
               </label>
               <input
@@ -724,9 +735,9 @@ export function PostContentEditor({
             FORMATO 5: CTA DE CONSULTA
             ========================================================= */}
         {activeFormat === 'cta' && (
-          <div className="space-y-3.5">
+          <div className="space-y-3.5 flex flex-col">
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Badge Superior
               </label>
               <input
@@ -738,7 +749,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Título Principal
               </label>
               <textarea
@@ -750,7 +761,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Destaque Dourado do Título
               </label>
               <input
@@ -762,7 +773,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Subtítulo Explicativo
               </label>
               <textarea
@@ -801,7 +812,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Texto do Botão / Chamada para Ação
               </label>
               <textarea
@@ -818,9 +829,9 @@ export function PostContentEditor({
             FORMATO 6: MANIFESTO CLÍNICO
             ========================================================= */}
         {activeFormat === 'manifesto' && (
-          <div className="space-y-3.5">
+          <div className="space-y-3.5 flex flex-col">
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Badge Superior
               </label>
               <input
@@ -832,7 +843,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Citação / Frase de Impacto Principal
               </label>
               <textarea
@@ -844,7 +855,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Trecho com Destaque Dourado na Frase
               </label>
               <input
@@ -855,54 +866,52 @@ export function PostContentEditor({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Nome da Autora
-                </label>
-                <input
-                  type="text"
-                  value={activeData.manifestoAutor || 'Dra. Isabela Muñoz'}
-                  onChange={(e) => handleFieldChange('manifestoAutor', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Especialidade / Título
-                </label>
-                <input
-                  type="text"
-                  value={activeData.manifestoTitulo || 'Nutricionista Clínica & Esportiva'}
-                  onChange={(e) => handleFieldChange('manifestoTitulo', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Nome da Autora
+              </label>
+              <input
+                type="text"
+                value={activeData.manifestoAutor || getOwnerLabel()}
+                onChange={(e) => handleFieldChange('manifestoAutor', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Credencial
-                </label>
-                <input
-                  type="text"
-                  value={activeData.manifestoCred || 'Certificação Internacional ACSM'}
-                  onChange={(e) => handleFieldChange('manifestoCred', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Botão / Link na Bio
-                </label>
-                <input
-                  type="text"
-                  value={activeData.manifestoCta || 'Link na Bio ↗'}
-                  onChange={(e) => handleFieldChange('manifestoCta', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Especialidade / Título
+              </label>
+              <input
+                type="text"
+                value={activeData.manifestoTitulo || 'Nutricionista Clínica & Esportiva'}
+                onChange={(e) => handleFieldChange('manifestoTitulo', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Credencial
+              </label>
+              <input
+                type="text"
+                value={activeData.manifestoCred || 'Certificação Internacional ACSM'}
+                onChange={(e) => handleFieldChange('manifestoCred', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Botão / Link na Bio
+              </label>
+              <input
+                type="text"
+                value={activeData.manifestoCta || 'Link na Bio ↗'}
+                onChange={(e) => handleFieldChange('manifestoCta', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
             </div>
           </div>
         )}
@@ -911,37 +920,36 @@ export function PostContentEditor({
             FORMATO 7: PONTO / PASSO CLÍNICO (NÚMERO GRANDE + CONDUTA 💡)
             ========================================================= */}
         {(activeFormat === 'passo' || activeFormat === 'legacy-content') && (
-          <div className="space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Número do Ponto
-                </label>
-                <input
-                  type="text"
-                  value={activeData.stepNumber || '01'}
-                  onChange={(e) => handleFieldChange('stepNumber', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-bold text-center"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
-                  Badge da Lâmina
-                </label>
-                <input
-                  type="text"
-                  value={activeData.badge || activeData.passoBadge || ''}
-                  onChange={(e) => {
-                    handleFieldChange('badge', e.target.value);
-                    handleFieldChange('passoBadge', e.target.value);
-                  }}
-                  className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
-                />
-              </div>
+          <div className="space-y-3.5 flex flex-col">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Número do Ponto
+              </label>
+              <input
+                type="text"
+                value={activeData.stepNumber || '01'}
+                onChange={(e) => handleFieldChange('stepNumber', e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-bold text-center"
+              />
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
+                Badge da Lâmina
+              </label>
+              <input
+                type="text"
+                value={activeData.badge || activeData.passoBadge || ''}
+                onChange={(e) => {
+                  handleFieldChange('badge', e.target.value);
+                  handleFieldChange('passoBadge', e.target.value);
+                }}
+                className="w-full bg-white border border-slate-200 rounded-xl text-xs text-slate-700 p-2.5 focus:outline-none focus:border-emerald-500 shadow-2xs font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Título do Ponto
               </label>
               <textarea
@@ -956,7 +964,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Destaque Dourado do Título
               </label>
               <input
@@ -971,7 +979,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Explicação Científica Completa
               </label>
               <textarea
@@ -986,7 +994,7 @@ export function PostContentEditor({
             </div>
 
             <div>
-              <label className="text-xs font-extrabold uppercase text-slate-900 mb-1 block ml-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block ml-0.5">
                 Conduta Clínica (Card Dourado com 💡)
               </label>
               <textarea

@@ -60,7 +60,16 @@ Cada card de tarefa busca dinamicamente a foto de perfil do paciente via [`patie
 | **Dúvidas** | `whatsapp` | Verde WhatsApp (`bg-emerald-50`) | - | Dúvidas de pacientes sobre suplementos, substituições |
 | **Follow-Up** | `followup` | Roxo (`bg-purple-50`) | - | Check-in ativo (ex: 7 dias pós-consulta) |
 | **Agenda** | `retorno` | Âmbar (`bg-amber-50`) | `agenda` | Lembrete de contato para agendamento de retorno |
+| **Relacionamento** | `relacionamento` | Verde Esmeralda (`bg-emerald-50`) | `crm` | Ações estratégicas geradas pela IA no radar de relacionamento |
 | **Geral**| `geral` | Cinza (`bg-slate-100`) | - | Tarefas administrativas livres |
+
+### Prioridades Clínicas
+
+| Prioridade | ID | Cor / Badge | Descrição |
+|---|---|---|---|
+| **Alta** | `alta` | Rosa / Vermelho (`bg-rose-50 text-rose-700 border-rose-300`) | Demandas urgentes com impacto imediato no paciente |
+| **Média** | `media` | Âmbar / Laranja (`bg-amber-50 text-amber-700 border-amber-300`) | Demandas rotineiras do dia a dia clínico |
+| **Baixa** | `baixa` | Verde Esmeralda (`bg-emerald-50 text-emerald-700 border-emerald-300`) | Demandas sem urgência ou follow-up leve |
 
 ---
 
@@ -132,3 +141,15 @@ Para evitar a criação indevida de tarefas clínicas de "Avaliar Exames" quando
   - **Dr. Caio Lima (Médico Parceiro):** `5519999195054`
   - **Rauane Brito (Secretária)**
 - **Filtro de Conteúdo Fiscal:** Documentos com termos contábeis/fiscais (*"nota fiscal"*, *"nf"*, *"imposto"*, *"darf"*, *"das"*, *"contabilidade"*) são classificados como `Assuntos Externos` e **não geram tarefas clínicas**.
+
+---
+
+## 9. Modal de Criação / Edição de Demanda (`TaskModal`)
+
+O modal de cadastro e edição de demandas segue o padrão visual unificado da plataforma:
+- **Cabeçalho:** Título limpo com ícone de prancheta, destacando o propósito da demanda sem subtítulos desnecessários.
+- **Identificação & Vínculo com Prontuário:** 
+  - Exibe o bloco de **"Prontuário & Atalhos do Paciente"** com estado para pacientes vinculados ou opção *"Vincular a cadastro existente"* com busca rápida por nome, WhatsApp ou CPF.
+  - Oferece suporte transparente a paciente avulso caso a demanda não esteja atrelada a um cadastro existente.
+  - Ao vincular o paciente, preenche automaticamente os dados de contato, foto de perfil e referência de prontuário (`patientId`).
+

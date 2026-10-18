@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getOwnerLabel } from '../../configuracoes/services/clinicProfileService.js';
 import {
   Sparkles,
   Palette,
@@ -16,7 +17,8 @@ import {
   Archive,
   Layers
 } from 'lucide-react';
-import { POST_FORMATS, POST_THEMES, SUGGESTED_TOPICS } from '../services/postGeneratorService.js';
+import { POST_FORMATS, getPostFormats, POST_THEMES, SUGGESTED_TOPICS } from '../services/postGeneratorService.js';
+import { getActiveNutritionist } from '../../configuracoes/services/clinicProfileService.js';
 
 export function PostControls({
   postData,
@@ -86,7 +88,7 @@ export function PostControls({
           <span>1. Formato da Publicação no Feed</span>
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-          {POST_FORMATS.map((fmt) => {
+          {getPostFormats(getActiveNutritionist()).map((fmt) => {
             const isActive = postData.format === fmt.id;
             return (
               <button
@@ -206,7 +208,7 @@ export function PostControls({
               <Sparkles className="w-3.5 h-3.5" />
             </div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-teal-950">
-              3. Gerar Conteúdo com IA da Dra. Isabela
+              3. Gerar Conteúdo com IA de {getOwnerLabel()}
             </h3>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">

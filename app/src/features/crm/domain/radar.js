@@ -53,10 +53,19 @@ export function getBirthdaySignal(birthDate, now = Date.now()) {
   return null;
 }
 
+// Minutos de espera: usa o valor do banco; se ausente, calcula a partir de data_envio.
+function getWaitingMinutes(message, now) {
+  if (!message) return 0;
+  const stored = message.tempo_espera_minutos;
+  if (stored !== null && stored !== undefined && stored !== '' && Number.isFinite(Number(stored))) return Number(stored);
+  const sentAt = message.data_envio ? new Date(message.data_envio).getTime() : NaN;
+  return Number.isFinite(sentAt) ? Math.max(0, Math.floor((now - sentAt) / 60_000)) : 0;
+}
+
 export function buildRadarItem(patient, conversations, tasks, now = Date.now()) {
   const signals = [];
   const lastMessage = findLatestPatientMessage(conversations, patient);
-  const waitingMinutes = Number(lastMessage?.tempo_espera_minutos || 0);
+  const waitingMinutes = getWaitingMinutes(lastMessage, now);
 
   if (lastMessage && !lastMessage.respondida && waitingMinutes >= 60) {
     signals.push({
@@ -85,9 +94,19 @@ export function buildRadarItem(patient, conversations, tasks, now = Date.now()) 
     signals.push({ type: 'return_due', score: 70, detail: `${daysSinceConsultation} dias sem retorno agendado` });
   }
 
-  const daysSinceCreated = ageInDays(patient.created_at, now);
-  if (patient.lifecycle_stage === 'lead' && daysSinceCreated >= 7) {
-    signals.push({ type: 'stalled_lead', score: 40, detail: `Lead cadastrado há ${daysSinceCreated} dias` });
+  if (patient.lifecycle_stage === 'lead') {
+    // Leads importados em lote têm created_at igual; a última interação indica abandono real.
+    const daysSinceMessage = ageInDays(lastMessage?.data_envio, now);
+    if (daysSinceMessage !== null) {
+      if (daysSinceMessage >= 7) {
+        signals.push({ type: 'stalled_lead', score: 40, detail: `Lead sem interação há ${daysSinceMessage} dias` });
+      }
+    } else {
+      const daysSinceCreated = ageInDays(patient.created_at, now);
+      if (daysSinceCreated >= 7) {
+        signals.push({ type: 'stalled_lead', score: 40, detail: `Lead cadastrado há ${daysSinceCreated} dias, sem conversas` });
+      }
+    }
   }
 
   const birthdaySignal = getBirthdaySignal(patient.birth_date, now);
@@ -97,61 +116,94 @@ export function buildRadarItem(patient, conversations, tasks, now = Date.now()) 
 
   if (!signals.length) return null;
   signals.sort((a, b) => b.score - a.score);
+
+  const enrichedPatient = {
+    ...patient,
+    avatar_url: patient.avatar_url || lastMessage?.foto_perfil || null,
+    whatsapp_name: lastMessage?.nome_paciente || lastMessage?.nome_contato || null,
+  };
+
+  const messageText = String(lastMessage?.mensagem_texto || lastMessage?.conteudo_mensagem || '').trim();
+
   return {
-    patient,
+    patient: enrichedPatient,
     signals,
     score: signals[0].score,
     lastActivity: lastMessage?.data_envio || patient.updated_at,
+    lastMessageSnippet: messageText ? (messageText.length > 70 ? messageText.slice(0, 70) + '…' : messageText) : null,
   };
 }
 
 export function buildCommercialOpportunities(radarItems, patients) {
   const countSignal = (type) => radarItems.filter((item) => item.signals.some((signal) => signal.type === type)).length;
+  const activeWithoutNextStep = patients.filter((patient) => patient.lifecycle_stage === 'active'
+    && !patient.next_appointment_at).length;
+
   const segments = [
     {
       id: 'continuity',
-      title: 'Plano Evolução 90',
-      audience: 'Pacientes com retorno pendente',
+      title: 'Retorno Pendente',
+      tagline: 'Puxa de volta quem está apenas atrasado na rotina do tratamento.',
+      audience: 'Pacientes com retorno pendente (35 a 89 dias)',
       pain: 'Perdem consistência entre consultas e adiam a reavaliação.',
-      offer: '3 meses, consulta mensal, ajuste do plano e acompanhamento assíncrono.',
+      offer: 'Pacote de 3 meses com consulta mensal, ajuste do plano e acompanhamento contínuo.',
       patientCount: countSignal('return_due'),
       priority: 3,
     },
     {
-      id: 'reactivation',
-      title: 'Programa Retoma 30',
-      audience: 'Pacientes afastados há 90 dias ou mais',
-      pain: 'Querem recomeçar, mas sentem culpa ou dificuldade de voltar à rotina.',
-      offer: 'Reentrada de 30 dias, diagnóstico de barreiras, plano simplificado e checkpoint.',
-      patientCount: countSignal('inactive'),
-      priority: 2,
-    },
-    {
-      id: 'first-journey',
-      title: 'Jornada Primeiros Passos',
-      audience: 'Leads que ainda não iniciaram acompanhamento',
-      pain: 'Têm interesse, mas não enxergam com clareza o processo e o valor do acompanhamento.',
-      offer: 'Consulta inicial, avaliação, plano alimentar e retorno curto de validação.',
-      patientCount: countSignal('stalled_lead'),
-      priority: 1,
-    },
-  ];
-
-  const activeWithoutNextStep = patients.filter((patient) => patient.lifecycle_stage === 'active'
-    && !patient.next_appointment_at).length;
-  if (activeWithoutNextStep) {
-    segments.push({
       id: 'membership',
-      title: 'Acompanhamento Contínuo',
+      title: 'Plano Mensal Contínuo',
+      tagline: 'Garante que o paciente recém-atendido não fique solto sem acompanhamento.',
       audience: 'Pacientes ativos sem próximo passo registrado',
       pain: 'Recebem orientação pontual, mas podem perder ritmo sem uma cadência definida.',
       offer: 'Mensalidade com consulta periódica, revisão de metas e suporte com SLA definido.',
       patientCount: activeWithoutNextStep,
       priority: 2.5,
-    });
-  }
-  return segments.filter((segment) => segment.patientCount > 0)
-    .sort((a, b) => (b.patientCount * b.priority) - (a.patientCount * a.priority));
+    },
+    {
+      id: 'reactivation',
+      title: 'Reativação de Pacientes',
+      tagline: 'Resgata quem já desistiu e precisa de um empurrão com acolhimento para voltar.',
+      audience: 'Pacientes afastados há 90 dias ou mais',
+      pain: 'Querem recomeçar, mas sentem culpa ou dificuldade de voltar à rotina.',
+      offer: 'Reentrada de 30 dias: diagnóstico de barreiras, plano simplificado e checkpoint.',
+      patientCount: countSignal('inactive'),
+      priority: 2,
+    },
+    {
+      id: 'first-journey',
+      title: 'Primeira Consulta (Leads)',
+      tagline: 'Transforma quem tem interesse em cliente pagante.',
+      audience: 'Leads que ainda não iniciaram acompanhamento',
+      pain: 'Têm interesse, mas não enxergam com clareza o processo e o valor do acompanhamento.',
+      offer: 'Consulta inicial, avaliação física, plano alimentar e retorno curto de validação.',
+      patientCount: countSignal('stalled_lead'),
+      priority: 1,
+    },
+  ];
+
+  // Mantém sempre os 4 blocos visíveis, priorizando no topo os que possuem pacientes potenciais
+  return segments.sort((a, b) => {
+    const scoreA = a.patientCount > 0 ? (a.patientCount * a.priority) : -1;
+    const scoreB = b.patientCount > 0 ? (b.patientCount * b.priority) : -1;
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return b.priority - a.priority;
+  });
+}
+
+// Explica por que o radar pode estar vazio (dados ausentes que alimentam os sinais).
+export function buildRadarDiagnostics(patients, conversations) {
+  const linked = new Set();
+  patients.forEach((patient) => {
+    if (findLatestPatientMessage(conversations, patient)) linked.add(patient.id);
+  });
+  return {
+    patients: patients.length,
+    conversations: conversations.length,
+    patientsWithConversation: linked.size,
+    withoutConsultationDate: patients.filter((p) => !p.last_consultation_at).length,
+    withoutBirthDate: patients.filter((p) => !p.birth_date).length,
+  };
 }
 
 export function isPatientInOpportunity(item, opportunityId) {

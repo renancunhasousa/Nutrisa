@@ -9,6 +9,7 @@ import EventDetailModal from './components/EventDetailModal.jsx';
 import PageHeader from '../../shared/ui/PageHeader.jsx';
 import { KEY_GOOGLE_TOKEN, KEY_GOOGLE_MEET } from '../../config/storageKeys.js';
 import { GOOGLE_CALENDAR_ID } from '../../config/env.js';
+import { getOwnerLabel } from '../configuracoes/services/clinicProfileService.js';
 
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
@@ -210,7 +211,7 @@ function AgendaViewContent() {
         title="Agenda Inteligente"
         badge={
           <span className="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
-            Dra. Isabela ({calendarId})
+            {ownerLabel} ({calendarId})
           </span>
         }
         description="Visualização padrão integrado em tempo real com Google Calendar."
@@ -237,7 +238,7 @@ function AgendaViewContent() {
           </div>
           <div>
             <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight mb-2">
-              Conecte a Agenda da Dra. Isabela
+              Conecte a Agenda de {ownerLabel}
             </h2>
             <p className="text-xs text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
               Visualize a grade de consultas com o padrão WebDiet em tempo real, sincronização com o WhatsApp e bloqueio rápido de datas.
@@ -308,6 +309,7 @@ function AgendaViewContent() {
 
 export default function AgendaView() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const ownerLabel = getOwnerLabel();
 
   if (!clientId || clientId.includes('COLOQUE_SEU_CLIENT_ID')) {
     return (

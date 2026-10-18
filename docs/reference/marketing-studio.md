@@ -15,24 +15,29 @@ O módulo permite à nutricionista criar posts com visual editorial e chancelado
 - **Serviço de Domínio & IA**: `app/src/features/marketing/services/postGeneratorService.js`
 - **Serviço de Ideias do WhatsApp**: `app/src/features/marketing/services/whatsappPostService.js`
 - **Componentes Principais**:
-  - `PostDesignConfig.jsx`: Bloco superior de configurações iniciais de design (modelo de post, paleta de cores e foto oficial/upload).
-  - `PostSlideViewer.jsx`: Visualizador de canvas com abas de slides dinâmicas estilo página 2 de contratos (`01. Capa`, `02. Dica`, `Novo slide`, `Excluir`), zoom e dimensões 1080×1350 px.
-  - `PostContentEditor.jsx`: Painel lateral de edição de conteúdo com Assistente de IA integrado a dúvidas reais do WhatsApp e alternância de modelos recomendados.
+  - `PostDesignConfig.jsx`: Configurações de design na aba **Design**, com seleção de modelo de publicação, paleta de cores, fotos e adição de novos slides ao projeto.
+  - `PostAIAssistant.jsx`: Assistente na aba **Criativo**, com integração a dúvidas reais do WhatsApp e tendências da Web para nutrição.
+  - `PostContentEditor.jsx`: Editor na aba **Conteúdo**, com campos verticalizados (um embaixo do outro), tipografia refinada para os labels dos inputs, ícone `FileText` e destaque visual quebrado para o criativo ativo.
+  - `CaptionBox.jsx`: Caixa na aba **Legenda** com título em caixa alta padronizado (`LEGENDA DO INSTAGRAM`), layout vertical que se expande até a base do painel lateral, geração de copy persuasivo por IA e botão de cópia com 1 clique.
+  - `PostSlideViewer.jsx`: Prancheta central com fita de slides no **topo do post** (permitindo criar livremente múltiplos slides/posts), presets de zoom (45%, 55%, 65%), modo foco e ícone do Instagram sem fundo verde.
   - `PostCanvas.jsx`: Renderizador nativo de 1080×1350 px (4:5) com suporte a 7 formatos e 3 paletas.
-  - `CaptionBox.jsx`: Caixa de legenda em largura total com botão de cópia com 1 clique e contador de caracteres.
 
 ---
 
 ## 2. Formatos de Post Suportados (7 Modelos)
 
+Os formatos são **dinâmicos e adaptados à organização ativa**:
+- Para a organização da **Dra. Isabela Muñoz**: exibe `1. Dra. Isabela Explica`, fotos oficiais dela e chancela ACSM.
+- Para **outros consultórios/nutricionistas**: o formato 1 adapta-se automaticamente para o nome da profissional (ex: `1. Dra. Camila Explica` ou `1. Nutri Explica`), utilizando a foto enviada por ela (ou avatar neutro) e chamada de consulta para a sua própria clínica.
+
 | Formato | ID | Objetivo Clínico & Editorial | Elementos Visuais Chave |
 | :--- | :--- | :--- | :--- |
-| **1. Dra. Isabela Explica** | `autoridade` | Posicionamento de luxo, autoridade médica e desmistificação nutricional. | Foto oficial com recorte da Dra., assinatura, título com trecho em degradê e card de rodapé. |
+| **1. [Nutri] Explica** *(Dra. Isabela Explica)* | `autoridade` | Posicionamento de destaque, autoridade e desmistificação nutricional. | Foto oficial com recorte da nutricionista, assinatura/crédito, título com trecho em degradê e card de rodapé. |
 | **2. Prato & Performance** | `prato` | Educação alimentar, estratégias pré/pós-treino e gastronomia esportiva. | Imagem gastronômica real, gradiente de fusão e HUD de macronutrientes (Kcal, Proteína, Carboidrato, Gorduras). |
-| **3. Ciência vs. Senso Comum** | `ciencia` | Combate a mitos com chancela do American College of Sports Medicine (ACSM). | Badge ACSM, pergunta instigante, card vermelho de senso comum vs. card iluminado de ciência clínica. |
+| **3. Ciência vs. Senso Comum** | `ciencia` | Combate a mitos com base em evidências científicas e fisiologia. | Badge de evidência, pergunta instigante, card vermelho de senso comum vs. card iluminado de ciência clínica. |
 | **4. Dicas 01 / 02 / 03** | `dicas` | Lista numerada prática de 3 estratégias de fácil absorção para salvar e compartilhar. | Cards numerados elegantes com título, descrição e rodapé de salvamento. |
-| **5. CTA de Consulta** | `cta` | Conversão direta para agendamento de consulta com a Dra. Isabela Muñoz. | Bullet points com benefícios do acompanhamento individualizado e botão de chamada de ação. |
-| **6. Manifesto Clínico** | `manifesto` | Frase editorial de impacto, mentalidade e quebra de culpa alimentar. | Citação central em tipografia grande, linha dourada de acento e chancela ACSM. |
+| **5. CTA de Consulta** | `cta` | Conversão direta para agendamento de consulta com a nutricionista responsável. | Bullet points com benefícios do acompanhamento individualizado e botão de chamada de ação. |
+| **6. Manifesto Clínico** | `manifesto` | Frase editorial de impacto, mentalidade e quebra de culpa alimentar. | Citação central em tipografia grande, linha dourada de acento e posicionamento de marca. |
 | **7. Ponto / Passo Clínico** | `passo` | Explicação fisiológica aprofundada de um ponto ou erro silencioso. | Número grande em destaque (ex: `03`), badge de contexto, título destacado e card dourado de conduta clínica (💡). |
 | **Carrossel Completo** | `carrossel` | Sequência educativa (Capa, Lâminas Intermediárias de qualquer modelo e CTA Final). | Paginação visual de lâminas, navegação por abas estilo contratos e exportação completa em ZIP. |
 

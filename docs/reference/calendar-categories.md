@@ -37,12 +37,31 @@ O status de um evento é determinado a partir de palavras-chave no **título** o
 
 > **Padrão:** Eventos sem palavra-chave de status são classificados como **À confirmar**.
 
-## Criação e Edição de Eventos
+## Criação e Edição de Eventos (`EventDetailModal`)
 
 A interface permite criar novos agendamentos clicando diretamente nos horários da grade semanal/mensal ou através do botão **Novo Agendamento**.
 
 - **Criação direta:** O evento é criado via `POST` na API do Google Calendar (`createCalendarEvent`), definindo data, horário, `colorId` correspondente ao tipo de consulta WebDiet e status no resumo/descrição.
 - **Edição:** Alterações em eventos existentes são sincronizadas diretamente via `PATCH` na API do Google Calendar (`updateCalendarEvent`).
+- **Seletores de Data e Horário (Padrão Contratos):**
+  - Dropdowns suspensos elegantes com ícones `Calendar` e `Clock`.
+  - Atalhos pré-definidos de data (`Hoje`, `Amanhã`, `Em 7 dias`, `Em 15 dias`, `Em 30 dias`, `Em 60 dias`) e escolha no calendário nativo.
+  - Grade horária em intervalos de 30 minutos (`TIME_OPTIONS` de 07:00 às 20:30) com opção de horário livre digitado.
+- **Vínculo com Prontuário de Paciente:**
+  - Detecção automática de paciente cadastrado via `calendar_event_links` e correspondência aproximada por tokens de nome (`eventNameKey`, `rankPatientCandidates`).
+  - Botão de vinculação a paciente cadastrado existente com modal de busca rápida por nome, telefone e CPF.
+  - Opção de troca ou desvinculação em um clique.
+- **Barra de Atalhos Rápidos do Paciente Vinculado:**
+  - Quando o evento possui paciente vinculado, exibe os mesmos atalhos de `PacientesPage`:
+    - 🥗 **Dieta** (`dietas`): Elaboração de novo plano com handoff.
+    - 📋 **Anamnese** (`anamnese`): Ficha de anamnese com dados do paciente.
+    - 📊 **Avaliação** (`laudo`): Avaliação antropométrica e composição corporal.
+    - 💬 **Conversa** (`dashboard`): Central de atendimento WhatsApp com vínculo automático.
+    - ☑️ **Tarefas** (`tarefas`): Central de demandas filtrada pelo paciente.
+    - ✍️ **Contrato** (`contratos`): Elaboração de proposta/contrato clínico.
+- **Geração de Tarefas Clínicas a partir da Consulta:**
+  - Botão dedicado para inserção como tarefa clínica com escolha de tipo (`dieta`, `followup`, `exames`, `whatsapp`, `retorno`, `geral`) com ícones limpos sem fundo ou contorno.
+  - Preenchimento inteligente do título da tarefa, vínculo com o paciente, prioridade e seletor de prazo de entrega padronizado em lista suspensa com atalhos rápidos e calendário nativo.
 
 ## Confirmação e Desmarcação Assistida via WhatsApp
 
@@ -66,7 +85,9 @@ Os cards de indicadores semanais da barra lateral (`Total de Consultas`, `Hoje`,
 - [Documentação da API do Google Calendar — Events](https://developers.google.com/calendar/api/v3/reference/events)
 - [`calendarMapper.js`](../../app/src/features/agenda/domain/calendarMapper.js)
 - [`calendar.js`](../../app/src/features/agenda/services/calendar.js)
+- [`EventDetailModal.jsx`](../../app/src/features/agenda/components/EventDetailModal.jsx)
 - [`appointmentMatcher.js`](../../app/src/features/agenda/services/appointmentMatcher.js)
 - [`WebDietSidebar.jsx`](../../app/src/features/agenda/components/WebDietSidebar.jsx)
+
 
 

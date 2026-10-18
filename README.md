@@ -42,6 +42,8 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 | Montagem de dietas e plano alimentar | `app/src/features/dietas` |
 | Catálogo nutricional de alimentos, preparações, produtos e suplementos | `app/src/features/produtos` |
 | Contratos e termos de adesão | `app/src/features/contratos` |
+| Planos e valores de contratos da clínica | `app/src/features/contratos/services/contractPlansService.js` |
+| Gestão de finanças, pacotes com nutrólogos e fluxo de caixa | `app/src/features/financas` |
 | Estúdio de posts e marketing para Instagram | `app/src/features/marketing` |
 | Comunicação com a IA no servidor | `server/ai` e `api/ai.js` |
 | Consulta de produtos por código de barras | `server/products` e `api/products.js` |
@@ -55,14 +57,21 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Arquitetura](docs/architecture.md)
 - [Contexto global e histórico clínico](docs/reference/patient-clinical-history.md)
 - [Gestão de Equipe & Permissões](docs/reference/team-permissions.md): controle de papéis (Dra./Owner, Secretária, Administrativo), código de convite da clínica e liga/desliga de módulos por barra de atalhos.
+- [Identidade Visual & Assinatura Digital](docs/reference/clinic-branding.md): upload de logotipo e assinatura digital do consultório com persistência em nuvem e aplicação dinâmica em laudos, dietas e contratos.
+- [WhatsApp Multi-Tenant (Evolution API & n8n)](docs/reference/whatsapp-multitenant.md): arquitetura de instâncias isoladas por organização, geração dinâmica de QR Code, webhook automático e envio de mensagens.
+- [Finanças & Pacotes de Parceria](docs/reference/financas-pacotes.md): gestão de pacotes com nutrólogos, frequência de consultas, acompanhamento de sessões realizadas vs pendentes, repasses e fluxo de caixa.
 - [Configuração e publicação](docs/deployment.md)
 - [Contratos de dados e persistência](docs/data-contracts.md)
+- [Perfil Profissional da Clínica](docs/reference/clinic-profile.md): persistência multi-tenant do perfil da nutricionista e clínica no Supabase, sincronizado em tempo real para toda a organização.
+- [Onboarding & Multi-Clínicas (SaaS)](docs/commercialization-plan.md): fluxo de cadastro para novas nutricionistas com criação automática de organização isolada, código de equipe e perfil profissional próprio.
 - [Modelos compartilhados de documentos](docs/reference/document-templates.md): modelos de anamnese e contrato sincronizados por clínica no Supabase, incluindo a migração automática dos modelos locais.
+- [Planos e Valores da Clínica em Contratos](docs/reference/contract-plans.md): cadastro dinâmico de planos, valores sugeridos e formas de pagamento no Supabase, refletindo na emissão e no PDF do contrato.
 - [Roteiro de verificação](docs/testing.md)
 - [Roadmap Estratégico](docs/roadmap.md) e [Checklist de Tarefas](docs/tasks.md): visão de produto, matriz de impacto e tarefas de implementação.
+- [Plano de Comercialização (SaaS)](docs/commercialization-plan.md): diagnóstico, fases, checklists, conformidade LGPD/CFN, cobrança, integrações por cliente, riscos, cronograma e go/no-go para vender a plataforma a outros nutricionistas.
 - [Plano de implementação CRM + Patient 360](docs/crm-patient360-implementation-plan.md): modelo de dados, telas, segurança, fluxos, migração e fases de execução.
 - [Cadastro de Pacientes](docs/reference/patients-database.md): dados cadastrais, consentimentos, políticas RLS, cadastro assistido e lista de contatos do WhatsApp ainda não cadastrados.
-- [Radar de Relacionamento](docs/reference/crm-radar.md): fila priorizada por SLA, tarefas vencidas, retorno, reativação e leads sem avanço.
+- [Radar de Relacionamento](docs/reference/crm-radar.md): fila priorizada por SLA, tarefas vencidas, retorno, reativação e leads sem avanço; inclui o vínculo entre eventos do Google Calendar e pacientes por nome.
 - [Especificação do Criador de Dietas](docs/diet-plan-builder-spec.md): editor em etapas, alimentos, macros, substituições, IA e relatório PDF.
 - [Montagem de Dietas & Tabela TACO](docs/reference/diet-plan-builder.md): regras de macronutrientes, medidas caseiras, base de alimentos e sincronização com Supabase.
 - [Catálogo Nutricional — Alimentos e Produtos](docs/reference/product-catalog.md): cadastro unificado, base de cálculo, medidas caseiras, código de barras e liberação de itens verificados para dietas.
@@ -70,6 +79,6 @@ Os testes usam dados sintéticos e serviços simulados; não enviam documentos n
 - [Atendimento WhatsApp](docs/reference/atendimento-metrics.md): métricas operacionais, conversa por paciente e envio direto de mensagens via n8n/Evolution API.
 - [Atendimento & Metas de Bonificação](docs/reference/atendimento-metrics.md): métricas de SLA, teto de intervenção médica (<= 25%) e foco em agendamentos no relatório executivo.
 - [Estúdio de Posts & IA (Instagram)](docs/reference/marketing-studio.md): gerador de publicações e carrosséis (1080×1350), 7 formatos clínicos, 3 paletas (marrom, tiffany, bege), pautas inteligentes (WhatsApp & Busca Web), exportação ZIP e legendas prontas com IA.
-- [Provedores de IA & Cadeia de Fallback](docs/reference/ai-providers-fallback.md): resiliência automática entre Gemini (titular), OpenAI GPT-4o-mini (1º fallback) e DeepSeek Flash (2º fallback) com suporte a visão e formato JSON.
+- [Provedores de IA & Cadeia de Fallback](docs/reference/ai-providers-fallback.md): resiliência automática entre Gemini (titular), OpenAI GPT-6 Luna (1º fallback) e DeepSeek Flash (2º fallback) com suporte a visão e formato JSON.
 
 Os PDFs em `model/` são referências existentes e não são importados pela aplicação. O protótipo antigo foi preservado em `docs/reference/anamnese-prototype.jsx.txt` e não é executável nesta plataforma.

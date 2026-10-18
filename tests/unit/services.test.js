@@ -66,7 +66,7 @@ test('production API fails closed without access configuration and rejects bad t
   }
 });
 
-test('AI falls back from Gemini to OpenAI (gpt-4o-mini) when Gemini quota is exhausted', async () => {
+test('AI falls back from Gemini to OpenAI (gpt-6-luna) when Gemini quota is exhausted', async () => {
   const urls = [];
   const output = await generateContent(
     { model: DEFAULT_MODELS[0], payload: { contents: [{ parts: [{ text: 'test fallback' }] }] } },
@@ -84,14 +84,14 @@ test('AI falls back from Gemini to OpenAI (gpt-4o-mini) when Gemini quota is exh
         if (url.includes('api.openai.com')) {
           assert.equal(options.headers.Authorization, 'Bearer openai-key');
           const body = JSON.parse(options.body);
-          assert.equal(body.model, 'gpt-4o-mini');
+          assert.equal(body.model, 'gpt-6-luna');
           return json({ choices: [{ message: { content: 'resposta gpt' }, finish_reason: 'stop' }] });
         }
         assert.fail(`URL inesperada: ${url}`);
       },
     }
   );
-  assert.equal(output.usedModel, 'gpt-4o-mini');
+  assert.equal(output.usedModel, 'gpt-6-luna');
   assert.equal(output.result.candidates[0].content.parts[0].text, 'resposta gpt');
   assert.equal(urls.length, 2);
 });

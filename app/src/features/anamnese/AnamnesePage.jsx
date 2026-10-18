@@ -1,11 +1,14 @@
-import { User, Stethoscope, ArrowRight, CheckCircle, Copy, Download, RefreshCw, List, Bot, Sparkles, Save, Plus, MessageCircle, Upload, FileText, LayoutTemplate, Tag } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { User, Stethoscope, ArrowRight, ArrowLeft, Check, CheckCircle, ChevronDown, Copy, Download, RefreshCw, List, Bot, Sparkles, Save, MessageCircle, Upload, FileText, LayoutTemplate, Tag, Trash2 } from 'lucide-react';
 import { useAnamnese } from './hooks/useAnamnese.js';
 import { cleanMarkdownToHTML } from './domain/formatting.js';
 import Toast from '../../shared/ui/Toast.jsx';
 import PatientContextBar from '../pacientes/components/PatientContextBar.jsx';
 import ReportRichTextEditor from './components/ReportRichTextEditor.jsx';
+import AnamneseRichTextToolbar from './components/AnamneseRichTextToolbar.jsx';
 
 export default function AnamnesePage({ activeModel }) {
+  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
   const {
     hasActivePatient,
     patientData, setPatientData,
@@ -24,7 +27,9 @@ export default function AnamnesePage({ activeModel }) {
     isGenerating,
     isSavingReport,
     isExtraLoading,
+    isDeletingTemplate,
     editorRef,
+    editorCharCount,
     generateReport,
     saveEditedReport,
     handleExtraAnalysis,
@@ -33,7 +38,7 @@ export default function AnamnesePage({ activeModel }) {
     loadDemoData,
     saveTemplate,
     loadTemplate,
-    clearTemplate,
+    deleteTemplate,
     handleEditorCommand,
     handleInsertBullet,
     handleInsertVariableBadge,
@@ -45,6 +50,24 @@ export default function AnamnesePage({ activeModel }) {
     if (!text) return null;
     return <div dangerouslySetInnerHTML={{ __html: cleanMarkdownToHTML(text) }} />;
   };
+
+  useEffect(() => {
+    if (!isTemplateMenuOpen) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.anamnese-template-dropdown')) {
+        setIsTemplateMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsTemplateMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isTemplateMenuOpen]);
 
   return (
     <div className="animate-fadeIn mx-auto w-full min-w-0 max-w-7xl">
@@ -147,16 +170,80 @@ export default function AnamnesePage({ activeModel }) {
       {/* ABA 2: ESTRUTURA MODELO */}
       {activeTab === 'template' && (
         <div className="animate-fadeIn space-y-6">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row gap-4 items-end">
-            <div className="flex-1 w-full">
+          <div className="relative z-30 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 w-full relative z-30 anamnese-template-dropdown">
               <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
                 <LayoutTemplate className="size-3.5 text-emerald-600" aria-hidden="true" />
                 <span>Meus Modelos</span>
               </label>
-              <select value={selectedTemplateId} onChange={e => loadTemplate(e.target.value)} className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white font-medium outline-none shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800">
-                <option value="">-- Novo / Em branco --</option>
-                {savedTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+
+              <button
+                type="button"
+                onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
+                className={`w-full min-h-11 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all cursor-pointer flex items-center justify-between shadow-2xs active:scale-[0.99] ${
+                  isTemplateMenuOpen
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-white text-slate-900'
+                    : selectedTemplateId
+                    ? 'border-slate-300 bg-white text-slate-800'
+                    : 'border-slate-300 bg-white text-slate-600'
+                }`}
+                aria-expanded={isTemplateMenuOpen}
+                aria-haspopup="true"
+              >
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-base">{selectedTemplateId ? '📑' : '📄'}</span>
+                  <span className="truncate font-semibold text-slate-800">
+                    {savedTemplates.find(t => t.id === selectedTemplateId)?.name || '-- Novo / Em branco --'}
+                  </span>
+                </span>
+                <ChevronDown className={`w-4 h-4 ml-2 opacity-70 shrink-0 transition-transform duration-200 ${isTemplateMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isTemplateMenuOpen && (
+                <div
+                  className="absolute left-0 right-0 top-full mt-2 max-h-64 overflow-y-auto app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-scale-up space-y-1"
+                  style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+                >
+                  <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Selecionar modelo de anamnese
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => { loadTemplate(''); setIsTemplateMenuOpen(false); }}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                      !selectedTemplateId
+                        ? 'bg-emerald-50 text-emerald-900 font-bold'
+                        : 'text-slate-700 hover:bg-slate-50 font-medium'
+                    }`}
+                  >
+                    <span className="flex items-center truncate">
+                      <span className="mr-2 text-sm">📄</span>
+                      <span className="truncate">-- Novo / Em branco --</span>
+                    </span>
+                    {!selectedTemplateId && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                  </button>
+
+                  {savedTemplates.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => { loadTemplate(t.id); setIsTemplateMenuOpen(false); }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                        selectedTemplateId === t.id
+                          ? 'bg-emerald-50 text-emerald-900 font-bold'
+                          : 'text-slate-700 hover:bg-slate-50 font-medium'
+                      }`}
+                    >
+                      <span className="flex items-center truncate">
+                        <span className="mr-2 text-sm">📑</span>
+                        <span className="truncate">{t.name}</span>
+                      </span>
+                      {selectedTemplateId === t.id && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex-1 w-full">
               <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
@@ -167,22 +254,60 @@ export default function AnamnesePage({ activeModel }) {
             </div>
             <div className="flex gap-2">
               <button onClick={saveTemplate} className="bg-emerald-600 text-white px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 shadow-xs hover:bg-emerald-500 transition-all active:scale-95"><Save size={15}/> Salvar</button>
-              <button onClick={clearTemplate} className="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 hover:bg-slate-200 border border-slate-200 transition-all active:scale-95"><Plus size={15}/> Limpar</button>
+              <button type="button" onClick={deleteTemplate} disabled={!selectedTemplateId || isDeletingTemplate} aria-label="Excluir modelo de anamnese selecionado" className="bg-rose-50 text-rose-700 px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 border border-rose-200 hover:bg-rose-100 transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 size={15} aria-hidden="true"/> {isDeletingTemplate ? 'Excluindo...' : 'Excluir'}</button>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 h-[500px]">
+          <div className="grid md:grid-cols-3 gap-6 h-[550px] relative z-10">
             <div className="md:col-span-2 h-full flex flex-col bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-              <div className="p-3 bg-slate-50/80 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase px-1">Editor:</span>
-                  <button type="button" onMouseDown={e => handleEditorCommand('bold', null, e)} className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95" title="Negrito Visual (Ctrl+B)"><strong>B</strong> Negrito</button>
-                  <button type="button" onMouseDown={e => handleEditorCommand('italic', null, e)} className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-xs italic font-medium text-slate-700 transition-all shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95" title="Itálico Visual (Ctrl+I)"><em>I</em> Itálico</button>
-                  <button type="button" onMouseDown={handleInsertBullet} className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 transition-all shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95" title="Inserir Lista com Marcadores">• Tópicos</button>
-                  <button type="button" onClick={handleInsertVariableBadge} className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl text-xs font-bold text-emerald-700 transition-all shadow-2xs flex items-center gap-1 active:scale-95" title="Inserir Pílula de Variável">⚡ Variável</button>
-                </div>
+              {/* BARRA DE FERRAMENTAS DE FORMATAÇÃO (NEGRITO, ITÁLICO, TÍTULOS, BULLETS, ALINHAMENTOS) */}
+              <AnamneseRichTextToolbar
+                editorRef={editorRef}
+                onContentChange={syncEditorToTemplate}
+              />
+
+              {/* EDITOR DA ESTRUTURA MODELO */}
+              <div
+                ref={editorRef}
+                contentEditable
+                onInput={syncEditorToTemplate}
+                onBlur={syncEditorToTemplate}
+                className="w-full flex-1 p-8 outline-none font-sans text-[13px] leading-relaxed overflow-y-auto bg-white text-slate-800 focus:bg-slate-50/20 [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-600 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-extrabold [&_h3]:text-slate-900 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_li]:mb-1 [&_strong]:font-bold [&_b]:font-bold [&_em]:italic [&_i]:italic [&_u]:underline"
+                placeholder="Monte a estrutura modelo da sua anamnese com os campos dinâmicos {{ VAR }}..."
+              />
+
+              {/* CONTADOR DE CARACTERES */}
+              <div className="px-4 pt-2 pb-1 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {detectedVars.length > 0
+                    ? `${detectedVars.length} ${detectedVars.length === 1 ? 'campo dinâmico detectado' : 'campos dinâmicos detectados'}`
+                    : 'Nenhum campo dinâmico inserido'}
+                </span>
+                <span className={`text-[10px] font-bold ${
+                  editorCharCount > 3000 ? 'text-red-600' : editorCharCount > 2400 ? 'text-amber-500' : 'text-slate-400'
+                }`}>
+                  {editorCharCount} caracteres
+                </span>
               </div>
-              <div ref={editorRef} contentEditable onInput={syncEditorToTemplate} onBlur={syncEditorToTemplate} className="w-full flex-1 p-6 outline-none font-sans text-sm leading-relaxed overflow-y-auto bg-white text-slate-800 focus:bg-slate-50/20 whitespace-pre-wrap" />
+
+              {/* BOTÕES DE NAVEGAÇÃO INFERIOR */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('input')}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center shadow-2xs active:scale-95 cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Voltar aos Dados
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('result')}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95 cursor-pointer"
+                >
+                  <span>Ir para Geração IA</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xs flex flex-col h-full overflow-hidden">
@@ -205,9 +330,6 @@ export default function AnamnesePage({ activeModel }) {
                     <p className="text-xs font-medium text-slate-500">Insira tags como<br/><span className="text-emerald-600 font-mono">{"{{"}VAR{"}}"}</span><br/>no texto ao lado</p>
                   </div>
                 )}
-              </div>
-              <div className="p-4 border-t border-slate-100 bg-white">
-                <button onClick={() => setActiveTab('result')} className="w-full py-3 rounded-full font-bold text-xs text-white bg-emerald-600 flex items-center justify-center gap-2 hover:bg-emerald-500 shadow-sm transition-all active:scale-95">Ir para geração <ArrowRight size={14}/></button>
               </div>
             </div>
           </div>

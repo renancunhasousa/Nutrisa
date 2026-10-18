@@ -16,7 +16,7 @@ test('cadastro de pacientes não exibe atalhos, métricas ou associação com ou
   assert.match(page, /WhatsAppPatientCandidates/);
   assert.ok(page.lastIndexOf('<WhatsAppPatientCandidates') > page.indexOf('lg:grid-cols'), 'a lista do WhatsApp deve aparecer depois do cadastro de pacientes');
   assert.match(page, /patient\.avatar_url/);
-  assert.match(candidates, /Contatos do WhatsApp não cadastrados/);
+  assert.match(candidates, /Vincular Contatos do WhatsApp aos Pacientes/);
   assert.match(candidates, /listUnregisteredWhatsAppContacts/);
   assert.match(candidates, /contact\.photoUrl/);
   assert.match(candidates, /loading="lazy"/);

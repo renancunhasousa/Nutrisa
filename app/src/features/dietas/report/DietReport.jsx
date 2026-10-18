@@ -125,7 +125,7 @@ function ReportHeader({ nut, plan, totals, formattedDate }) {
     <header className="shrink-0 border-b-2 border-emerald-800 pb-5 print:pb-3">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row print:flex-row">
         <div className="flex items-center space-x-3.5">
-          <img src={logoPdf} alt="Logo" className="size-12 shrink-0 object-contain" />
+          <img src={nut.logoUrl || logoPdf} alt={nut.clinic || 'Logo'} className="size-12 shrink-0 object-contain" />
           <div className="min-w-0">
             <h1 className="truncate whitespace-nowrap text-xl font-black uppercase tracking-tight text-emerald-950 sm:text-2xl print:text-lg">{nut.name}</h1>
             <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 print:text-[10px]">{nut.title}</p>
@@ -220,14 +220,23 @@ function ReportFooter({ nut, pageNumber, totalPages }) {
     <footer className="a4-print-footer mt-auto shrink-0 border-t border-slate-300 pt-5 print:pt-3">
       <div className="flex flex-col items-end justify-between gap-3 text-center sm:flex-row sm:text-left print:flex-row print:text-left">
         <div className="space-y-0.5 text-xs text-slate-500"><p className="font-bold text-slate-800">{nut.name}</p><p>{nut.title} • {nut.crn}</p>{nut.address && <p>{nut.address}</p>}{(nut.phone || nut.email) && <p>{[nut.phone, nut.email].filter(Boolean).join(' • ')}</p>}</div>
-        <div className="flex flex-col items-center sm:items-end print:items-end"><img src={signatureImg} alt="Assinatura da Nutricionista" className="h-16 w-auto object-contain drop-shadow-xs" /><p className="text-right text-[10px] font-bold text-emerald-800">Página {pageNumber} de {totalPages}</p></div>
+        <div className="flex flex-col items-center sm:items-end print:items-end">
+          {nut.signatureUrl ? (
+            <img src={nut.signatureUrl} alt="Assinatura da Nutricionista" className="h-16 w-auto object-contain drop-shadow-xs" />
+          ) : String(nut.name || '').toLowerCase().includes('isabela') ? (
+            <img src={signatureImg} alt="Assinatura da Nutricionista" className="h-16 w-auto object-contain drop-shadow-xs" />
+          ) : (
+            <div className="h-10 w-36 border-b border-slate-400 mb-1" />
+          )}
+          <p className="text-right text-[10px] font-bold text-emerald-800">Página {pageNumber} de {totalPages}</p>
+        </div>
       </div>
     </footer>
   );
 }
 
 export function DietReport({ plan, totals, nutritionist, onBack }) {
-  const nut = { name: 'Dra. Isabela Muñoz', title: 'Nutricionista Clínica & Funcional', crn: 'CRN-3 12345/P', clinic: 'NutrIsa Clínica Integrada', address: '', phone: '', email: '', ...nutritionist };
+  const nut = { name: 'Profissional responsável', title: 'Nutricionista Clínica & Funcional', crn: 'CRN-3 12345/P', clinic: 'NutrIsa Clínica Integrada', address: '', phone: '', email: '', logoUrl: '', signatureUrl: '', ...nutritionist };
   const formattedDate = new Date(plan.created_at || Date.now()).toLocaleDateString('pt-BR');
   const pages = paginateBlocks(createReportBlocks(plan));
 

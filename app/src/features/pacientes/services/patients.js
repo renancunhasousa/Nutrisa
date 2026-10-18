@@ -9,17 +9,35 @@ function throwIfError(error) {
 
 export async function listPatients(organizationId, search = '') {
   const client = requireSupabase();
-  let query = client
-    .from('patients')
-    .select(PATIENT_FIELDS)
-    .eq('organization_id', organizationId)
-    .neq('status', 'archived')
-    .order('full_name');
+  const PAGE_SIZE = 1000;
+  let allPatients = [];
+  let from = 0;
+  let hasMore = true;
 
-  if (search.trim()) query = query.ilike('full_name', `%${search.trim()}%`);
-  const { data, error } = await query;
-  throwIfError(error);
-  return data ?? [];
+  while (hasMore) {
+    let query = client
+      .from('patients')
+      .select(PATIENT_FIELDS)
+      .eq('organization_id', organizationId)
+      .neq('status', 'archived')
+      .order('full_name')
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (search.trim()) query = query.ilike('full_name', `%${search.trim()}%`);
+    const { data, error } = await query;
+    throwIfError(error);
+
+    const rows = data ?? [];
+    allPatients = allPatients.concat(rows);
+
+    if (rows.length < PAGE_SIZE) {
+      hasMore = false;
+    } else {
+      from += PAGE_SIZE;
+    }
+  }
+
+  return allPatients;
 }
 
 export async function createPatient(organizationId, values) {

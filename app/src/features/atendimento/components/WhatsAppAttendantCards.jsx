@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { formatWaitTime } from '../../../shared/utils/formatters.js';
 import { evaluateSecretaryGoals } from '../domain/metrics.js';
+import { getOwnerShortLabel, formatDoctorShortName } from '../../configuracoes/services/clinicProfileService.js';
 
 function GoalStatusGrid({ goals }) {
   return (
@@ -64,6 +65,7 @@ function QueueSummary({ count }) {
 
 export default function WhatsAppAttendantCards({ comparisonStats }) {
   const secretaryGoals = evaluateSecretaryGoals(comparisonStats).avaliacaoMetas;
+  const ownerLabel = getOwnerShortLabel();
 
   return (
     <div className="space-y-4">
@@ -76,7 +78,7 @@ export default function WhatsAppAttendantCards({ comparisonStats }) {
             <div className="flex items-center space-x-3">
               <Stethoscope className="size-6 shrink-0 text-teal-600" aria-hidden="true" />
               <div>
-                <h3 className="font-extrabold text-lg text-slate-900">Dra. Isabela Muñoz</h3>
+                <h3 className="font-extrabold text-lg text-slate-900">{ownerLabel}</h3>
                 <span className="text-xs font-semibold text-teal-600 block mt-0.5">
                   Atendimento Clínico • Primário & Web
                 </span>
@@ -178,12 +180,14 @@ export default function WhatsAppAttendantCards({ comparisonStats }) {
 
       {comparisonStats.responderBreakdown?.length ? (
         <section aria-labelledby="identified-responders-title" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs md:p-7">
-          <h3 id="identified-responders-title" className="text-sm font-extrabold text-slate-900">Respostas identificadas por usuário</h3>
+          <h3 id="identified-responders-title" className="text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">Respostas identificadas por usuário</h3>
           <p className="mt-1 text-xs text-slate-500">Mensagens enviadas diretamente pela NutrIsa, separadas pelo usuário autenticado.</p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {comparisonStats.responderBreakdown.map((responder) => (
               <li key={responder.userId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <strong className="block truncate text-sm text-slate-900">{responder.name}</strong>
+                <strong className="block truncate text-sm text-slate-900">
+                  {responder.type === 'isabela' || responder.role === 'owner' ? formatDoctorShortName(responder.name) : responder.name}
+                </strong>
                 <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">{responder.type}</span>
                 <span className="mt-3 block text-2xl font-black text-emerald-700">{responder.total}</span>
                 <span className="text-[10px] text-slate-500">respostas no período</span>
@@ -194,8 +198,8 @@ export default function WhatsAppAttendantCards({ comparisonStats }) {
       ) : null}
 
       <section aria-labelledby="indicator-status-title" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs md:p-7">
-        <h3 id="indicator-status-title" className="flex items-center text-sm font-extrabold text-slate-900">
-          <CheckCircle2 className="mr-2 size-4 text-emerald-600" aria-hidden="true" />
+        <h3 id="indicator-status-title" className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+          <CheckCircle2 className="size-3.5 text-emerald-600" aria-hidden="true" />
           Status dos indicadores
         </h3>
         <p className="text-xs text-slate-500">Acompanhamento consolidado em relação às metas definidas</p>
