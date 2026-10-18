@@ -1,6 +1,8 @@
 import { getAiStatus, pingAiProviders, getAiAccessToken, setAiAccessToken } from '../../shared/services/aiClient.js';
-import { useState, useEffect, useCallback } from 'react';
-import { DEFAULT_NUTRITIONIST } from './defaultProfile.js';
+import { useState, useEffect, useCallback, useContext } from 'react';
+import { getClinicProfileFallback } from './defaultProfile.js';
+import { fetchClinicProfile, saveClinicProfile, normalizeClinicProfile } from './services/clinicProfileService.js';
+import { AuthStateContext } from '../auth/useAuth.js';
 import { fetchConversations } from '../atendimento/services/conversations.js';
 import { fetchCalendarPage } from '../agenda/services/calendar.js';
 import { 
@@ -19,14 +21,62 @@ import {
 import { GOOGLE_CALENDAR_ID } from '../../config/env.js';
 
 export function useAppSettings() {
+  const auth = useContext(AuthStateContext);
+  const organizationId = auth?.organizationId;
+  const userId = auth?.user?.id;
+
   const [appNotification, setAppNotification] = useState(null);
   const [nutritionist, setNutritionist] = useState(() => {
     try {
       const saved = localStorage.getItem(KEY_NUTRITIONIST);
-      return saved ? JSON.parse(saved) : DEFAULT_NUTRITIONIST;
-    } catch { return DEFAULT_NUTRITIONIST;
+      return saved ? normalizeClinicProfile(JSON.parse(saved), organizationId) : getClinicProfileFallback(organizationId);
+    } catch {
+      return getClinicProfileFallback(organizationId);
     }
   });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [profileError, setProfileError] = useState(null);
+
+  // Sincroniza dados do banco de dados quando a organização é carregada
+  useEffect(() => {
+    if (!organizationId) return undefined;
+    let active = true;
+
+    fetchClinicProfile(organizationId)
+      .then((profile) => {
+        if (active && profile) {
+          setNutritionist(profile);
+        }
+      })
+      .catch((err) => {
+        console.warn('Não foi possível sincronizar o perfil da clínica com o Supabase:', err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [organizationId]);
+
+  const saveProfile = useCallback(async (customNutritionist) => {
+    const target = customNutritionist || nutritionist;
+    setProfileSaving(true);
+    setProfileError(null);
+    try {
+      const saved = await saveClinicProfile(organizationId, target, userId);
+      setNutritionist(saved);
+      setProfileSaveSuccess(true);
+      setTimeout(() => setProfileSaveSuccess(false), 3000);
+      return saved;
+    } catch (err) {
+      console.error('Erro ao persistir perfil no banco:', err);
+      setProfileError(err?.message || 'Erro ao salvar perfil no banco.');
+      throw err;
+    } finally {
+      setProfileSaving(false);
+    }
+  }, [organizationId, nutritionist, userId]);
+
   const [activeModal, setActiveModal] = useState(null); // null | 'profile' | 'ai'
   const [selectedModel, setSelectedModel] = useState(() => {
     try { return localStorage.getItem(KEY_SELECTED_MODEL) || ''; } catch { return ''; }
@@ -35,7 +85,7 @@ export function useAppSettings() {
   const [aiAccessToken, setAccess] = useState(getAiAccessToken);
   const updateAiAccessToken = value => { setAccess(value); setAiAccessToken(value); };
 
-  // Save profile and model changes to localStorage
+  // Save profile and model changes to localStorage as fallback
   useEffect(() => {
     try {
       localStorage.setItem(KEY_NUTRITIONIST, JSON.stringify(nutritionist));
@@ -307,7 +357,10 @@ export function useAppSettings() {
     toggleLiveNotifications,
     appNotification,
     setAppNotification,
-    showAppNotification,
+    saveProfile,
+    profileSaving,
+    profileSaveSuccess,
+    profileError,
     handleConfirmAppointment,
     handleCancelAppointment
   };

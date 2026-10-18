@@ -32,8 +32,22 @@ export default function WhatsAppPdfReport({
   filteredData,
   timelineChartData,
   peakHoursChartData,
-  slaResolutionBreakdownData
+  slaResolutionBreakdownData,
+  nutritionist
 }) {
+  const currentNutritionist = nutritionist || (() => {
+    try {
+      const saved = localStorage.getItem('nutrisa_nutritionist_profile');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const nutriName = currentNutritionist?.name || 'Profissional responsável';
+  const parts = nutriName.trim().split(/\s+/);
+  const nutriShortName = (parts[0] === 'Dra.' || parts[0] === 'Dr.') && parts[1]
+    ? `${parts[0]} ${parts[1]}`
+    : parts[0];
   return (
     <div className="bg-transparent min-h-screen p-0 md:py-4 print:p-0 print:bg-white animate-fade-in font-sans">
       {/* BARRA SUPERIOR DE AÇÕES (VOLTAR / IMPRIMIR) - OCULTA NO PRINT */}
@@ -74,16 +88,16 @@ export default function WhatsAppPdfReport({
         <div className="border-b-2 border-emerald-800 pb-5 print:pb-3">
           <div className="flex flex-col sm:flex-row justify-between items-start print:flex-row gap-4">
             <div className="flex items-center space-x-4">
-              <img src={logo} alt="Logo" className="w-14 h-14 object-contain flex-shrink-0" />
+              <img src={currentNutritionist?.logoUrl || logo} alt="Logo" className="w-14 h-14 object-contain flex-shrink-0" />
               <div>
                 <h1 className="text-2xl print:text-lg font-black tracking-tight text-slate-900 uppercase">
-                  NutrIsa • Nutrição Avançada
+                  {currentNutritionist?.clinic || 'NutrIsa • Nutrição Avançada'}
                 </h1>
                 <p className="text-xs print:text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
                   Relatório Executivo de Atendimento & SLA WhatsApp
                 </p>
                 <p className="text-[11px] print:text-[9px] text-slate-500 mt-0.5">
-                  Dra. Isabela Muñoz • Desempenho e Produtividade da Recepção
+                  {currentNutritionist?.name || 'Profissional responsável'} • Desempenho e Produtividade da Recepção
                 </p>
               </div>
             </div>
@@ -120,19 +134,19 @@ export default function WhatsAppPdfReport({
           </div>
         </div>
 
-        {/* SEÇÃO 1: COMPARATIVO DIRETO DE PERFORMANCE (DRA. ISABELA vs SECRETÁRIA) */}
+        {/* SEÇÃO 1: COMPARATIVO DIRETO DE PERFORMANCE (NUTRICIONISTA vs SECRETÁRIA) */}
         <div className="space-y-3">
           <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-600 border-l-3 border-emerald-600 pl-2">
-            1. Comparativo de Atendimento (Dra. Isabela vs Secretária)
+            1. Comparativo de Atendimento ({nutriShortName} vs Secretária)
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-4">
             
-            {/* Bloco Dra. Isabela (Verde Tiffany) */}
+            {/* Bloco Nutricionista (Verde Tiffany) */}
             <div className="bg-teal-50/40 p-4 rounded-2xl border border-teal-200/80 space-y-3">
               <div className="flex items-center justify-between border-b border-teal-200 pb-2">
                 <span className="font-black text-sm text-teal-950 flex items-center">
-                  👩‍⚕️ Dra. Isabela Muñoz
+                  👩‍⚕️ {nutriName}
                 </span>
                 <span className="text-xs font-black text-teal-800 bg-teal-100/80 px-2.5 py-0.5 rounded-full">
                   {comparisonStats.isabela.total} respostas ({comparisonStats.totalAnswered > 0 ? Math.round((comparisonStats.isabela.total / comparisonStats.totalAnswered) * 100) : 0}%)
@@ -328,8 +342,8 @@ export default function WhatsAppPdfReport({
               </div>
               <ul className="list-disc list-inside space-y-1 text-slate-700 ml-1 leading-relaxed">
                 <li><strong>Meta de Resposta Rápida:</strong> Manter tempo de primeira resposta para agendamentos e dúvidas em até <strong>15 a 30 minutos</strong> (elegível para bônus individual).</li>
-                <li><strong>Distribuição de Volume:</strong> A secretária deve liderar o volume de respostas ({comparisonStats.secretaria.total} enviadas vs {comparisonStats.isabela.total} da Dra).</li>
-                <li><strong>Intervenções em Recepção ({comparisonStats.isabelaInterventions}):</strong> Meta de intervenção da Dra. Isabela em assuntos da recepção de no máximo <strong>25% do total de mensagens</strong> ({comparisonStats.isabelaInterventionsPct || 0}% no período).</li>
+                <li><strong>Distribuição de Volume:</strong> A secretária deve liderar o volume de respostas ({comparisonStats.secretaria.total} enviadas vs {comparisonStats.isabela.total} de {nutriShortName}).</li>
+                <li><strong>Intervenções em Recepção ({comparisonStats.isabelaInterventions}):</strong> Meta de intervenção de {nutriShortName} em assuntos da recepção de no máximo <strong>25% do total de mensagens</strong> ({comparisonStats.isabelaInterventionsPct || 0}% no período).</li>
                 <li><strong>Categorização de Mensagens:</strong> Foco operacional da secretária prioritariamente na categoria <strong>Agendamento e Horários</strong> ({comparisonStats.secretariaAgendamentoPct || 0}% atual).</li>
               </ul>
             </div>
@@ -339,13 +353,17 @@ export default function WhatsAppPdfReport({
         {/* RODAPÉ E ASSINATURA PÁGINA 1 */}
         <div className="border-t border-slate-200 pt-5 mt-6 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500 gap-4">
           <div>
-            <p className="font-semibold text-slate-700">NutrIsa • Gestão Integrada de Consultório</p>
+            <p className="font-semibold text-slate-700">{currentNutritionist?.clinic || 'NutrIsa • Gestão Integrada de Consultório'}</p>
             <p className="text-[10px]">Relatório gerado automaticamente através da Inteligência Artificial NutrIsa. • <strong className="text-emerald-700">Página 1 de 2</strong></p>
           </div>
           <div className="text-center sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto">
-            <div className="w-48 border-b border-slate-400 mb-1 mx-auto sm:ml-auto"></div>
-            <span className="text-[11px] font-bold text-slate-700 uppercase block">Dra. Isabela Muñoz</span>
-            <span className="text-[10px] text-slate-400 block">Nutricionista Clínica & Esportiva</span>
+            {currentNutritionist?.signatureUrl ? (
+              <img src={currentNutritionist.signatureUrl} alt="Assinatura" className="h-14 w-auto object-contain mx-auto sm:ml-auto mb-1" />
+            ) : (
+              <div className="w-48 border-b border-slate-400 mb-1 mx-auto sm:ml-auto"></div>
+            )}
+            <span className="text-[11px] font-bold text-slate-700 uppercase block">{nutriName}</span>
+            <span className="text-[10px] text-slate-400 block">{currentNutritionist?.title || 'Nutricionista Responsável'}</span>
           </div>
         </div>
       </div>
@@ -359,16 +377,16 @@ export default function WhatsAppPdfReport({
         <div className="border-b-2 border-emerald-800 pb-5 print:pb-3">
           <div className="flex flex-col sm:flex-row justify-between items-start print:flex-row gap-4">
             <div className="flex items-center space-x-4">
-              <img src={logo} alt="Logo" className="w-14 h-14 object-contain flex-shrink-0" />
+              <img src={currentNutritionist?.logoUrl || logo} alt="Logo" className="w-14 h-14 object-contain flex-shrink-0" />
               <div>
                 <h1 className="text-2xl print:text-lg font-black tracking-tight text-slate-900 uppercase">
-                  NutrIsa • Nutrição Avançada
+                  {currentNutritionist?.clinic || 'NutrIsa • Nutrição Avançada'}
                 </h1>
                 <p className="text-xs print:text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
                   Relatório Executivo de Atendimento & SLA WhatsApp
                 </p>
                 <p className="text-[11px] print:text-[9px] text-slate-500 mt-0.5">
-                  Dra. Isabela Muñoz • Desempenho e Produtividade da Recepção
+                  {nutriName} • Desempenho e Produtividade da Recepção
                 </p>
               </div>
             </div>
@@ -431,10 +449,10 @@ export default function WhatsAppPdfReport({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-600 border-l-3 border-emerald-600 pl-2">
-                4. Evolução Temporal de Mensagens (Dra. Isabela vs Secretária)
+                4. Evolução Temporal de Mensagens ({nutriShortName} vs Secretária)
               </h3>
               <div className="flex items-center space-x-3 text-[10px]">
-                <span className="flex items-center font-bold text-teal-800"><span className="w-2.5 h-2.5 rounded-full bg-teal-500 mr-1"></span> Dra. Isabela</span>
+                <span className="flex items-center font-bold text-teal-800"><span className="w-2.5 h-2.5 rounded-full bg-teal-500 mr-1"></span> {nutriShortName}</span>
                 <span className="flex items-center font-bold text-purple-800"><span className="w-2.5 h-2.5 rounded-full bg-purple-500 mr-1"></span> Secretária</span>
               </div>
             </div>
@@ -460,7 +478,7 @@ export default function WhatsAppPdfReport({
                       </defs>
                       <XAxis dataKey="data" tick={{ fontSize: 9, fill: '#64748b' }} />
                       <YAxis tick={{ fontSize: 9, fill: '#64748b' }} />
-                      <Area type="monotone" dataKey="isabela" name="Dra. Isabela" stroke="#14B8A6" strokeWidth={2} fillOpacity={1} fill="url(#pdfIsabelaColor)" />
+                      <Area type="monotone" dataKey="isabela" name={nutriShortName} stroke="#14B8A6" strokeWidth={2} fillOpacity={1} fill="url(#pdfIsabelaColor)" />
                       <Area type="monotone" dataKey="secretaria" name="Secretária" stroke="#8B5CF6" strokeWidth={2} fillOpacity={1} fill="url(#pdfSecretariaColor)" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -546,13 +564,17 @@ export default function WhatsAppPdfReport({
         {/* RODAPÉ E ASSINATURA PÁGINA 2 */}
         <div className="border-t border-slate-200 pt-5 mt-6 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500 gap-4">
           <div>
-            <p className="font-semibold text-slate-700">NutrIsa • Gestão Integrada de Consultório</p>
+            <p className="font-semibold text-slate-700">{currentNutritionist?.clinic || 'NutrIsa • Gestão Integrada de Consultório'}</p>
             <p className="text-[10px]">Relatório gerado automaticamente através da Inteligência Artificial NutrIsa. • <strong className="text-emerald-700">Página 2 de 2</strong></p>
           </div>
           <div className="text-center sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto">
-            <div className="w-48 border-b border-slate-400 mb-1 mx-auto sm:ml-auto"></div>
-            <span className="text-[11px] font-bold text-slate-700 uppercase block">Dra. Isabela Muñoz</span>
-            <span className="text-[10px] text-slate-400 block">Nutricionista Clínica & Esportiva</span>
+            {currentNutritionist?.signatureUrl ? (
+              <img src={currentNutritionist.signatureUrl} alt="Assinatura" className="h-14 w-auto object-contain mx-auto sm:ml-auto mb-1" />
+            ) : (
+              <div className="w-48 border-b border-slate-400 mb-1 mx-auto sm:ml-auto"></div>
+            )}
+            <span className="text-[11px] font-bold text-slate-700 uppercase block">{currentNutritionist?.name || 'Profissional responsável'}</span>
+            <span className="text-[10px] text-slate-400 block">{currentNutritionist?.title || 'Nutricionista Responsável'}</span>
           </div>
         </div>
 

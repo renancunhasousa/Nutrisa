@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Check,
+  ChevronDown,
   Copy,
   Eye,
   EyeOff,
@@ -33,6 +34,7 @@ export default function TeamPermissionsModal({ open, onClose }) {
   const [actionError, setActionError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
   // Formulário de novo membro
   const [newMemberName, setNewMemberName] = useState('');
@@ -322,7 +324,7 @@ export default function TeamPermissionsModal({ open, onClose }) {
                     value={newMemberName}
                     onChange={(e) => setNewMemberName(e.target.value)}
                     placeholder="Ex: Maria Secretária"
-                    className="w-full min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs"
+                    className="w-full min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-800 shadow-2xs focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
                   />
                 </div>
                 <div>
@@ -333,21 +335,21 @@ export default function TeamPermissionsModal({ open, onClose }) {
                     value={newMemberEmail}
                     onChange={(e) => setNewMemberEmail(e.target.value)}
                     placeholder="maria@gmail.com"
-                    className="w-full min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs"
+                    className="w-full min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-800 shadow-2xs focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Cargo / Modelo</label>
-                  <select
+                  <RoleDropdownSelect
+                    id="new-member-role-select"
                     value={newMemberRole}
-                    onChange={(e) => handleRolePresetChange(e.target.value)}
-                    className="w-full min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800"
-                  >
-                    <option value="receptionist">Secretária / Recepção</option>
-                    <option value="assistant">Administrativo / Financeiro</option>
-                    <option value="owner">Acesso mestre (Total)</option>
-                    <option value="custom">Personalizado</option>
-                  </select>
+                    onChange={handleRolePresetChange}
+                    isOpen={activeDropdown === 'new_member_role'}
+                    onToggle={() =>
+                      setActiveDropdown((prev) => (prev === 'new_member_role' ? null : 'new_member_role'))
+                    }
+                    onClose={() => setActiveDropdown(null)}
+                  />
                 </div>
               </div>
 
@@ -545,18 +547,21 @@ export default function TeamPermissionsModal({ open, onClose }) {
                         <div className="flex flex-col gap-3">
                           {/* Seletor de Cargo no Modo Edição */}
                           <div className="flex max-w-md flex-col gap-1.5">
-                            <label htmlFor={`member-role-${member.id}`} className="text-xs font-bold text-slate-600">Cargo e nível de acesso</label>
-                            <select
+                            <label htmlFor={`member-role-${member.id}`} className="text-xs font-bold text-slate-600">
+                              Cargo e nível de acesso
+                            </label>
+                            <RoleDropdownSelect
                               id={`member-role-${member.id}`}
                               value={member.role || 'custom'}
-                              onChange={(e) => handleMemberRoleChange(member, e.target.value)}
-                              className="min-h-11 w-full rounded-xl border border-emerald-300 bg-white px-3 text-sm font-bold text-slate-800"
-                            >
-                              <option value="receptionist">Secretária / Recepção</option>
-                              <option value="assistant">Administrativo / Financeiro</option>
-                              <option value="custom">Personalizado</option>
-                              <option value="owner">Acesso mestre</option>
-                            </select>
+                              onChange={(role) => handleMemberRoleChange(member, role)}
+                              isOpen={activeDropdown === `member_role_${member.id}`}
+                              onToggle={() =>
+                                setActiveDropdown((prev) =>
+                                  prev === `member_role_${member.id}` ? null : `member_role_${member.id}`
+                                )
+                              }
+                              onClose={() => setActiveDropdown(null)}
+                            />
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2">
@@ -645,3 +650,127 @@ export default function TeamPermissionsModal({ open, onClose }) {
     </div>
   );
 }
+
+const ROLE_OPTIONS = [
+  {
+    value: 'receptionist',
+    label: 'Secretária / Recepção',
+    icon: '👩‍💼',
+  },
+  {
+    value: 'assistant',
+    label: 'Administrativo / Financeiro',
+    icon: '💼',
+  },
+  {
+    value: 'owner',
+    label: 'Acesso mestre (Total)',
+    icon: '👑',
+  },
+  {
+    value: 'custom',
+    label: 'Personalizado',
+    icon: '⚙️',
+  },
+];
+
+function RoleDropdownSelect({
+  id,
+  value,
+  onChange,
+  isOpen,
+  onToggle,
+  onClose,
+  disabled = false,
+  label = 'Selecione o cargo / modelo',
+}) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleOutsideClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  const selectedOption =
+    ROLE_OPTIONS.find((opt) => opt.value === value) ||
+    ROLE_OPTIONS.find((opt) => opt.value === 'custom') ||
+    ROLE_OPTIONS[0];
+
+  return (
+    <div ref={containerRef} className={`relative dropdown-select-container ${isOpen ? 'z-[60]' : 'z-10'}`}>
+      <button
+        type="button"
+        id={id}
+        disabled={disabled}
+        onClick={onToggle}
+        className={`flex min-h-11 w-full items-center justify-between gap-1.5 rounded-xl border bg-white px-3 py-2 text-left text-xs font-bold text-slate-800 shadow-2xs transition-all cursor-pointer active:scale-[0.99] hover:border-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/15 ${
+          isOpen ? 'border-emerald-500 ring-2 ring-emerald-500/15 text-slate-900' : 'border-slate-200'
+        } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+        aria-expanded={isOpen}
+      >
+        <span className="flex items-center gap-2 truncate">
+          {selectedOption.icon && <span className="text-sm shrink-0">{selectedOption.icon}</span>}
+          <span className="truncate">{selectedOption.label}</span>
+        </span>
+        <ChevronDown
+          className={`size-3.5 shrink-0 opacity-70 transition-transform duration-200 ${
+            isOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute left-0 mt-2 w-full min-w-[14rem] app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-2xl border border-slate-200/90 p-2 z-[70] animate-scale-up space-y-1"
+          style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+        >
+          {label && (
+            <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              {label}
+            </div>
+          )}
+          <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
+            {ROLE_OPTIONS.map((opt) => {
+              const isSelected = opt.value === value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    onClose();
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-700 hover:bg-slate-50 font-medium'
+                  }`}
+                >
+                  <span className="flex items-center truncate">
+                    {opt.icon && <span className="mr-2 text-sm shrink-0">{opt.icon}</span>}
+                    <span className="truncate">{opt.label}</span>
+                  </span>
+                  {isSelected && <Check className="size-3.5 text-emerald-600 shrink-0 ml-1" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -4,8 +4,8 @@ import { readDocument } from '../services/documents.js';
 import { extractVariables, extractVariableNames, replaceVariable } from '../domain/variables.js';
 import { syncHTMLToTemplate, formatTemplateToHTML, cleanMarkdownToText } from '../domain/formatting.js';
 import { buildGenerationPrompt, buildPatientTranslationPrompt, buildClinicInsightsPrompt } from '../prompts/generate.js';
-import { KEY_ANAMNESE_TEMPLATES, KEY_ANAMNESE_DRAFT } from '../../../config/storageKeys.js';
-import { importLocalDocumentTemplates, listDocumentTemplates, saveDocumentTemplate } from '../../../shared/services/documentTemplates.js';
+import { KEY_ANAMNESE_TEMPLATES, KEY_ANAMNESE_DRAFT, KEY_LAST_ANAMNESE_TEMPLATE_ID } from '../../../config/storageKeys.js';
+import { deleteDocumentTemplate, importLocalDocumentTemplates, listDocumentTemplates, saveDocumentTemplate } from '../../../shared/services/documentTemplates.js';
 import { useAuth } from '../../auth/useAuth.js';
 import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
 import { createPatientAnamnese, updatePatientAnamnese } from '../services/anamneses.js';
@@ -74,6 +74,8 @@ export function useAnamnese({ activeModel }) {
   const [isSavingReport, setIsSavingReport] = useState(false);
   const [isExtraLoading, setIsExtraLoading] = useState(false);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
+  const [editorCharCount, setEditorCharCount] = useState(0);
   const editorRef = useRef(null);
   const savedAnamneseIdRef = useRef(openedRecord?.id || null);
 
@@ -103,8 +105,18 @@ export function useAnamnese({ activeModel }) {
         }
         const remoteTemplates = await listDocumentTemplates(organizationId, 'anamnese');
         if (!cancelled) setSavedTemplates(remoteTemplates);
-        const draft = localStorage.getItem(KEY_ANAMNESE_DRAFT);
-        if (!cancelled && draft) setTemplate(draft);
+        // Restaura o último modelo de anamnese selecionado pela nutricionista
+        const lastTemplateId = localStorage.getItem(KEY_LAST_ANAMNESE_TEMPLATE_ID);
+        if (!cancelled && lastTemplateId) {
+          const found = remoteTemplates.find(t => t.id === lastTemplateId);
+          if (found) {
+            setSelectedTemplateId(found.id);
+            setTemplate(found.content);
+            setTemplateNameInput(found.name);
+          }
+        }
+        // Limpa rascunho legado de texto bruto solto
+        localStorage.removeItem(KEY_ANAMNESE_DRAFT);
       } catch (e) {
         console.error('Erro ao carregar modelos de anamnese', e);
         if (!cancelled) showNotification(`Erro ao carregar modelos: ${e.message}`, 'error');
@@ -116,13 +128,6 @@ export function useAnamnese({ activeModel }) {
     return () => { cancelled = true; };
   }, [organizationId]);
 
-  useEffect(() => {
-    const id = setTimeout(() => {
-      localStorage.setItem(KEY_ANAMNESE_DRAFT, template);
-    }, 1500);
-    return () => clearTimeout(id);
-  }, [template]);
-
   // ── Variáveis detectadas ──────────────────────────────────
   useEffect(() => {
     setDetectedVars(extractVariables(template));
@@ -131,12 +136,14 @@ export function useAnamnese({ activeModel }) {
   // ── Sincronização do editor rico ──────────────────────────
   const syncEditorToTemplate = () => {
     if (!editorRef.current) return;
+    setEditorCharCount(editorRef.current.innerText?.length || 0);
     setTemplate(syncHTMLToTemplate(editorRef.current.innerHTML));
   };
 
   useEffect(() => {
     if (editorRef.current && document.activeElement !== editorRef.current) {
       editorRef.current.innerHTML = formatTemplateToHTML(template);
+      setEditorCharCount(editorRef.current.innerText?.length || 0);
     }
   }, [template, activeTab]);
 
@@ -172,10 +179,14 @@ export function useAnamnese({ activeModel }) {
     syncEditorToTemplate();
   };
 
-  const handleInsertVariableBadge = () => {
-    const varName = prompt('Digite o nome da nova variável (ex: SINTOMAS, OBJETIVO):');
-    if (!varName?.trim()) return;
-    const cleanName = varName.trim().toUpperCase();
+  const handleInsertVariableBadge = (variableName = null) => {
+    let name = variableName;
+    if (!name || typeof name !== 'string') {
+      const varName = prompt('Digite o nome da nova variável (ex: SINTOMAS, OBJETIVO):');
+      if (!varName?.trim()) return;
+      name = varName;
+    }
+    const cleanName = String(name).trim().toUpperCase();
     const badgeHTML = `<span contenteditable="false" data-var="${cleanName}" class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs px-2 py-0.5 rounded-md font-bold mx-1 shadow-sm select-none">⚡ {{ ${cleanName} }}</span>&nbsp;`;
     handleEditorCommand('insertHTML', badgeHTML);
   };
@@ -334,6 +345,7 @@ export function useAnamnese({ activeModel }) {
         : [saved, ...prev]);
       setSelectedTemplateId(saved.id);
       setTemplateNameInput(saved.name);
+      localStorage.setItem(KEY_LAST_ANAMNESE_TEMPLATE_ID, saved.id);
       showNotification('Modelo salvo na nuvem!', 'success');
     } catch (error) {
       showNotification(`Erro ao salvar modelo: ${error.message}`, 'error');
@@ -342,14 +354,41 @@ export function useAnamnese({ activeModel }) {
 
   const loadTemplate = (id) => {
     const found = savedTemplates.find(t => t.id === id);
-    if (found) { setSelectedTemplateId(found.id); setTemplate(found.content); }
-    else { setSelectedTemplateId(''); setTemplate(''); }
+    if (found) {
+      setSelectedTemplateId(found.id);
+      setTemplate(found.content);
+      setTemplateNameInput(found.name);
+      localStorage.setItem(KEY_LAST_ANAMNESE_TEMPLATE_ID, found.id);
+    } else {
+      setSelectedTemplateId('');
+      setTemplate('');
+      setTemplateNameInput('');
+      localStorage.removeItem(KEY_LAST_ANAMNESE_TEMPLATE_ID);
+    }
+  };
+
+  const deleteTemplate = async () => {
+    if (!selectedTemplateId) return;
+    const selected = savedTemplates.find(item => item.id === selectedTemplateId);
+    if (!window.confirm(`Excluir o modelo "${selected?.name || 'selecionado'}"? Esta ação não pode ser desfeita.`)) return;
+    setIsDeletingTemplate(true);
+    try {
+      await deleteDocumentTemplate({ id: selectedTemplateId, organizationId, templateType: 'anamnese' });
+      setSavedTemplates(prev => prev.filter(item => item.id !== selectedTemplateId));
+      clearTemplate();
+      showNotification('Modelo excluído da nuvem.', 'success');
+    } catch (error) {
+      showNotification(`Erro ao excluir modelo: ${error.message}`, 'error');
+    } finally {
+      setIsDeletingTemplate(false);
+    }
   };
 
   const clearTemplate = () => {
     setSelectedTemplateId('');
     setTemplate('');
     setTemplateNameInput('');
+    localStorage.removeItem(KEY_LAST_ANAMNESE_TEMPLATE_ID);
   };
 
   const handleFileUpload = async (file, setter) => {
@@ -383,7 +422,9 @@ export function useAnamnese({ activeModel }) {
     isSavingReport,
     isExtraLoading,
     isLoadingTemplates,
+    isDeletingTemplate,
     editorRef,
+    editorCharCount,
     // Handlers
     generateReport,
     saveEditedReport,
@@ -393,6 +434,7 @@ export function useAnamnese({ activeModel }) {
     loadDemoData,
     saveTemplate,
     loadTemplate,
+    deleteTemplate,
     clearTemplate,
     handleEditorCommand,
     handleInsertBullet,

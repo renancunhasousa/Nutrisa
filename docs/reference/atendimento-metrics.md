@@ -2,9 +2,12 @@
 
 ## Envio direto na conversa do paciente
 
-A tela `PatientConversationView.jsx` permite responder ao paciente sem sair da NutrIsa. O serviço `whatsappSender.js` envia um `POST` ao webhook configurado em `VITE_N8N_WHATSAPP_SEND_URL`, usando o contrato `{ phone, message, patient_id, requested_by }`. Na ausência da variável, a aplicação usa a URL de produção da NutrIsa como fallback. O texto só é limpo após confirmação de sucesso; em caso de falha, permanece no compositor para nova tentativa. O botão externo continua disponível como fallback para abrir a mensagem no WhatsApp.
+A tela `PatientConversationView.jsx` permite responder ao paciente sem sair da NutrIsa. O serviço `whatsappSender.js` envia um `POST` ao webhook configurado em `VITE_N8N_WHATSAPP_SEND_URL` (ou no campo `whatsappWebhookUrl` do perfil da clínica), usando o contrato `{ phone, message, instance_name, patient_id, requested_by, organization_id, responder_name, responder_role, responder_type }`. Na ausência da variável, a aplicação usa a URL de produção da NutrIsa como fallback. O texto só é limpo após confirmação de sucesso; em caso de falha, permanece no compositor para nova tentativa. O botão externo continua disponível como fallback para abrir a mensagem no WhatsApp.
 
-O workflow n8n responsável é **🍏 [Nutrisa] Envio de Mensagens WhatsApp** (`46SQKSw3VnbrLEev`). Ele valida o telefone e a mensagem, envia pela instância `IsaNutri` da Evolution API e devolve uma resposta JSON estável. Chaves da Evolution API não devem ser expostas no frontend.
+O workflow n8n responsável recebe a carga com o campo `instance_name`:
+- Para a organização da **Dra. Isabela Muñoz**, `instance_name` é resolvido automaticamente como `IsaNutri`.
+- Para **outras clínicas (multi-tenant)**, `instance_name` é obtido da configuração salva no perfil da clínica (ou assume `org_<organization_id>`).
+- O nó HTTP Request do n8n dispara para o endpoint da VPS Evolution API: `POST /message/sendText/{{ $json.instance_name }}` com o header `apikey`. Chaves da Evolution API não são expostas no frontend.
 
 Cada envio direto também carrega o usuário autenticado e grava em `log_conversas` os campos `responded_by_user_id`, `responded_by_name`, `responded_by_role`, `responded_by_type` e `response_channel`. O agrupamento operacional diferencia `isabela`, `secretaria`, `administrativo`, `profissional` e `personalizado`. Para preservar as metas históricas, somente `isabela` permanece no grupo clínico; os demais cargos integram o volume operacional da equipe, enquanto o detalhamento por usuário aparece separadamente.
 
@@ -40,6 +43,8 @@ O relatório executivo em PDF avalia o desempenho da secretária em quatro bloco
   - Apresenta diretrizes de SLA e Termo de Alinhamento e Bonificação oficial para assinatura da Dra. Isabela.
 - **Cards de Atendentes:** [`WhatsAppAttendantCards.jsx`](file:///e:/Antigravity/NutrIsa/app/src/features/atendimento/components/WhatsAppAttendantCards.jsx)
   - Exibe badges em tempo real: percentual de intervenções da recepção no card da Dra. e percentual de foco em agendamentos no card da secretária.
+- **Formatação de Nome Curto na Interface:** [`clinicProfileService.js`](file:///e:/Antigravity/NutrIsa/app/src/features/configuracoes/services/clinicProfileService.js)
+  - Funções `formatDoctorShortName(fullName)` e `getOwnerShortLabel()` garantem que em toda a interface do Atendimento (cards comparativos, tabela de conversas, filtros e gráficos) o nome seja padronizado como `Dra. <Primeiro Nome>` (ex: `Dra. Isabela`), evitando que nomes longos cadastrados no perfil quebrem ou invadam outros elementos visuais.
 
 ---
 

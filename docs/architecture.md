@@ -28,7 +28,7 @@ Cada funcionalidade está em `features/`. Componentes que atendem uma única fun
 
 O frontend chama somente `shared/services/aiClient.js` → `/api/ai`. O servidor valida modelo/conteúdo e usa `server/ai/service.js` para coordenar as chamadas com fallback automático e resiliente:
 1. **1º Provedor (Titular):** Google Gemini (`gemini-3.8-flash` ou definidos em `GEMINI_MODELS`).
-2. **2º Provedor (1º Fallback):** OpenAI (`gpt-4o-mini`, suporta texto e visão).
+2. **2º Provedor (1º Fallback):** OpenAI (`gpt-6-luna`, suporta texto e visão).
 3. **3º Provedor (2º Fallback):** DeepSeek (`deepseek-flash`, suporta texto e visão).
 
 O adaptador `server/ai/providers/openAiCompatible.js` unifica os contratos de dados para que os componentes consumidores recebam sempre a mesma estrutura canônica (`candidates/parts`). Mais detalhes em [docs/reference/ai-providers-fallback.md](reference/ai-providers-fallback.md).

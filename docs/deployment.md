@@ -19,7 +19,7 @@ O login clínico com Google usa o provedor configurado no Supabase e não adicio
 
 - `GEMINI_API_KEY`: chave do provedor titular (Google Gemini).
 - `GEMINI_MODELS`: lista separada por vírgulas dos modelos permitidos, na ordem de fallback (ex: `gemini-3.6-flash,gemini-3.8-flash,gemini-3.5-flash-lite`).
-- `OPENAI_API_KEY`: chave da OpenAI para o 1º fallback (`gpt-4o-mini`).
+- `OPENAI_API_KEY`: chave da OpenAI para o 1º fallback (`gpt-6-luna`).
 - `DEEPSEEK_API_KEY`: chave da DeepSeek para o 2º fallback (`deepseek-flash`).
 - `AI_ACCESS_TOKEN`: código privado de acesso da clínica. **Obrigatório em produção.**
 

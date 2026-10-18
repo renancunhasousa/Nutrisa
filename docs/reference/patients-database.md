@@ -23,11 +23,18 @@ A rota `#pacientes` é a entrada padrão do sistema autenticado. Ela oferece som
 - consulta dos dados pessoais, contatos, etapa, origem, consentimentos e observações;
 - isolamento dos registros pela organização autenticada.
 
-Na lista e no cartão branco de detalhes, `avatar_url` substitui as iniciais no quadrado do paciente. As iniciais permanecem como fallback quando não existe foto ou o carregamento falha.
+Na lista e no cartão branco de detalhes, `avatar_url` substitui as iniciais no quadrado do paciente. As iniciais permanecem como fallback quando não existe foto ou o carregamento falha. A lista lateral conta com largura ampliada (`22.5rem`), tipografia proporcional (`13px`) com suporte a quebra de nome em até duas linhas (`line-clamp-2`), tooltip nativo com nome completo e botões de ação rápida (edição e exclusão) revelados suavemente ao passar o mouse ou focar no paciente, maximizando o espaço útil para leitura dos nomes.
 
-No cabeçalho do bloco de detalhes do paciente, estão disponíveis atalhos rápidos para as rotas clínicas vinculadas ao paciente (`dietas`, `anamnese`, `laudo`, `dashboard`, `agenda`, `tarefas`, `contratos`). Em estado padrão, os botões exibem apenas ícones compactos em pílulas elegantes; ao passar o mouse (`hover`), cada botão expande suavemente com micro-animação para exibir o rótulo do módulo correspondente. Os módulos integrados (`Dietas`, `Tarefas` e `Contratos`) aproveitam o `selectedPatient` ativo no `PatientContext` para preenchimento ágil.
+No cabeçalho do bloco de detalhes do paciente, estão disponíveis atalhos rápidos para as rotas clínicas vinculadas ao paciente (`dietas`, `anamnese`, `laudo`, `dashboard`, `agenda`, `tarefas`, `contratos`). O nome do paciente é exibido por extenso, sem truncamento artificial, garantindo legibilidade total. Os botões de atalho exibem ícones compactos em formato fixo (`size-9`), com tooltip flutuante imediato e atributo `title` nativo que descreve a ação sem alterar a largura dos botões nem empurrar o layout. Os módulos integrados (`Dietas`, `Tarefas` e `Contratos`) aproveitam o `selectedPatient` ativo no `PatientContext` para preenchimento ágil.
 
-No grid de dados cadastrais, o card de **Observações** fica posicionado ao lado de **Comunicações**, ocupando a largura combinada dos dois blocos superiores (`sm:col-span-1 xl:col-span-2`), mantendo harmonia visual e leitura integrada.
+Logo abaixo do cabeçalho, localiza-se a faixa compacta de consultas, apresentando a **Última consulta** (com ícone `CalendarClock`) e a **Próxima consulta** (com ícone `CalendarCheck` e destaque em verde quando agendada).
+
+Os dados cadastrais são organizados em uma ficha compacta de alta densidade informativa, otimizando o espaço vertical da tela:
+- **Sexo**: exibido via badge temático com símbolo característico e cor diferenciada (feminino em rosa `♀`, masculino em azul `♂` e neutro para outros);
+- **Nascimento e idade calculada**: data com anos calculados automaticamente;
+- **Contatos diretos**: WhatsApp unificado com link direto (`wa.me`) e e-mail (`mailto:`);
+- **Documento e origem**: CPF e canal de captação;
+- **Consentimentos e observações**: dispostos de forma integrada e discreta.
 
 Abaixo do grid cadastral, delimitado por um traço horizontal separador (`border-t`), localiza-se o card de **Resumo com IA** no mesmo padrão visual dos demais cards cadastrais (borda suave, fundo claro e ícone de estrela sem fundo). O card exibe um preview textual de no máximo duas linhas e conta com ação **"Ver completo"**, que abre um popup modal elegante com a íntegra da síntese clínica estruturada, botões para cópia rápida e opção de regerar o resumo.
 
@@ -50,19 +57,26 @@ O novo cadastro é apenas um rascunho preenchido no formulário existente. O sis
 
 Antes de inserir, o serviço consulta novamente o telefone no Supabase. Se outra sessão tiver criado o paciente, o registro existente é selecionado em vez de duplicado. Telefone continua sem restrição global de unicidade porque familiares podem compartilhar um número. Quando mais de um cadastro corresponde, o sistema não escolhe nem cria automaticamente: direciona para revisão manual em Pacientes.
 
-### Lista de contatos pendentes
+### Módulos colapsáveis de captação e reconciliação
 
-A rota `#pacientes` também consulta o histórico de `log_conversas` em segundo plano e mostra **Contatos do WhatsApp não cadastrados** no final da página, depois da lista e dos dados do paciente. As regras são:
+No rodapé da rota `#pacientes`, após a lista e o prontuário, existem dois blocos colapsáveis dedicados à reconciliação de dados externos e captação de leads. Ambos iniciam recolhidos por padrão para manter a tela limpa e exibem uma setinha (`ChevronDown`) na lateral direita para expandir, compartilhando o mesmo padrão de altura (`max-h-80`) com barra de rolagem interna (`overflow-y-auto pr-2 [scrollbar-width:thin]`):
 
-- mensagens são agrupadas pelo telefone normalizado, deixando uma linha por contato;
-- a lista é ordenada pela mensagem mais recente e informa a quantidade de mensagens;
-- quando `foto_perfil` está disponível, a foto do WhatsApp ocupa o avatar quadrado; se a imagem estiver ausente ou falhar, aparecem as iniciais;
-- conversas sem telefone, já vinculadas por `patient_id` ou cujo telefone existe em `patients` não aparecem;
-- nome e e-mail podem ser aproveitados de mensagens diferentes do mesmo contato;
-- **Cadastrar** abre o formulário existente e uma nova consulta por telefone é executada antes da inserção;
-- depois de salvar, o contato desaparece automaticamente porque passou a corresponder à base de pacientes.
+#### 1. Vincular Consultas da Agenda aos Pacientes
+Conecta os eventos de consulta do Google Calendar à base de pacientes:
+- Agrupa eventos pelo nome normalizado e cruza dados por e-mail (prioridade 1), telefone (prioridade 2) ou similaridade de nomes (prioridade 3).
+- Oferece ações de confirmação de sugestões em 1 clique ("Confirmar todas"), seleção de paciente candidato, e opção de marcar como "Não é paciente".
+- **Cadastro ágil de novo lead:** Se o evento da agenda pertencer a um paciente ainda não cadastrado, o botão **`+ Cadastrar paciente`** abre o formulário de cadastro pré-preenchido com o nome e contatos encontrados na agenda; ao salvar, o evento é vinculado automaticamente ao novo paciente no Supabase (`calendar_event_links`).
 
-Falha ao consultar conversas não bloqueia a consulta ou edição dos pacientes já cadastrados. A seção exibe erro e permite tentar novamente.
+#### 2. Vincular Contatos do WhatsApp aos Pacientes
+Consulta o histórico de `log_conversas` em segundo plano para identificar números que conversaram pelo WhatsApp e ainda não possuem cadastro:
+- Mensagens são agrupadas pelo telefone normalizado, deixando uma linha por contato ordenada pela interação mais recente;
+- Quando `foto_perfil` está disponível, a foto do WhatsApp ocupa o avatar quadrado; se a imagem estiver ausente ou falhar, aparecem as iniciais;
+- Conversas sem telefone, já vinculadas por `patient_id` ou cujo telefone existe em `patients` não aparecem;
+- Nome e e-mail podem ser aproveitados de mensagens diferentes do mesmo contato;
+- **Cadastrar** abre o formulário existente pré-preenchido com dados da conversa e efetua verificação prévia de telefone antes de inserir;
+- Depois de salvar, o contato desaparece automaticamente porque passou a corresponder à base de pacientes.
+
+Falhas de conexão ou rede em qualquer um dos blocos não bloqueiam a consulta ou edição dos pacientes já cadastrados.
 
 ## Integração ativa do prontuário
 
@@ -137,6 +151,15 @@ As cinco tabelas usam RLS. `anon` não recebe privilégio sobre nenhuma delas. U
 
 As funções auxiliares de autorização ficam no schema não exposto `private`, usam `SECURITY DEFINER`, `search_path` vazio e privilégios explícitos. A RPC pública `bootstrap_organization()` usa `SECURITY INVOKER`, só pode ser executada por `authenticated` e delega a operação privilegiada a uma função privada que valida `auth.uid()`.
 
+## Sincronização e Varredura Cruzada da Base
+
+Na tela **Pacientes** (`PacientesPage.jsx`), ao lado do botão *Novo paciente*, o botão **Sincronizar base** executa a varredura completa (`runPatientDataSweep` / RPC `sweep_sync_patient_data`):
+1. **Fotos de Perfil do WhatsApp:** Atualiza o campo `avatar_url` dos pacientes a partir das fotos de perfil mais recentes em `log_conversas.foto_perfil`.
+2. **Conversas Órfãs:** Vincula conversas antigas de WhatsApp ao paciente correspondente pelo número de telefone.
+3. **Consultas da Agenda:** Se houver conexão com o Google Calendar ativa, busca consultas passadas e futuras e persiste `last_consultation_at` e `next_appointment_at` diretamente na tabela `patients`.
+
+Além da varredura manual, a trigger `log_conversas_sync_patient_avatar` sincroniza o avatar automaticamente em segundo plano a cada nova mensagem recebida.
+
 O frontend usa Supabase Auth com Google OAuth, senha ou link por e-mail. O login Google chama `signInWithOAuth`, retorna à origem atual da aplicação e reaproveita a sessão persistida pelo cliente Supabase. A chave pública identifica o projeto, mas as consultas clínicas carregam o token da sessão e dependem de RLS. Nesta fase a aplicação é intencionalmente de uma única clínica: o primeiro acesso autenticado reivindica `NutrIsa`; contas posteriores precisam receber vínculo explícito em `organization_members`.
 
 O provedor Google precisa permanecer habilitado em **Authentication → Providers** no projeto Supabase, e as URLs locais e de produção devem constar em **Authentication → URL Configuration**. O Client ID usado diretamente pela Agenda (`VITE_GOOGLE_CLIENT_ID`) é uma configuração separada: ele autoriza chamadas ao Google Calendar e não é necessário para iniciar o login clínico via Supabase.
@@ -174,7 +197,22 @@ Isso reivindica a organização padrão e registra a conta como `owner`. Chamada
 3. um usuário autenticado sem vínculo não deve enxergar pacientes;
 4. CPF duplicado na mesma organização deve falhar, mas o mesmo CPF em outra organização é permitido;
 5. alteração cadastral deve criar uma linha em `patient_audit_log` sem copiar o conteúdo integral do paciente.
-6. o Atendimento deve oferecer cadastro assistido e os demais módulos devem continuar funcionando sem receber automaticamente os dados do paciente selecionado;
-7. um link público de contrato deve ler/assinar somente via RPC, sem `SELECT` ou `UPDATE` anônimo na tabela;
-8. a tela de pacientes não deve consultar nem alterar registros dos demais módulos.
 9. uma conversa com telefone já cadastrado deve abrir o paciente existente em vez de criar duplicidade.
+
+---
+
+## Formulário de Cadastro e Edição (`PatientFormDialog`)
+
+O modal de inclusão e edição de pacientes adota o mesmo padrão visual de alta fidelidade do catálogo de produtos (`ProductFormDialog`):
+- **Cabeçalho:** Identificação com ícone esmeralda de usuário, título dinâmico (*"Novo paciente"* ou *"Editar paciente"*) e subtítulo informativo.
+- **Seções em Cards (`SECTION_CLASS`):**
+  1. **Identificação & Dados Pessoais:** Nome completo, nome preferido/social, data de nascimento, sexo biológico e CPF.
+  2. **Contatos & Comunicação:** WhatsApp principal (com destaque visual recomendado), telefone secundário/fixo e e-mail.
+  3. **Acompanhamento & Origem:** Etapa do ciclo clínico (Lead, Agendado, Em acompanhamento, Atenção, Inativo, Encerrado) e canal de captação (Instagram, Indicação, Google, Médico Parceiro, WhatsApp, etc.).
+  4. **Observações Clínicas:** Histórico médico preliminar e particularidades de atendimento.
+  5. **Consentimentos & LGPD:** Termos independentes para tratamento de dados de saúde e comunicações via WhatsApp/e-mail.
+- **Listas Suspensas Personalizadas (`DropdownSelect` & `DateDropdownSelect`):** 
+  - Substituição de tags `<select>` nativas por menus estilizados com ícones, chevrons animados, detecção de clique externo/ESC, e suporte a canais personalizados de origem (`allowCustom`).
+  - **Seletor de Data de Nascimento:** Menu suspenso estilizado (`DateDropdownSelect`) com ícone de calendário, formatação pt-BR, cálculo automático de idade (`(X anos)`), atalho para limpar e calendário visual nativo integrado.
+  - **Stacking Context & Z-Index:** Gerenciamento dinâmico de `z-index` nas seções e nos contêineres (`relative z-40`), impedindo sobreposição ou corte pelas seções inferiores do formulário.
+

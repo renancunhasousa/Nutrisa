@@ -1,5 +1,5 @@
 // Coordenação: valida a entrada, tenta o modelo preferido e executa fallback
-// inteligente entre provedores: 1º Gemini ➔ 2º OpenAI (GPT-4o-mini) ➔ 3º DeepSeek (Flash).
+// inteligente entre provedores: 1º Gemini ➔ 2º OpenAI (GPT-6 Luna) ➔ 3º DeepSeek (Flash).
 import { getModels, getAllowedModels, getProviderForModel } from './models.js';
 import { validateAiRequest } from './validation.js';
 import { callGeminiApi } from './providers/gemini.js';
@@ -12,7 +12,7 @@ const RETRYABLE_STATUS_CODES = [404, 429, 500, 502, 503, 504];
 
 /**
  * Monta a cadeia de candidatos para execução com fallback.
- * Ordem padrão: Gemini titular + alternativas ➔ OpenAI (gpt-4o-mini) ➔ DeepSeek (deepseek-flash).
+ * Ordem padrão: Gemini titular + alternativas ➔ OpenAI (gpt-6-luna) ➔ DeepSeek (deepseek-flash).
  *
  * @param {string} requestedModel
  * @param {object} env
@@ -25,20 +25,20 @@ function buildExecutionChain(requestedModel, env = process.env) {
   const chain = [];
 
   if (primaryProvider === 'openai') {
-    chain.push({ provider: 'openai', model: requestedModel || 'gpt-4o-mini' });
+    chain.push({ provider: 'openai', model: requestedModel || 'gpt-6-luna' });
     if (env.DEEPSEEK_API_KEY) chain.push({ provider: 'deepseek', model: 'deepseek-flash' });
     geminiModels.forEach(m => chain.push({ provider: 'gemini', model: m }));
   } else if (primaryProvider === 'deepseek') {
     chain.push({ provider: 'deepseek', model: requestedModel || 'deepseek-flash' });
-    if (env.OPENAI_API_KEY) chain.push({ provider: 'openai', model: 'gpt-4o-mini' });
+    if (env.OPENAI_API_KEY) chain.push({ provider: 'openai', model: 'gpt-6-luna' });
     geminiModels.forEach(m => chain.push({ provider: 'gemini', model: m }));
   } else {
-    // Padrão: 1º Gemini ➔ 2º OpenAI (GPT-4o-mini) ➔ 3º DeepSeek (deepseek-flash)
+    // Padrão: 1º Gemini ➔ 2º OpenAI (GPT-6 Luna) ➔ 3º DeepSeek (deepseek-flash)
     const geminiChain = [requestedModel, ...geminiModels.filter(m => m !== requestedModel)];
     geminiChain.forEach(m => chain.push({ provider: 'gemini', model: m }));
 
     if (env.OPENAI_API_KEY) {
-      chain.push({ provider: 'openai', model: 'gpt-4o-mini' });
+      chain.push({ provider: 'openai', model: 'gpt-6-luna' });
     }
     if (env.DEEPSEEK_API_KEY) {
       chain.push({ provider: 'deepseek', model: 'deepseek-flash' });
@@ -66,7 +66,7 @@ async function executeCandidate(candidate, payload, { env, fetchImpl }) {
 
 /**
  * Gera conteúdo com IA, tentando o modelo solicitado primeiro e fazendo fallback
- * ordenado entre Gemini, OpenAI (GPT-4o-mini) e DeepSeek (Flash) em caso de erro ou cota.
+ * ordenado entre Gemini, OpenAI (GPT-6 Luna) e DeepSeek (Flash) em caso de erro ou cota.
  *
  * @param {{ model: string, payload: object }} request
  * @param {{ env?: object, fetchImpl?: typeof fetch }} options

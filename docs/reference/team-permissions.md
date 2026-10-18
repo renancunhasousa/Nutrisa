@@ -64,6 +64,19 @@ A plataforma permite que a **Dra. Isabela (Proprietária / Owner)** adicione col
 - **Definições e Regras de Permissão**: [`app/src/features/auth/permissions.js`](file:///e:/Antigravity/NutrIsa/app/src/features/auth/permissions.js)
 - **Serviço de Persistência e Códigos**: [`app/src/features/auth/services/teamService.js`](file:///e:/Antigravity/NutrIsa/app/src/features/auth/services/teamService.js)
 - **Modal de Gestão de Membros e Barra de Permissões**: [`app/src/features/auth/components/TeamPermissionsModal.jsx`](file:///e:/Antigravity/NutrIsa/app/src/features/auth/components/TeamPermissionsModal.jsx)
+- **Modal de Perfil do Usuário Logado (Foto & Nome)**: [`app/src/features/auth/components/UserProfileModal.jsx`](file:///e:/Antigravity/NutrIsa/app/src/features/auth/components/UserProfileModal.jsx)
 - **Contexto de Autenticação**: [`app/src/features/auth/AuthContext.jsx`](file:///e:/Antigravity/NutrIsa/app/src/features/auth/AuthContext.jsx)
 - **Tela de Login com Campo de Código da Clínica**: [`app/src/features/auth/LoginPage.jsx`](file:///e:/Antigravity/NutrIsa/app/src/features/auth/LoginPage.jsx)
-- **Testes Unitários**: [`tests/unit/teamPermissions.test.js`](file:///e:/Antigravity/NutrIsa/tests/unit/teamPermissions.test.js)
+- **Testes Unitários**: [`tests/unit/teamPermissions.test.js`](file:///e:/Antigravity/NutrIsa/tests/unit/teamPermissions.test.js) e [`tests/unit/userProfile.test.js`](file:///e:/Antigravity/NutrIsa/tests/unit/userProfile.test.js)
+
+---
+
+## 5. Perfil Individual e Foto de Exibição
+
+No topo do sistema (`Navbar.jsx`), cada membro logado visualiza seu próprio nome e seu cargo/papel correspondente (ex: Proprietário(a), Nutricionista, Recepção, Assistente).
+
+Ao clicar no botão de perfil, abre-se o **`UserProfileModal`**, permitindo:
+1. Enviar ou alterar a **foto de perfil** (armazenada no bucket público `avatars` do Supabase Storage).
+2. Atualizar o **nome completo de exibição** (refletido na tabela `organization_members` e metadados de autenticação).
+3. Visualizar o nível de acesso e papéis concedidos na organização.
+

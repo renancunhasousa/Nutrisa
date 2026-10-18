@@ -1,7 +1,13 @@
 import React from 'react';
 import logoPdf from '../../../assets/logo.png';
 import assinaturaDra from '../../../assets/assinatura.png';
-import { DEFAULT_NUTRITIONIST } from '../../configuracoes/defaultProfile';
+import {
+  DRA_ISABELA_PROFILE,
+  EMPTY_CLINIC_PROFILE,
+  isDraIsabelaProfile,
+  isDraIsabelaOrganization
+} from '../../configuracoes/defaultProfile';
+import { replaceContractVariables } from '../domain/contractVariables';
 
 const chunkText = (text, limit) => {
   if (!text) return [];
@@ -24,8 +30,27 @@ const chunkText = (text, limit) => {
   return chunks;
 };
 
-export function ContratoPrintLayout({ paciente, plano, valor, formaPagamento, consultas, assinaturaBase64, pages, content, preview = false }) {
+export function ContratoPrintLayout({ paciente, plano, valor, formaPagamento, consultas, assinaturaBase64, pages, content, preview = false, nutritionist, organizationId }) {
   const dataAtual = new Date().toLocaleDateString('pt-BR');
+
+  const currentNutritionist = nutritionist || (() => {
+    try {
+      const saved = localStorage.getItem('nutrisa_nutritionist_profile');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  })();
+
+  const isDra = isDraIsabelaProfile(currentNutritionist) || isDraIsabelaOrganization(currentNutritionist?.organization_id);
+  const fallback = isDra ? DRA_ISABELA_PROFILE : EMPTY_CLINIC_PROFILE;
+
+  const resolvedName = currentNutritionist?.name || (isDra ? fallback.name : 'Nutricionista Responsável');
+  const resolvedTitle = currentNutritionist?.title || (isDra ? fallback.title : 'Nutricionista');
+  const resolvedCrn = currentNutritionist?.crn || (isDra ? fallback.crn : '');
+  const resolvedClinic = currentNutritionist?.clinic || fallback.clinic || 'Consultório de Nutrição';
+  const resolvedAddress = currentNutritionist?.address || (isDra ? fallback.address : '');
+  const resolvedPhone = currentNutritionist?.phone || (isDra ? fallback.phone : '');
+  const resolvedEmail = currentNutritionist?.email || (isDra ? fallback.email : '');
 
   // Normaliza: se receber `pages` (array de HTML), usa diretamente.
   // Se receber `content` (string legada), divide via chunkText para retrocompatibilidade.
@@ -59,16 +84,16 @@ export function ContratoPrintLayout({ paciente, plano, valor, formaPagamento, co
       <div className="border-b-2 border-emerald-800 pb-5 print:pb-3 mb-6">
         <div className="flex flex-col md:flex-row justify-between items-start print:flex-row">
           <div className="flex items-center space-x-3.5">
-            <img src={logoPdf} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+            <img src={currentNutritionist?.logoUrl || logoPdf} alt={resolvedClinic || 'Logo'} className="w-12 h-12 object-contain flex-shrink-0" />
             <div>
               <h1 className="text-2xl print:text-lg font-black tracking-tight text-emerald-950 uppercase whitespace-nowrap truncate">
-                Dra. Isabela Muñoz Mendonça
+                {resolvedName}
               </h1>
               <p className="text-xs print:text-[10px] font-semibold text-emerald-700 uppercase tracking-wider whitespace-nowrap truncate">
-                Nutricionista Clínica e Esportiva
+                {resolvedTitle}
               </p>
               <p className="text-[11px] print:text-[9px] text-slate-500 mt-0.5 whitespace-nowrap truncate">
-                CRN-3 / 65.237 • Clínica Integrada de Saúde & Performance
+                {resolvedCrn ? `${resolvedCrn} • ` : ''}{resolvedClinic}
               </p>
             </div>
           </div>
@@ -108,7 +133,10 @@ export function ContratoPrintLayout({ paciente, plano, valor, formaPagamento, co
 
 
       {/* CLÁUSULAS (Conteúdo Gerado/Editado) */}
-      <div className="space-y-4 text-justify text-[13px] text-slate-800 leading-relaxed mb-6" dangerouslySetInnerHTML={{ __html: chunk }} />
+      <div 
+        className="space-y-4 text-justify text-[13px] text-slate-800 leading-relaxed mb-6 [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-600 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-extrabold [&_h3]:text-slate-900 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_li]:mb-1 [&_strong]:font-bold [&_b]:font-bold [&_em]:italic [&_i]:italic [&_u]:underline" 
+        dangerouslySetInnerHTML={{ __html: replaceContractVariables(chunk, { paciente, plano, valor, formaPagamento, consultas, dataAtual, nutritionist: currentNutritionist, organizationId: currentNutritionist?.organization_id || organizationId }) }} 
+      />
 
       {/* APENAS NA ÚLTIMA PÁGINA: CONSULTAS E ASSINATURAS */}
       {isLastPage && (
@@ -145,11 +173,17 @@ export function ContratoPrintLayout({ paciente, plano, valor, formaPagamento, co
 
           <div className="w-1/2 text-center">
             <div className="h-16 mb-2 flex items-center justify-center">
-              <img src={assinaturaDra} alt="Assinatura Dra. Isabela" className="h-20 w-auto object-contain drop-shadow-xs scale-110" />
+              {currentNutritionist?.signatureUrl ? (
+                <img src={currentNutritionist.signatureUrl} alt="Assinatura da Nutricionista" className="h-20 w-auto object-contain drop-shadow-xs scale-110" />
+              ) : isDra ? (
+                <img src={assinaturaDra} alt="Assinatura" className="h-20 w-auto object-contain drop-shadow-xs scale-110" />
+              ) : (
+                <div className="h-14 border-b border-black mb-2 mx-auto w-3/4"></div>
+              )}
             </div>
             <p className="border-t border-slate-300 pt-2 uppercase text-[9px] mx-auto w-3/4 text-slate-500">
               Assinatura da Nutricionista<br />
-              <strong className="text-slate-800 text-[10px] mt-0.5 block">{DEFAULT_NUTRITIONIST.name}</strong>
+              <strong className="text-slate-800 text-[10px] mt-0.5 block">{resolvedName}</strong>
             </p>
           </div>
         </div>
@@ -161,10 +195,12 @@ export function ContratoPrintLayout({ paciente, plano, valor, formaPagamento, co
       <div className="pt-8 print:pt-4 border-t border-slate-300 mt-auto a4-print-footer">
         <div className="flex flex-col md:flex-row print:flex-row justify-between items-end text-center md:text-left print:text-left gap-4">
           <div className="text-xs text-slate-500 space-y-0.5">
-            <p className="font-bold text-slate-800">{DEFAULT_NUTRITIONIST.name}</p>
-            <p>{DEFAULT_NUTRITIONIST.title} • {DEFAULT_NUTRITIONIST.crn}</p>
-            <p>{DEFAULT_NUTRITIONIST.address}</p>
-            <p>{DEFAULT_NUTRITIONIST.phone} • {DEFAULT_NUTRITIONIST.email}</p>
+            <p className="font-bold text-slate-800">{resolvedName}</p>
+            <p>{resolvedTitle}{resolvedCrn ? ` • ${resolvedCrn}` : ''}</p>
+            {resolvedAddress && <p>{resolvedAddress}</p>}
+            {(resolvedPhone || resolvedEmail) && (
+              <p>{[resolvedPhone, resolvedEmail].filter(Boolean).join(' • ')}</p>
+            )}
           </div>
           <div className="flex flex-col items-center md:items-end print:items-end space-y-1">
             <div className="text-right">

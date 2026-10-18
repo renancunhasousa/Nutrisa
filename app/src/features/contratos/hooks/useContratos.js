@@ -1,12 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { KEY_CONTRACTS_PLAN_HISTORY, KEY_CONTRACT_TEMPLATES } from '../../../config/storageKeys';
+import { KEY_CONTRACTS_PLAN_HISTORY, KEY_CONTRACT_TEMPLATES, KEY_LAST_CONTRACT_TEMPLATE_ID } from '../../../config/storageKeys';
 import { createRemoteContract, getRemoteContract } from '../services/contracts';
 import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
 import { useAuth } from '../../auth/useAuth.js';
 import { consumePatientHandoff } from '../../pacientes/services/patientHandoff.js';
 import { usePatient } from '../../pacientes/usePatient.js';
 import { consumeClinicalRecordHandoff } from '../../pacientes/services/clinicalRecords.js';
-import { importLocalDocumentTemplates, listDocumentTemplates, saveDocumentTemplate } from '../../../shared/services/documentTemplates.js';
+import { deleteDocumentTemplate, importLocalDocumentTemplates, listDocumentTemplates, saveDocumentTemplate } from '../../../shared/services/documentTemplates.js';
+import { getContractVariableBadgeHTML, replaceContractVariables, formatContractTemplateToHTML, extractContractVariables } from '../domain/contractVariables';
+import {
+  listContractPlans,
+  saveContractPlan,
+  deleteContractPlan,
+  DEFAULT_CONTRACT_PLANS,
+} from '../services/contractPlansService';
 
 const createPage = (label) => ({
   id: Date.now().toString() + Math.random().toString(36).slice(2),
@@ -14,7 +21,7 @@ const createPage = (label) => ({
   content: '',
 });
 
-export function useContratos(activeModel) {
+export function useContratos(activeModel, nutritionist = null) {
   const { organizationId } = useAuth();
   const [patientHandoff] = useState(() => consumePatientHandoff('contratos'));
   const [openedRecord] = useState(() => consumeClinicalRecordHandoff('contrato'));
@@ -36,6 +43,21 @@ export function useContratos(activeModel) {
     }));
   }, [activePatient]);
 
+  const [contractPlans, setContractPlans] = useState(() => {
+    return DEFAULT_CONTRACT_PLANS.map((p) => ({
+      id: p.name.toLowerCase().replace(/\s+/g, '-'),
+      label: p.name,
+      icon: p.icon || '📋',
+      name: p.name,
+      defaultPrice: p.default_price || '',
+      defaultPaymentMethod: p.default_payment_method || 'Pix',
+      description: p.description || '',
+      consultasCount: p.consultas_count || 1,
+    }));
+  });
+  const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(false);
+
   const [selectedPlan, setSelectedPlan] = useState(() => openedRecord?.plan || 'essence');
   const [valor, setValor] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('Pix');
@@ -46,12 +68,30 @@ export function useContratos(activeModel) {
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [templateNameInput, setTemplateNameInput] = useState('');
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
 
   // Array de páginas: [{ id, label, content }]
   const [pages, setPages] = useState([createPage('Página 1')]);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const editorRef = useRef(null);
   const [editorCharCount, setEditorCharCount] = useState(0);
+  const [detectedVars, setDetectedVars] = useState([]);
+
+  // Sincroniza conteúdo no editor quando a página ativa mudar ou o componente montar
+  useEffect(() => {
+    if (editorRef.current && pages[activePageIndex]) {
+      const activeContent = pages[activePageIndex].content || '';
+      const formatted = formatContractTemplateToHTML(activeContent);
+      if (editorRef.current.innerHTML !== formatted) {
+        editorRef.current.innerHTML = formatted;
+        setEditorCharCount(editorRef.current.innerText.length);
+      }
+    }
+    const currentHTML = editorRef.current?.innerHTML || '';
+    const allText = pages.map((p, i) => i === activePageIndex ? currentHTML : (p.content || '')).join(' ');
+    setDetectedVars(extractContractVariables(allText));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePageIndex]);
 
   // Passo 3: Geração Final
   const [assinaturaBase64, setAssinaturaBase64] = useState(null);
@@ -93,9 +133,73 @@ export function useContratos(activeModel) {
     setValor(nums);
   };
 
-  // Carregar histórico de preços (Passo 1)
+  // Carregar planos da clínica via Supabase
+  useEffect(() => {
+    if (!organizationId) return undefined;
+    let cancelled = false;
+
+    const loadPlans = async () => {
+      setIsLoadingPlans(true);
+      try {
+        const plans = await listContractPlans(organizationId);
+        if (!cancelled && plans && plans.length > 0) {
+          setContractPlans(plans.map((p) => ({
+            ...p,
+            label: p.name,
+          })));
+        }
+      } catch (err) {
+        console.error('Erro ao carregar planos de contrato:', err);
+      } finally {
+        if (!cancelled) setIsLoadingPlans(false);
+      }
+    };
+
+    loadPlans();
+    return () => { cancelled = true; };
+  }, [organizationId]);
+
+  // Atualizar valor e forma de pagamento com base no plano selecionado
   useEffect(() => {
     try {
+      const matchedPlan = contractPlans.find(
+        (p) => p.id === selectedPlan || p.name?.toLowerCase() === selectedPlan?.toLowerCase()
+      );
+
+      if (matchedPlan) {
+        const methods = Array.isArray(matchedPlan.paymentMethods) && matchedPlan.paymentMethods.length > 0
+          ? matchedPlan.paymentMethods
+          : null;
+
+        if (methods && methods.length > 0) {
+          const firstMethod = methods[0];
+          setFormaPagamento(firstMethod.name || 'Pix à vista');
+          const pr = Number(firstMethod.price);
+          if (!isNaN(pr) && pr > 0) {
+            setValor(pr.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+          } else if (matchedPlan.defaultPrice) {
+            setValor(
+              typeof matchedPlan.defaultPrice === 'number'
+                ? matchedPlan.defaultPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : String(matchedPlan.defaultPrice)
+            );
+          }
+          return;
+        }
+
+        if (matchedPlan.defaultPrice) {
+          setValor(
+            typeof matchedPlan.defaultPrice === 'number'
+              ? matchedPlan.defaultPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              : String(matchedPlan.defaultPrice)
+          );
+          if (matchedPlan.defaultPaymentMethod) {
+            setFormaPagamento(matchedPlan.defaultPaymentMethod);
+          }
+          return;
+        }
+      }
+
       const historyStr = localStorage.getItem(KEY_CONTRACTS_PLAN_HISTORY);
       if (historyStr) {
         const history = JSON.parse(historyStr);
@@ -109,7 +213,79 @@ export function useContratos(activeModel) {
     } catch (e) {
       console.error(e);
     }
-  }, [selectedPlan]);
+  }, [selectedPlan, contractPlans]);
+
+  const handleSavePlan = async (planData) => {
+    if (!organizationId) {
+      throw new Error('Organização não identificada');
+    }
+    const saved = await saveContractPlan(organizationId, planData);
+    setContractPlans((prev) => {
+      const exists = prev.some((p) => p.id === saved.id);
+      const formatted = { ...saved, label: saved.name };
+      if (exists) {
+        return prev.map((p) => (p.id === saved.id ? formatted : p));
+      }
+      return [...prev, formatted];
+    });
+
+    if (selectedPlan === saved.id || selectedPlan === planData.id) {
+      setSelectedPlan(saved.id);
+      const firstMethod = Array.isArray(saved.paymentMethods) && saved.paymentMethods.length > 0 ? saved.paymentMethods[0] : null;
+      const targetPrice = firstMethod?.price != null ? Number(firstMethod.price) : Number(saved.defaultPrice || 0);
+      const targetMethod = firstMethod?.name || saved.defaultPaymentMethod || 'Pix à vista';
+      if (targetPrice > 0) {
+        setValor(targetPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      } else if (saved.defaultPrice) {
+        setValor(
+          typeof saved.defaultPrice === 'number'
+            ? saved.defaultPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : String(saved.defaultPrice)
+        );
+      }
+      if (targetMethod) {
+        setFormaPagamento(targetMethod);
+      }
+    }
+    return saved;
+  };
+
+  const handleDeletePlan = async (planId) => {
+    await deleteContractPlan(planId);
+    setContractPlans((prev) => {
+      const next = prev.filter((p) => p.id !== planId);
+      if (selectedPlan === planId && next.length > 0) {
+        setSelectedPlan(next[0].id);
+      }
+      return next;
+    });
+  };
+
+  const applyTemplatePages = useCallback((templateItem) => {
+    if (!templateItem) return;
+    setTemplateNameInput(templateItem.name || '');
+    if (templateItem.pages && Array.isArray(templateItem.pages)) {
+      const formattedPages = templateItem.pages.map(p => ({
+        ...p,
+        content: formatContractTemplateToHTML(p.content || ''),
+      }));
+      setPages(formattedPages);
+      setActivePageIndex(0);
+      if (editorRef.current) editorRef.current.innerHTML = formattedPages[0]?.content || '';
+      setEditorCharCount(editorRef.current?.innerText.length || 0);
+      const allText = formattedPages.map(p => p.content || '').join(' ');
+      setDetectedVars(extractContractVariables(allText));
+    } else if (templateItem.content) {
+      // Migração de template antigo (content string → pages array)
+      const formattedContent = formatContractTemplateToHTML(templateItem.content);
+      const migrated = [{ ...createPage('Página 1'), content: formattedContent }];
+      setPages(migrated);
+      setActivePageIndex(0);
+      if (editorRef.current) editorRef.current.innerHTML = formattedContent;
+      setEditorCharCount(editorRef.current?.innerText.length || 0);
+      setDetectedVars(extractContractVariables(formattedContent));
+    }
+  }, []);
 
   // Carregar templates (Passo 2)
   useEffect(() => {
@@ -125,7 +301,18 @@ export function useContratos(activeModel) {
           localStorage.removeItem(KEY_CONTRACT_TEMPLATES);
         }
         const remoteTemplates = await listDocumentTemplates(organizationId, 'contrato');
-        if (!cancelled) setSavedTemplates(remoteTemplates);
+        if (!cancelled) {
+          setSavedTemplates(remoteTemplates);
+          // Restaura o último modelo de contrato selecionado
+          const lastTemplateId = localStorage.getItem(KEY_LAST_CONTRACT_TEMPLATE_ID);
+          if (lastTemplateId) {
+            const found = remoteTemplates.find(x => x.id === lastTemplateId);
+            if (found) {
+              setSelectedTemplateId(found.id);
+              applyTemplatePages(found);
+            }
+          }
+        }
       } catch (error) {
         console.error('Erro ao carregar modelos de contrato:', error);
         if (!cancelled) alert('Erro ao carregar modelos de contrato: ' + error.message);
@@ -135,7 +322,7 @@ export function useContratos(activeModel) {
     };
     loadTemplates();
     return () => { cancelled = true; };
-  }, [organizationId]);
+  }, [organizationId, applyTemplatePages]);
 
   const handleSalvarPreco = () => {
     try {
@@ -225,9 +412,15 @@ export function useContratos(activeModel) {
   const syncEditorToTemplate = () => {
     if (!editorRef.current) return;
     setEditorCharCount(editorRef.current.innerText.length);
-    setPages(prev => prev.map((p, i) =>
-      i === activePageIndexRef.current ? { ...p, content: editorRef.current.innerHTML } : p
-    ));
+    const updatedHtml = editorRef.current.innerHTML;
+    setPages(prev => {
+      const nextPages = prev.map((p, i) =>
+        i === activePageIndexRef.current ? { ...p, content: updatedHtml } : p
+      );
+      const allText = nextPages.map(p => p.content || '').join(' ');
+      setDetectedVars(extractContractVariables(allText));
+      return nextPages;
+    });
   };
 
   // Templates
@@ -246,6 +439,7 @@ export function useContratos(activeModel) {
       });
       setSavedTemplates(prev => [saved, ...prev]);
       setSelectedTemplateId(saved.id);
+      localStorage.setItem(KEY_LAST_CONTRACT_TEMPLATE_ID, saved.id);
       alert('Modelo de contrato salvo na nuvem!');
     } catch (error) {
       alert('Erro ao salvar modelo de contrato: ' + error.message);
@@ -255,44 +449,50 @@ export function useContratos(activeModel) {
   const loadTemplate = (id) => {
     setSelectedTemplateId(id);
     if (!id) {
+      localStorage.removeItem(KEY_LAST_CONTRACT_TEMPLATE_ID);
       const blank = [createPage('Página 1')];
       setPages(blank);
       setActivePageIndex(0);
       if (editorRef.current) editorRef.current.innerHTML = '';
       setEditorCharCount(0);
+      setDetectedVars([]);
       setTemplateNameInput('');
       return;
     }
+    localStorage.setItem(KEY_LAST_CONTRACT_TEMPLATE_ID, id);
     const t = savedTemplates.find(x => x.id === id);
     if (t) {
-      setTemplateNameInput(t.name);
-      if (t.pages && Array.isArray(t.pages)) {
-        setPages(t.pages);
-        setActivePageIndex(0);
-        if (editorRef.current) editorRef.current.innerHTML = t.pages[0]?.content || '';
-        setEditorCharCount(editorRef.current?.innerText.length || 0);
-      } else if (t.content) {
-        // Migração de template antigo (content string → pages array)
-        const migrated = [{ ...createPage('Página 1'), content: t.content }];
-        setPages(migrated);
-        setActivePageIndex(0);
-        if (editorRef.current) editorRef.current.innerHTML = t.content;
-        setEditorCharCount(editorRef.current?.innerText.length || 0);
-      }
+      applyTemplatePages(t);
+    }
+  };
+
+  const deleteTemplate = async () => {
+    if (!selectedTemplateId) return;
+    const selected = savedTemplates.find(item => item.id === selectedTemplateId);
+    if (!window.confirm(`Excluir o modelo "${selected?.name || 'selecionado'}"? Esta ação não pode ser desfeita.`)) return;
+    setIsDeletingTemplate(true);
+    try {
+      await deleteDocumentTemplate({ id: selectedTemplateId, organizationId, templateType: 'contrato' });
+      setSavedTemplates(prev => prev.filter(item => item.id !== selectedTemplateId));
+      loadTemplate('');
+      localStorage.removeItem(KEY_LAST_CONTRACT_TEMPLATE_ID);
+      alert('Modelo de contrato excluído da nuvem.');
+    } catch (error) {
+      alert('Erro ao excluir modelo de contrato: ' + error.message);
+    } finally {
+      setIsDeletingTemplate(false);
     }
   };
 
   const handleInsertVariableBadge = (variableName) => {
     if (!editorRef.current) return;
-    const tag = `{{${variableName}}}`;
+    editorRef.current.focus();
+    const badgeHTML = getContractVariableBadgeHTML(variableName);
     const selection = window.getSelection();
-    if (selection.rangeCount > 0 && editorRef.current.contains(selection.anchorNode)) {
-      const range = selection.getRangeAt(0);
-      const node = document.createTextNode(tag);
-      range.insertNode(node);
-      range.collapse(false);
+    if (selection && selection.rangeCount > 0 && editorRef.current.contains(selection.anchorNode)) {
+      document.execCommand('insertHTML', false, badgeHTML);
     } else {
-      editorRef.current.innerHTML += tag;
+      editorRef.current.innerHTML += badgeHTML;
     }
     syncEditorToTemplate();
   };
@@ -328,8 +528,19 @@ export function useContratos(activeModel) {
   const handleGerarLink = async () => {
     try {
       setIsGenerating(true);
-      const allText = getAllPagesText();
-      const finalContent = allText.join('\n\n--- Página seguinte ---\n\n');
+      const allPages = getAllPagesHTML();
+      const renderedPages = allPages.map(page =>
+        replaceContractVariables(page, {
+          paciente: patientData,
+          plano: selectedPlan,
+          valor,
+          formaPagamento,
+          consultas,
+          nutritionist,
+          organizationId,
+        })
+      );
+      const finalContent = renderedPages.join('<br><hr class="my-6 border-slate-200"><br>');
 
       const contract = await createRemoteContract({
         id: openedRecord?.id || null,
@@ -426,12 +637,13 @@ Instruções obrigatórias:
 
       const rawResult = response.text || response || '';
       const generatedHtml = rawResult.replace(/^```html\s*/i, '').replace(/```$/i, '').trim();
+      const formattedHtml = formatContractTemplateToHTML(generatedHtml);
 
       if (editorRef.current) {
         if (aiMode === 'append' && activeContent) {
-          editorRef.current.innerHTML = `${activeContent}<br><p>${generatedHtml}</p>`;
+          editorRef.current.innerHTML = `${activeContent}<br><p>${formattedHtml}</p>`;
         } else {
-          editorRef.current.innerHTML = generatedHtml;
+          editorRef.current.innerHTML = formattedHtml;
         }
         syncEditorToTemplate();
       }
@@ -448,22 +660,29 @@ Instruções obrigatórias:
     activeTab, setActiveTab,
     patientData, setPatientData,
     selectedPlan, setSelectedPlan,
+    contractPlans, setContractPlans,
+    isPlansModalOpen, setIsPlansModalOpen,
+    isLoadingPlans,
+    handleSavePlan, handleDeletePlan,
     valor, setValor, handleSetValor,
     formaPagamento, setFormaPagamento,
     consultas, setConsultas,
     savedTemplates, selectedTemplateId,
     isLoadingTemplates,
+    isDeletingTemplate,
     templateNameInput, setTemplateNameInput,
     // Sistema de páginas
     pages, activePageIndex,
     addPage, removePage, switchPage,
     editorRef, editorCharCount,
+    detectedVars,
     getAllPagesHTML, getAllPagesText,
     assinaturaBase64, setAssinaturaBase64,
     isGenerating,
     aiPrompt, setAiPrompt, isGeneratingAi, handleGenerateAI,
     aiMode, setAiMode, lastAiBackup, handleUndoAi,
-    saveTemplate, loadTemplate, handleInsertVariableBadge, syncEditorToTemplate,
+    saveTemplate, loadTemplate, deleteTemplate, handleInsertVariableBadge, syncEditorToTemplate,
     handleGerarPDF, handleGerarLink,
+    organizationId, nutritionist,
   };
 }

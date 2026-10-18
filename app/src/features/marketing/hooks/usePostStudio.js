@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { toPng } from 'html-to-image';
 import JSZip from 'jszip';
 import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
+import { getActiveNutritionist } from '../../configuracoes/services/clinicProfileService.js';
 import {
   DEFAULT_POST_DATA,
   DEFAULT_CAROUSEL_SLIDES,
@@ -18,9 +19,18 @@ import {
 } from '../services/trendingTopicsService.js';
 
 export function usePostStudio(activeModel) {
-  const [postData, setPostData] = useState(DEFAULT_POST_DATA);
+  const activeNutri = useMemo(() => getActiveNutritionist(), []);
+  const isIsabela = /isabela/i.test(activeNutri?.name || '');
+
+  const [postData, setPostData] = useState(() => ({
+    ...DEFAULT_POST_DATA,
+    authorName: isIsabela ? 'Isabela Muñoz' : (activeNutri.name || 'Nutricionista Responsável'),
+    authorTitle: activeNutri.title || (isIsabela ? DEFAULT_POST_DATA.authorTitle : 'Nutricionista'),
+    manifestoAutor: isIsabela ? 'Dra. Isabela Muñoz' : (activeNutri.name || 'Nutricionista Responsável'),
+    manifestoTitulo: activeNutri.title || (isIsabela ? DEFAULT_POST_DATA.manifestoTitulo : 'Nutricionista')
+  }));
   const [currentTheme, setCurrentTheme] = useState('marrom');
-  const [customPhotoUrl, setCustomPhotoUrl] = useState(null);
+  const [customPhotoUrl, setCustomPhotoUrl] = useState(activeNutri.marketingPhotoUrl || null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
@@ -102,8 +112,8 @@ export function usePostStudio(activeModel) {
         highlightText: postData.ctaHighlight || '',
         description: postData.ctaSubtitle || '',
         ctaBoxText: postData.ctaCallout || 'Link na bio!',
-        authorName: 'Isabela Muñoz',
-        authorTitle: 'Nutrição Clínica, Esportiva & Performance • ACSM'
+        authorName: isIsabela ? 'Isabela Muñoz' : (activeNutri.name || postData.authorName || 'Nutricionista Responsável'),
+        authorTitle: activeNutri.title || postData.authorTitle || (isIsabela ? 'Nutrição Clínica, Esportiva & Performance • ACSM' : 'Nutricionista')
       };
     } else {
       newSlide = {
@@ -178,8 +188,8 @@ export function usePostStudio(activeModel) {
         ctaBoxText: formatId === 'manifesto'
           ? (postData.manifestoCta || 'Agende sua consulta pelo link da bio!')
           : (postData.ctaCallout || 'Link na bio!'),
-        authorName: 'Isabela Muñoz',
-        authorTitle: 'Nutrição Clínica, Esportiva & Performance • ACSM'
+        authorName: isIsabela ? 'Isabela Muñoz' : (activeNutri.name || postData.authorName || 'Nutricionista Responsável'),
+        authorTitle: activeNutri.title || postData.authorTitle || (isIsabela ? 'Nutrição Clínica, Esportiva & Performance • ACSM' : 'Nutricionista')
       };
     } else if (formatId === 'dicas') {
       newSlide = {
@@ -248,8 +258,8 @@ export function usePostStudio(activeModel) {
         headline: postData.headline || 'Por que dietas radicais destroem seu metabolismo e sua massa muscular?',
         highlightText: postData.highlightText || 'destroem seu metabolismo',
         description: postData.description || 'A restrição calórica sem periodização induz à perda de massa magra, desacelerando o gasto calórico diário e provocando o efeito rebote.',
-        authorName: postData.authorName || 'Isabela Muñoz',
-        authorTitle: postData.authorTitle || 'Nutrição Clínica, Esportiva & Performance'
+        authorName: postData.authorName || (isIsabela ? 'Isabela Muñoz' : (activeNutri.name || 'Nutricionista Responsável')),
+        authorTitle: postData.authorTitle || (isIsabela ? 'Nutrição Clínica, Esportiva & Performance' : (activeNutri.title || 'Nutricionista'))
       };
     } else if (formatId === 'prato') {
       slideBase = {
@@ -302,9 +312,9 @@ export function usePostStudio(activeModel) {
         manifestoBadge: postData.manifestoBadge || 'Nutrição de Precisão • ACSM',
         manifestoCitacao: postData.manifestoCitacao || 'A nutrição não é uma dieta.\nÉ a linguagem que o seu corpo usa para alcançar a sua melhor versão.',
         manifestoHighlight: postData.manifestoHighlight || 'sua melhor versão',
-        manifestoAutor: postData.manifestoAutor || 'Dra. Isabela Muñoz',
-        manifestoTitulo: postData.manifestoTitulo || 'Nutricionista Clínica & Esportiva',
-        manifestoCred: postData.manifestoCred || 'Certificação Internacional ACSM',
+        manifestoAutor: postData.manifestoAutor || (isIsabela ? 'Dra. Isabela Muñoz' : (activeNutri.name || 'Nutricionista Responsável')),
+        manifestoTitulo: postData.manifestoTitulo || (isIsabela ? 'Nutricionista Clínica & Esportiva' : (activeNutri.title || 'Nutricionista')),
+        manifestoCred: isIsabela ? (postData.manifestoCred || 'Certificação Internacional ACSM') : '',
         manifestoCta: postData.manifestoCta || 'Agende sua consulta pelo link da bio ↗'
       };
     } else if (formatId === 'passo') {
@@ -365,6 +375,7 @@ export function usePostStudio(activeModel) {
       const generated = await generatePostContent({
         topic,
         format: postData.format,
+        authorInfo: activeNutri,
         model: activeModel,
         callAiFn: callGeminiWithFallback
       });
@@ -394,6 +405,7 @@ export function usePostStudio(activeModel) {
     try {
       const captionText = await generateInstagramCaption({
         postData,
+        authorInfo: activeNutri,
         model: activeModel,
         callAiFn: callGeminiWithFallback
       });
@@ -420,10 +432,13 @@ export function usePostStudio(activeModel) {
     setStatusMessage({ type: 'info', text: 'Foto atualizada com sucesso no preview!' });
   };
 
-  // Restaurar foto oficial da Dra. Isabela
+  // Restaurar foto oficial
   const handleResetPhoto = () => {
-    setCustomPhotoUrl(null);
-    setStatusMessage({ type: 'info', text: 'Foto oficial da Dra. Isabela restaurada.' });
+    setCustomPhotoUrl(activeNutri.marketingPhotoUrl || null);
+    setStatusMessage({
+      type: 'info',
+      text: isIsabela ? 'Foto oficial da Dra. Isabela restaurada.' : 'Foto oficial restaurada.'
+    });
   };
 
   // Download do slide atual em 1080x1350 PNG
@@ -451,7 +466,10 @@ export function usePostStudio(activeModel) {
         .replace(/[^a-z0-9]/g, '-')
         .slice(0, 25);
       const slideSuffix = postData.format === 'carrossel' ? `-slide-${currentSlideIndex + 1}` : '';
-      link.download = `dra-isabela-${safeTitle}${slideSuffix}-${Date.now()}.png`;
+      const authorSlug = isIsabela
+        ? 'dra-isabela'
+        : (activeNutri.name.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 20) || 'nutri');
+      link.download = `${authorSlug}-${safeTitle}${slideSuffix}-${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
 
@@ -518,7 +536,10 @@ export function usePostStudio(activeModel) {
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '-')
         .slice(0, 25);
-      link.download = `carrossel-dra-isabela-${safeTitle}-${Date.now()}.zip`;
+      const authorSlug = isIsabela
+        ? 'dra-isabela'
+        : (activeNutri.name.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 20) || 'nutri');
+      link.download = `carrossel-${authorSlug}-${safeTitle}-${Date.now()}.zip`;
       link.click();
 
       setStatusMessage({
@@ -541,7 +562,8 @@ export function usePostStudio(activeModel) {
     try {
       const ideas = await extractMarketingIdeasFromWhatsApp({
         callAiFn: callGeminiWithFallback,
-        model: activeModel
+        model: activeModel,
+        authorInfo: activeNutri
       });
       setWhatsappIdeas(ideas);
       setStatusMessage({
@@ -563,7 +585,8 @@ export function usePostStudio(activeModel) {
     try {
       const topics = await fetchTrendingWebTopics({
         callAiFn: callGeminiWithFallback,
-        model: activeModel
+        model: activeModel,
+        authorInfo: activeNutri
       });
       setTrendingWebTopics(topics);
       setStatusMessage({

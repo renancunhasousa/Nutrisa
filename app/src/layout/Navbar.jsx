@@ -17,6 +17,7 @@ import { getModeLabel, NAV_ITEMS } from './navigationItems.js';
 import { useAuth } from '../features/auth/useAuth.js';
 import PatientSelector from '../features/pacientes/components/PatientSelector.jsx';
 import TeamPermissionsModal from '../features/auth/components/TeamPermissionsModal.jsx';
+import UserProfileModal from '../features/auth/components/UserProfileModal.jsx';
 
 const getNotificationDismissalKey = (notification) =>
   `${notification.id}|${notification.title}|${notification.description}`;
@@ -38,8 +39,9 @@ export default function Navbar({
   isSidebarCollapsed = false,
   onToggleSidebar,
 }) {
-  const { signOut, isOwner, canAccessModule } = useAuth();
+  const { user, currentMember, signOut, isOwner, canAccessModule } = useAuth();
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const {
     nutritionist,
     activeModal,
@@ -85,6 +87,17 @@ export default function Navbar({
   const openSettings = (modal) => {
     setActiveModal(activeModal === modal ? null : modal);
   };
+
+  const loggedUserName = currentMember?.display_name || currentMember?.displayName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || nutritionist.name;
+  const userRole = currentMember?.role;
+  const userRoleLabel = {
+    owner: 'Proprietário(a)',
+    professional: 'Nutricionista',
+    receptionist: 'Recepção',
+    assistant: 'Assistente',
+    custom: 'Equipe',
+  }[userRole] || (isOwner ? 'Proprietário(a)' : 'Equipe Clínica');
+  const userAvatarUrl = currentMember?.avatarUrl || currentMember?.avatar_url || user?.user_metadata?.avatar_url;
 
   return (
     <>
@@ -162,8 +175,8 @@ export default function Navbar({
               type="button"
               onClick={() => openSettings('ai')}
               aria-pressed={activeModal === 'ai'}
-              aria-label={isSidebarCollapsed ? 'Configurar inteligência artificial' : undefined}
-              title={isSidebarCollapsed ? 'Configurar IA' : undefined}
+              aria-label={isSidebarCollapsed ? 'Automações e Inteligência Artificial' : undefined}
+              title={isSidebarCollapsed ? 'Automações & IA' : undefined}
               className={`flex min-h-11 w-full items-center rounded-2xl text-sm font-semibold transition-colors ${
                 isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
               } ${
@@ -171,7 +184,7 @@ export default function Navbar({
               }`}
             >
               <span className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><Bot className="size-[17px]" aria-hidden="true" /></span>
-              {isSidebarCollapsed ? null : <span>Configurar IA</span>}
+              {isSidebarCollapsed ? null : <span>Automações & IA</span>}
             </button>
           ) : null}
           {canAccessModule('configuracoes') ? (
@@ -255,15 +268,29 @@ export default function Navbar({
 
             <button
               type="button"
-              onClick={() => openSettings('profile')}
-              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200/65 bg-white/55 p-1 pr-1.5 text-left transition hover:border-emerald-200 hover:bg-white/90 sm:pr-3"
-              title={`Perfil conectado: ${nutritionist.name}`}
-              aria-label={`Abrir perfil de ${nutritionist.name}`}
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200/65 bg-white/55 p-1 pr-1.5 text-left transition hover:border-emerald-200 hover:bg-white/90 sm:pr-3 cursor-pointer"
+              title={`Perfil conectado: ${loggedUserName} (${userRoleLabel})`}
+              aria-label={`Perfil de ${loggedUserName}`}
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-[11px] font-extrabold text-white shadow-sm ring-1 ring-white/80">{getInitials(nutritionist.name)}</span>
+              {userAvatarUrl ? (
+                <img
+                  src={userAvatarUrl}
+                  alt={loggedUserName}
+                  className="size-8 shrink-0 rounded-xl object-cover ring-1 ring-white/80 shadow-sm"
+                />
+              ) : (
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-[11px] font-extrabold text-white shadow-sm ring-1 ring-white/80">
+                  {getInitials(loggedUserName)}
+                </span>
+              )}
               <span className="hidden min-w-0 sm:block">
-                <span className="block max-w-28 truncate text-xs font-extrabold text-slate-800 lg:max-w-40">Dra. {userFirstName}</span>
-                <span className="hidden max-w-40 truncate text-[10px] font-medium text-slate-500 lg:block">{nutritionist.crn || 'Nutricionista'}</span>
+                <span className="block max-w-28 truncate text-xs font-extrabold text-slate-800 lg:max-w-40">
+                  {loggedUserName}
+                </span>
+                <span className="hidden max-w-40 truncate text-[10px] font-bold text-emerald-700 lg:block">
+                  {userRoleLabel}
+                </span>
               </span>
               <ChevronDown className="hidden size-3.5 text-slate-400 sm:block" />
             </button>
@@ -283,6 +310,13 @@ export default function Navbar({
         <TeamPermissionsModal
           open={isTeamModalOpen}
           onClose={() => setIsTeamModalOpen(false)}
+        />
+      ) : null}
+
+      {isProfileModalOpen ? (
+        <UserProfileModal
+          open={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
         />
       ) : null}
     </>

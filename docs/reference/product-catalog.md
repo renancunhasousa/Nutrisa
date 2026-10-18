@@ -16,6 +16,7 @@ Na navegação lateral o módulo aparece como **Cadastros**. O nome curto repres
 6. Todo resultado externo entra como `draft`. A profissional revisa porção, macros, ingredientes e alérgenos antes de salvar ou marcar como verificado.
 7. Somente registros `verified` com `is_available_for_diets = true` aparecem na busca de alimentos da dieta.
 8. O botão **Criar alimento** dentro da busca da dieta usa o mesmo `product_catalog`: salva um alimento verificado da organização, atualiza a busca e o adiciona imediatamente à refeição. Ele não grava mais na tabela legada quando há uma sessão válida.
+9. Na seção **Tabela nutricional** do modal, as seleções de unidades (unidade de referência, unidade da porção sugerida e unidade dos nutrientes adicionais) utilizam o componente de lista suspensa padronizado (`DropdownSelect`), com visual arredondado, ícone ChevronDown, suporte a digitação livre/personalizada e fechamento contextual.
 
 ## Contrato de dados
 

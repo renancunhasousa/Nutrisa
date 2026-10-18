@@ -1,5 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Beef, CheckCircle2, FlaskConical, Flame, Package, PackageOpen, Pencil, Plus, Search, Trash2, Wheat, X } from 'lucide-react';
+import {
+  Beef,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Database,
+  Filter,
+  FlaskConical,
+  Flame,
+  Package,
+  PackageOpen,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  UtensilsCrossed,
+  Wheat,
+  X,
+} from 'lucide-react';
 import PageHeader from '../../shared/ui/PageHeader.jsx';
 import { researchProduct } from '../../shared/services/aiClient.js';
 import { useAuth } from '../auth/useAuth.js';
@@ -17,11 +35,24 @@ import {
 
 const CATEGORY_LABELS = { alimento: 'Alimento', preparacao: 'Preparação', produto: 'Produto', suplemento: 'Suplemento', bebida: 'Bebida', outro: 'Outro' };
 
+const CATEGORY_OPTIONS = [
+  { id: 'todos', label: 'Todos os tipos', icon: '🌐' },
+  { id: 'alimento', label: 'Alimentos', icon: '🥗' },
+  { id: 'preparacao', label: 'Preparações', icon: '🍲' },
+  { id: 'produto', label: 'Produtos', icon: '📦' },
+  { id: 'suplemento', label: 'Suplementos', icon: '💊' },
+  { id: 'bebida', label: 'Bebidas', icon: '🥤' },
+  { id: 'outro', label: 'Outros', icon: '🏷️' },
+];
+
 export default function ProdutosPage() {
   const { organizationId, user } = useAuth();
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('todos');
+  const [statusFilter, setStatusFilter] = useState('todos'); // 'todos' | 'verified' | 'draft'
+  const [sourceFilter, setSourceFilter] = useState('todas'); // 'todas' | 'taco' | 'tbca' | 'manual' | 'usda' | custom
+  const [openDropdown, setOpenDropdown] = useState(null); // 'category' | 'status' | 'source' | null
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,15 +72,60 @@ export default function ProdutosPage() {
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
+  useEffect(() => {
+    if (!openDropdown) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.product-dropdown-container')) {
+        setOpenDropdown(null);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setOpenDropdown(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openDropdown]);
+
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('pt-BR');
     return products.filter((product) => {
+      // 1. Categoria
       const matchesCategory = category === 'todos' || (product.item_type || product.category) === category;
-      const matchesQuery = !query || [product.name, product.brand, product.barcode]
+
+      // 2. Status de verificação (verificados vs pendentes/revisar)
+      const isVerified = product.verification_status === 'verified';
+      const matchesStatus =
+        statusFilter === 'todos' ||
+        (statusFilter === 'verified' && isVerified) ||
+        (statusFilter === 'draft' && !isVerified);
+
+      // 3. Fonte nutricional (TACO, TBCA, Manual, USDA ou outra)
+      const official = (product.official_source || '').trim().toLowerCase();
+      const sourceType = (product.source_type || '').trim().toLowerCase();
+      let matchesSource = true;
+      if (sourceFilter === 'taco') {
+        matchesSource = official.includes('taco');
+      } else if (sourceFilter === 'tbca') {
+        matchesSource = official.includes('tbca');
+      } else if (sourceFilter === 'manual') {
+        matchesSource = sourceType === 'manual' || official.includes('manual') || official.includes('clínica') || official.includes('clinica') || (!official && !sourceType);
+      } else if (sourceFilter === 'usda') {
+        matchesSource = official.includes('usda') || official.includes('fooddata');
+      } else if (sourceFilter !== 'todas') {
+        matchesSource = official === sourceFilter.toLowerCase() || sourceType === sourceFilter.toLowerCase();
+      }
+
+      // 4. Busca textual
+      const matchesQuery = !query || [product.name, product.brand, product.barcode, product.official_source]
         .some((value) => value?.toLocaleLowerCase('pt-BR').includes(query));
-      return matchesCategory && matchesQuery;
+
+      return matchesCategory && matchesStatus && matchesSource && matchesQuery;
     });
-  }, [category, products, search]);
+  }, [category, products, search, sourceFilter, statusFilter]);
 
   const metrics = useMemo(() => ({
     total: products.length,
@@ -62,6 +138,22 @@ export default function ProdutosPage() {
       return counts;
     }, {})).sort((left, right) => right[1] - left[1]),
   }), [products]);
+
+  const extraSources = useMemo(() => {
+    const standardKeys = ['taco', 'tbca', 'manual', 'usda', 'fooddata'];
+    return metrics.sources
+      .map(([name]) => name)
+      .filter((name) => !standardKeys.some((key) => name.toLowerCase().includes(key)));
+  }, [metrics.sources]);
+
+  const hasActiveFilters = category !== 'todos' || statusFilter !== 'todos' || sourceFilter !== 'todas' || Boolean(search.trim());
+
+  const clearAllFilters = () => {
+    setCategory('todos');
+    setStatusFilter('todos');
+    setSourceFilter('todas');
+    setSearch('');
+  };
 
   const openNew = () => {
     setEditingProduct(null);
@@ -134,24 +226,76 @@ export default function ProdutosPage() {
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo do catálogo">
         <Metric label="Itens cadastrados" value={metrics.total} icon={<Package className="size-5" />} />
-        <Metric label="Fontes nutricionais" icon={<FlaskConical className="size-5" />}>
+        <Metric label="Fontes nutricionais" icon={<Database className="size-5" />}>
           <div className="mt-1 flex flex-wrap gap-1">
-            {metrics.sources.length ? metrics.sources.map(([source, count]) => (
-              <span key={source} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">{source}: {count}</span>
-            )) : <span className="text-xs text-slate-400">Nenhuma fonte</span>}
+            {metrics.sources.length ? metrics.sources.map(([source, count]) => {
+              const sLower = source.toLowerCase();
+              const isSelected =
+                (sLower.includes('taco') && sourceFilter === 'taco') ||
+                (sLower.includes('tbca') && sourceFilter === 'tbca') ||
+                ((sLower.includes('manual') || sLower.includes('clínica') || sLower.includes('clinica')) && sourceFilter === 'manual') ||
+                ((sLower.includes('usda') || sLower.includes('fooddata')) && sourceFilter === 'usda') ||
+                sourceFilter === source;
+
+              const handleClick = () => {
+                if (sLower.includes('taco')) setSourceFilter(sourceFilter === 'taco' ? 'todas' : 'taco');
+                else if (sLower.includes('tbca')) setSourceFilter(sourceFilter === 'tbca' ? 'todas' : 'tbca');
+                else if (sLower.includes('manual') || sLower.includes('clínica') || sLower.includes('clinica')) setSourceFilter(sourceFilter === 'manual' ? 'todas' : 'manual');
+                else if (sLower.includes('usda') || sLower.includes('fooddata')) setSourceFilter(sourceFilter === 'usda' ? 'todas' : 'usda');
+                else setSourceFilter(sourceFilter === source ? 'todas' : source);
+              };
+
+              return (
+                <button
+                  key={source}
+                  type="button"
+                  onClick={handleClick}
+                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                  title={`Filtrar por ${source}`}
+                >
+                  {source}: {count}
+                </button>
+              );
+            }) : <span className="text-xs text-slate-400">Nenhuma fonte</span>}
           </div>
         </Metric>
-        <Metric label="Disponíveis nas dietas" value={metrics.dietItems} icon={<FlaskConical className="size-5" />} />
+        <Metric label="Disponíveis nas dietas" value={metrics.dietItems} icon={<UtensilsCrossed className="size-5" />} />
         <Metric label="Verificados / revisar" icon={<CheckCircle2 className="size-5" />}>
           <div className="mt-1 flex items-center gap-2 text-xs font-semibold">
-            <span className="text-emerald-600">{metrics.verified} verificados</span>
-            <span className="text-amber-600">{metrics.draft} revisar</span>
+            <button
+              type="button"
+              onClick={() => setStatusFilter(statusFilter === 'verified' ? 'todos' : 'verified')}
+              className={`rounded-md px-1.5 py-0.5 transition-colors cursor-pointer ${
+                statusFilter === 'verified'
+                  ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+                  : 'text-emerald-600 hover:bg-emerald-50'
+              }`}
+              title="Filtrar apenas itens verificados"
+            >
+              {metrics.verified} verificados
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter(statusFilter === 'draft' ? 'todos' : 'draft')}
+              className={`rounded-md px-1.5 py-0.5 transition-colors cursor-pointer ${
+                statusFilter === 'draft'
+                  ? 'bg-amber-600 text-white font-bold shadow-2xs'
+                  : 'text-amber-600 hover:bg-amber-50'
+              }`}
+              title="Filtrar itens que faltam verificar"
+            >
+              {metrics.draft} revisar
+            </button>
           </div>
         </Metric>
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="product-list-title">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 id="product-list-title" className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
               <PackageOpen className="size-3.5 text-emerald-600" aria-hidden="true" />
@@ -159,16 +303,218 @@ export default function ProdutosPage() {
             </h2>
             <p className="text-xs text-slate-500">A IA aparece apenas para interpretar a imagem do rótulo e sempre exige revisão.</p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <form role="search" onSubmit={(event) => event.preventDefault()} className="relative min-w-0 sm:w-72">
+
+          <div className="flex flex-wrap items-center gap-2">
+            <form role="search" onSubmit={(event) => event.preventDefault()} className="relative min-w-0 w-full sm:w-60">
               <label htmlFor="product-search" className="sr-only">Buscar produto</label>
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <input id="product-search" name="product-search" type="search" autoComplete="off" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, marca ou código" className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-base sm:text-sm" />
+              <input
+                id="product-search"
+                name="product-search"
+                type="search"
+                autoComplete="off"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Nome, marca ou código"
+                className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-base sm:text-sm"
+              />
             </form>
-            <label htmlFor="product-category-filter" className="sr-only">Filtrar por categoria</label>
-            <select id="product-category-filter" value={category} onChange={(event) => setCategory(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold text-slate-700 sm:text-sm">
-              <option value="todos">Todos os tipos</option><option value="alimento">Alimentos</option><option value="preparacao">Preparações</option><option value="produto">Produtos</option><option value="suplemento">Suplementos</option><option value="bebida">Bebidas</option>
-            </select>
+
+            {/* Menu Dropdown de Categoria */}
+            <div className="relative product-dropdown-container">
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'category' ? null : 'category')}
+                className={`inline-flex min-h-11 items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                  category !== 'todos'
+                    ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+                title="Filtrar catálogo por tipo de item"
+                aria-expanded={openDropdown === 'category'}
+              >
+                <span className="flex items-center gap-1.5 truncate">
+                  <Filter className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">
+                    {category === 'todos' ? 'Tipo' : CATEGORY_OPTIONS.find((opt) => opt.id === category)?.label || 'Tipo'}
+                  </span>
+                </span>
+                <ChevronDown className={`w-3 h-3 shrink-0 opacity-70 transition-transform duration-200 ${openDropdown === 'category' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {openDropdown === 'category' && (
+                <div
+                  className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-56 app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-xl border border-slate-200 p-2 z-30 animate-scale-up space-y-1"
+                  style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+                >
+                  <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Filtrar por tipo
+                  </div>
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => { setCategory(opt.id); setOpenDropdown(null); }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                        category === opt.id 
+                          ? 'bg-emerald-50 text-emerald-900 font-bold' 
+                          : 'text-slate-700 hover:bg-slate-50 font-medium'
+                      }`}
+                    >
+                      <span className="flex items-center truncate">
+                        <span className="mr-2 text-sm">{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </span>
+                      {category === opt.id && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Menu Dropdown de Status de Verificação */}
+            <div className="relative product-dropdown-container">
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')}
+                className={`inline-flex min-h-11 items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                  statusFilter === 'verified'
+                    ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
+                    : statusFilter === 'draft'
+                    ? 'bg-amber-600 text-white border-amber-700 ring-2 ring-amber-200'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+                title="Filtrar por status de verificação"
+                aria-expanded={openDropdown === 'status'}
+              >
+                <span className="flex items-center gap-1.5 truncate">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">
+                    {statusFilter === 'todos'
+                      ? 'Status'
+                      : statusFilter === 'verified'
+                      ? 'Verificados'
+                      : 'Falta verificar'}
+                  </span>
+                </span>
+                <ChevronDown className={`w-3 h-3 shrink-0 opacity-70 transition-transform duration-200 ${openDropdown === 'status' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {openDropdown === 'status' && (
+                <div
+                  className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-56 app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-xl border border-slate-200 p-2 z-30 animate-scale-up space-y-1"
+                  style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+                >
+                  <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Status de verificação
+                  </div>
+                  {[
+                    { id: 'todos', label: 'Todos os status', icon: '🌐' },
+                    { id: 'verified', label: `Verificados (${metrics.verified})`, icon: '✅' },
+                    { id: 'draft', label: `Falta verificar (${metrics.draft})`, icon: '⏳' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => { setStatusFilter(opt.id); setOpenDropdown(null); }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                        statusFilter === opt.id 
+                          ? 'bg-emerald-50 text-emerald-900 font-bold' 
+                          : 'text-slate-700 hover:bg-slate-50 font-medium'
+                      }`}
+                    >
+                      <span className="flex items-center truncate">
+                        <span className="mr-2 text-sm">{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </span>
+                      {statusFilter === opt.id && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Menu Dropdown de Fonte Nutricional */}
+            <div className="relative product-dropdown-container">
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'source' ? null : 'source')}
+                className={`inline-flex min-h-11 items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                  sourceFilter !== 'todas'
+                    ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+                title="Filtrar por fonte nutricional"
+                aria-expanded={openDropdown === 'source'}
+              >
+                <span className="flex items-center gap-1.5 truncate">
+                  <FlaskConical className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">
+                    {sourceFilter === 'todas'
+                      ? 'Fonte'
+                      : sourceFilter === 'taco'
+                      ? 'TACO'
+                      : sourceFilter === 'tbca'
+                      ? 'TBCA'
+                      : sourceFilter === 'manual'
+                      ? 'Manual'
+                      : sourceFilter === 'usda'
+                      ? 'USDA'
+                      : sourceFilter}
+                  </span>
+                </span>
+                <ChevronDown className={`w-3 h-3 shrink-0 opacity-70 transition-transform duration-200 ${openDropdown === 'source' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {openDropdown === 'source' && (
+                <div
+                  className="absolute right-0 mt-2 w-60 app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-xl border border-slate-200 p-2 z-30 animate-scale-up space-y-1"
+                  style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+                >
+                  <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Fonte nutricional
+                  </div>
+                  {[
+                    { id: 'todas', label: 'Todas as fontes', icon: '🌐' },
+                    { id: 'taco', label: 'TACO', icon: '📗' },
+                    { id: 'tbca', label: 'TBCA', icon: '📘' },
+                    { id: 'manual', label: 'Manual / Clínica', icon: '✍️' },
+                    { id: 'usda', label: 'USDA FoodData', icon: '📙' },
+                    ...extraSources.map((name) => ({ id: name, label: name, icon: '🏷️' })),
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => { setSourceFilter(opt.id); setOpenDropdown(null); }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                        sourceFilter === opt.id 
+                          ? 'bg-emerald-50 text-emerald-900 font-bold' 
+                          : 'text-slate-700 hover:bg-slate-50 font-medium'
+                      }`}
+                    >
+                      <span className="flex items-center truncate">
+                        <span className="mr-2 text-sm">{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </span>
+                      {sourceFilter === opt.id && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Botão Limpar Filtros */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer active:scale-95"
+                title="Limpar todos os filtros ativos"
+              >
+                <X className="size-3.5" />
+                <span>Limpar</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -184,8 +530,21 @@ export default function ProdutosPage() {
           <div className="mt-5 flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-8 text-center">
             <PackageOpen className="mb-3 size-11 text-slate-300" />
             <h3 className="text-lg font-black text-slate-800">{products.length ? 'Nenhum produto encontrado' : 'Comece seu catálogo'}</h3>
-            <p className="mt-1 max-w-md text-sm text-slate-500">{products.length ? 'Ajuste a busca ou o filtro de categoria.' : 'Cadastre manualmente, busque pelo código ou use uma imagem para preencher um rascunho.'}</p>
-            {!products.length ? (
+            <p className="mt-1 max-w-md text-sm text-slate-500">
+              {products.length
+                ? 'Nenhum item corresponde à combinação de filtros aplicada.'
+                : 'Cadastre manualmente, busque pelo código ou use uma imagem para preencher um rascunho.'}
+            </p>
+            {hasActiveFilters && products.length ? (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="mt-4 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <X className="w-4 h-4" />
+                <span>Limpar filtros</span>
+              </button>
+            ) : !products.length ? (
               <button
                 type="button"
                 onClick={openNew}
