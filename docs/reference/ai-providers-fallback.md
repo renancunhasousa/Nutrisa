@@ -103,3 +103,19 @@ DEEPSEEK_API_KEY=sua_chave_deepseek
 # Acesso de Segurança
 AI_ACCESS_TOKEN=codigo_de_acesso_da_clinica
 ```
+
+---
+
+## 7. Resiliência a Falhas de JSON e Truncamento de Respostas (`parseAiJson`)
+
+Ao gerar anamneses clínicas complexas, pareceres de atendimento ou contratos com múltiplas variáveis, modelos de IA podem emitir:
+1. **Quebras de linha literais (reais)** dentro de strings JSON (o que viola o padrão RFC 8259 estrito e causa erro `SyntaxError: Unterminated string in JSON at position ...`).
+2. **Truncamento de tokens** quando a resposta atinge o limite do modelo antes de fechar aspas ou chaves.
+3. Blocos de markdown envolvendo a resposta (ex: ````json ... ````).
+
+Para garantir que o fluxo clínico nunca seja interrompido, o cliente unificado [`app/src/shared/services/aiClient.js`](../../app/src/shared/services/aiClient.js) e a função utilitária [`parseAiJson`](../../app/src/shared/utils/formatters.js):
+- Elevam o teto padrão de tokens (`maxOutputTokens`) para **8192** (com suporte a até 16384 no backend).
+- Normalizam quebras de linha reais e caracteres de controle dentro de strings antes do parse.
+- Reparam e fecham automaticamente estruturas JSON truncadas por limite de tokens, preservando todas as variáveis já geradas.
+- Utilizam fallback via extração regex de pares chave-valor para recuperação total dos dados em cenários extremos de corrupção de saída.
+

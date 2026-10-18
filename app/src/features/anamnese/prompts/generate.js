@@ -30,8 +30,9 @@ DIRETRIZES ESTRITAS:
 3. Se a variável solicitar síntese ou parecer, faça um resumo clínico profissional focado em nutrição e saúde com boa estruturação.
 4. Caso uma variável esteja totalmente ausente em ambas as fontes, preencha o valor como "Não informado".
 5. Retorne os valores em texto simples e limpo. JAMAIS inclua asteriscos de negrito (** **) nos valores do JSON.
-6. Preserve quebras de linha com \\n sempre que listar múltiplos itens, condutas ou recomendações no texto.
-7. Responda APENAS em formato JSON sem texto adicional.`;
+6. IMPORTANTE: Para quebras de linha em valores com múltiplos itens ou parágrafos, utilize estritamente a sequência escapada \\n. NUNCA insira quebras de linha reais ou enter literal dentro das aspas do JSON.
+7. Conclua todas as chaves e feche o objeto JSON completamente com } sem truncar a resposta.
+8. Responda APENAS em formato JSON sem texto adicional fora do bloco JSON.`;
 }
 
 /**

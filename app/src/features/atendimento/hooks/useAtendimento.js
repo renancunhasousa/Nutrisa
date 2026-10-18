@@ -5,7 +5,7 @@ import { calculateComparisonStats } from '../domain/metrics.js';
 import { conversationsCsv } from '../domain/conversations.js';
 import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
 import { downloadText } from '../../../shared/utils/download.js';
-import { formatWaitTime } from '../../../shared/utils/formatters.js';
+import { formatWaitTime, parseAiJson } from '../../../shared/utils/formatters.js';
 import { getActiveNutritionist, getOwnerShortLabel, formatDoctorShortName } from '../../configuracoes/services/clinicProfileService.js';
 
 const MONTH_NAMES = [
@@ -287,9 +287,8 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
   "planoDeAcao": ["Ação 1", "Ação 2", "Ação 3"]
 }`;
 
-      const { text } = await callGeminiWithFallback({ prompt, jsonMode: true, model: activeModel });
-      const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-      setAiAnalysis(JSON.parse(clean));
+      const { text, json } = await callGeminiWithFallback({ prompt, jsonMode: true, model: activeModel, maxOutputTokens: 8192 });
+      setAiAnalysis(json || parseAiJson(text));
     } catch (err) {
       setAiError('Erro ao gerar análise: ' + err.message);
     } finally {

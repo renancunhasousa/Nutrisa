@@ -3,6 +3,7 @@ import { callGeminiWithFallback } from '../../../shared/services/aiClient.js';
 import { readDocument } from '../services/documents.js';
 import { extractVariables, extractVariableNames, replaceVariable } from '../domain/variables.js';
 import { syncHTMLToTemplate, formatTemplateToHTML, cleanMarkdownToText } from '../domain/formatting.js';
+import { parseAiJson } from '../../../shared/utils/formatters.js';
 import { buildGenerationPrompt, buildPatientTranslationPrompt, buildClinicInsightsPrompt } from '../prompts/generate.js';
 import { KEY_ANAMNESE_TEMPLATES, KEY_ANAMNESE_DRAFT, KEY_LAST_ANAMNESE_TEMPLATE_ID } from '../../../config/storageKeys.js';
 import { deleteDocumentTemplate, importLocalDocumentTemplates, listDocumentTemplates, saveDocumentTemplate } from '../../../shared/services/documentTemplates.js';
@@ -193,8 +194,12 @@ export function useAnamnese({ activeModel }) {
 
   // ── Geração ───────────────────────────────────────────────
   const callGemini = async (prompt, isJson = false) => {
-    const response = await callGeminiWithFallback({ prompt, jsonMode: isJson, model: activeModel });
-    return response.text;
+    return callGeminiWithFallback({
+      prompt,
+      jsonMode: isJson,
+      model: activeModel,
+      maxOutputTokens: 8192,
+    });
   };
 
   const persistGeneratedAnamnese = async (reportText) => {
@@ -233,9 +238,12 @@ export function useAnamnese({ activeModel }) {
       }
       const variableNames = extractVariableNames(template);
       const prompt = buildGenerationPrompt(patientData, doctorData, variableNames);
-      const responseText = await callGemini(prompt, true);
-      const cleanJsonStr = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-      const aiData = JSON.parse(cleanJsonStr);
+      const response = await callGemini(prompt, true);
+      const aiData = response.json || parseAiJson(response.text);
+
+      if (!aiData || typeof aiData !== 'object') {
+        throw new Error('A IA não retornou um formato legível para preenchimento das variáveis.');
+      }
 
       let finalReport = template;
       variableNames.forEach(name => {
@@ -262,7 +270,8 @@ export function useAnamnese({ activeModel }) {
       const prompt = type === 'patient'
         ? buildPatientTranslationPrompt(result)
         : buildClinicInsightsPrompt(patientData, doctorData, result);
-      const text = await callGemini(prompt);
+      const response = await callGemini(prompt, false);
+      const text = typeof response === 'object' && response !== null && 'text' in response ? response.text : String(response || '');
       if (type === 'patient') {
         setPatientTranslation(text);
         await updatePatientAnamnese(savedAnamneseIdRef.current, { patient_translation: text });
