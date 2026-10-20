@@ -46,28 +46,25 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
   };
 
   return createPortal(
-    <div 
+    <div
       className="app-modal-overlay animate-fadeIn"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isSyncing) onClose();
       }}
     >
-      <div 
-        className="app-modal-panel max-w-xl relative"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="app-modal-panel max-w-xl animate-scaleIn">
         {/* Header */}
-        <div className="app-modal-header flex items-start justify-between gap-4 px-6 py-4 sm:px-7">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs">
-              <RefreshCw className="w-5 h-5" />
+        <div className="app-modal-header flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+              <RefreshCw className="size-5" aria-hidden="true" />
             </div>
-            <div>
-              <h2 className="text-lg font-black text-slate-900 tracking-tight">
+            <div className="min-w-0">
+              <h3 className="truncate text-xl font-black text-slate-900">
                 Importar Demandas da Semana
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Escolha a categoria e o prazo automático para os agendamentos da semana
+              </h3>
+              <p className="text-xs text-slate-500">
+                Escolha a categoria e o prazo automático para os agendamentos da semana.
               </p>
             </div>
           </div>
@@ -75,111 +72,112 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
             type="button"
             onClick={onClose}
             disabled={isSyncing}
-            className="app-modal-close p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50 cursor-pointer"
             aria-label="Fechar importação da agenda"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Aviso prévio se a agenda não estiver conectada */}
-        <div className="app-modal-body space-y-6 p-6 sm:p-7">
-        {!isCalendarConnected && (
-          <div className="p-4 rounded-2xl bg-rose-50/90 border border-rose-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-xs font-bold text-rose-950">Agenda do Google não conectada</h4>
-                <p className="text-xs text-rose-800 mt-0.5 leading-relaxed">
-                  Para importar os atendimentos da semana, conecte seu Google Calendar no módulo Agenda.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                window.location.hash = 'agenda';
-              }}
-              className="shrink-0 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer w-full sm:w-auto text-center"
-            >
-              Conectar Agenda
-            </button>
-          </div>
-        )}
-
-        {/* Opções de Importação */}
-        <div className="space-y-3">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-            Selecione o formato de importação:
-          </label>
-
-          <div className="grid grid-cols-1 gap-2.5">
-            {Object.values(AGENDA_SYNC_MODES).map((mode) => {
-              const isSelected = selectedMode === mode.id;
-              const IconComponent = MODE_ICONS[mode.id] || Calendar;
-              const theme = mode.colorTheme;
-
-              return (
-                <div
-                  key={mode.id}
-                  onClick={() => !isSyncing && setSelectedMode(mode.id)}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative ${
-                    isSelected
-                      ? theme.activeBorder
-                      : 'border-slate-200/80 hover:bg-slate-50/80'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${theme.iconBg}`}>
-                    <IconComponent className="w-4 h-4" />
-                  </div>
-
-                  <div className="flex-1 min-w-0 pr-6">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-sm font-black text-slate-900">
-                        {mode.title}
-                      </span>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${theme.badge}`}>
-                        {mode.offsetBadge}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {mode.description}
-                    </p>
-                  </div>
-
-                  {isSelected && (
-                    <div className="absolute right-3.5 top-3.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    </div>
-                  )}
+        {/* Content */}
+        <div className="app-modal-body space-y-5 bg-slate-50/70 p-4 sm:p-6">
+          {/* Aviso prévio se a agenda não estiver conectada */}
+          {!isCalendarConnected && (
+            <div className="p-4 rounded-2xl bg-rose-50/90 border border-rose-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-xs font-bold text-rose-950">Agenda do Google não conectada</h4>
+                  <p className="text-xs text-rose-800 mt-0.5 leading-relaxed">
+                    Para importar os atendimentos da semana, conecte seu Google Calendar no módulo Agenda.
+                  </p>
                 </div>
-              );
-            })}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  window.location.hash = 'agenda';
+                }}
+                className="shrink-0 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer w-full sm:w-auto text-center"
+              >
+                Conectar Agenda
+              </button>
+            </div>
+          )}
+
+          {/* Opções de Importação */}
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Selecione o formato de importação:
+            </label>
+
+            <div className="grid grid-cols-1 gap-2.5">
+              {Object.values(AGENDA_SYNC_MODES).map((mode) => {
+                const isSelected = selectedMode === mode.id;
+                const IconComponent = MODE_ICONS[mode.id] || Calendar;
+                const theme = mode.colorTheme;
+
+                return (
+                  <div
+                    key={mode.id}
+                    onClick={() => !isSyncing && setSelectedMode(mode.id)}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative bg-white ${
+                      isSelected
+                        ? theme.activeBorder
+                        : 'border-slate-200/80 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`flex size-9 shrink-0 items-center justify-center ${theme.iconText}`}>
+                      <IconComponent className="w-4 h-4" />
+                    </div>
+
+                    <div className="flex-1 min-w-0 pr-6">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-sm font-black text-slate-900">
+                          {mode.title}
+                        </span>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${theme.badge}`}>
+                          {mode.offsetBadge}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {mode.description}
+                      </p>
+                    </div>
+
+                    {isSelected && (
+                      <div className="absolute right-3.5 top-3.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Box de Aviso Explicativo da Regra Selecionada */}
+          <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/70 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-amber-900 block">
+                Regra de Data & Vencimento:
+              </span>
+              <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                {currentMode.offsetNotice}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Box de Aviso Explicativo da Regra Selecionada */}
-        <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/70 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-amber-900 block">
-              Regra de Data & Vencimento:
-            </span>
-            <p className="text-xs text-amber-800 leading-relaxed font-medium">
-              {currentMode.offsetNotice}
-            </p>
-          </div>
-        </div>
-
-        {/* Ações */}
-        </div>
-        <div className="app-modal-footer flex items-center justify-end gap-3 px-6 py-4 sm:px-7">
+        {/* Footer */}
+        <div className="app-modal-footer flex items-center justify-end gap-2 px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
             disabled={isSyncing}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs sm:text-sm font-bold transition-all cursor-pointer"
+            className="min-h-11 px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -187,19 +185,10 @@ export function SyncAgendaModal({ isOpen, onClose, onConfirm, isSyncing }) {
             type="button"
             onClick={handleConfirm}
             disabled={isSyncing}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all cursor-pointer disabled:opacity-50"
           >
-            {isSyncing ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Importando...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4" />
-                <span>Confirmar e Importar</span>
-              </>
-            )}
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Importando...' : 'Confirmar e Importar'}</span>
           </button>
         </div>
       </div>

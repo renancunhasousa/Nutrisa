@@ -4,17 +4,14 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  Database,
   Filter,
   FlaskConical,
   Flame,
-  Package,
   PackageOpen,
   Pencil,
   Plus,
   Search,
   Trash2,
-  UtensilsCrossed,
   Wheat,
   X,
 } from 'lucide-react';
@@ -44,6 +41,14 @@ const CATEGORY_OPTIONS = [
   { id: 'bebida', label: 'Bebidas', icon: '🥤' },
   { id: 'outro', label: 'Outros', icon: '🏷️' },
 ];
+
+// Tipos com composição nutricional de tabela (fontes TACO/TBCA/USDA e dietas)
+const FOOD_TYPES = ['alimento', 'preparacao'];
+
+function getItemType(product) {
+  const type = product.item_type || product.category;
+  return CATEGORY_OPTIONS.some((opt) => opt.id === type) ? type : 'outro';
+}
 
 export default function ProdutosPage() {
   const { organizationId, user } = useAuth();
@@ -129,7 +134,11 @@ export default function ProdutosPage() {
 
   const metrics = useMemo(() => ({
     total: products.length,
-    dietItems: products.filter((product) => product.is_available_for_diets).length,
+    byType: products.reduce((counts, product) => {
+      const type = getItemType(product);
+      counts[type] = (counts[type] || 0) + 1;
+      return counts;
+    }, {}),
     verified: products.filter((product) => product.verification_status === 'verified').length,
     draft: products.filter((product) => product.verification_status !== 'verified').length,
     sources: Object.entries(products.reduce((counts, product) => {
@@ -147,6 +156,13 @@ export default function ProdutosPage() {
   }, [metrics.sources]);
 
   const hasActiveFilters = category !== 'todos' || statusFilter !== 'todos' || sourceFilter !== 'todas' || Boolean(search.trim());
+  const showSourceFilter = category === 'todos' || FOOD_TYPES.includes(category);
+  const verifiedPct = metrics.total ? Math.round((metrics.verified / metrics.total) * 100) : 0;
+
+  const selectCategory = (id) => {
+    setCategory(id);
+    if (id !== 'todos' && !FOOD_TYPES.includes(id)) setSourceFilter('todas');
+  };
 
   const clearAllFilters = () => {
     setCategory('todos');
@@ -224,74 +240,76 @@ export default function ProdutosPage() {
         }
       />
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo do catálogo">
-        <Metric label="Itens cadastrados" value={metrics.total} icon={<Package className="size-5" />} />
-        <Metric label="Fontes nutricionais" icon={<Database className="size-5" />}>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {metrics.sources.length ? metrics.sources.map(([source, count]) => {
-              const sLower = source.toLowerCase();
-              const isSelected =
-                (sLower.includes('taco') && sourceFilter === 'taco') ||
-                (sLower.includes('tbca') && sourceFilter === 'tbca') ||
-                ((sLower.includes('manual') || sLower.includes('clínica') || sLower.includes('clinica')) && sourceFilter === 'manual') ||
-                ((sLower.includes('usda') || sLower.includes('fooddata')) && sourceFilter === 'usda') ||
-                sourceFilter === source;
-
-              const handleClick = () => {
-                if (sLower.includes('taco')) setSourceFilter(sourceFilter === 'taco' ? 'todas' : 'taco');
-                else if (sLower.includes('tbca')) setSourceFilter(sourceFilter === 'tbca' ? 'todas' : 'tbca');
-                else if (sLower.includes('manual') || sLower.includes('clínica') || sLower.includes('clinica')) setSourceFilter(sourceFilter === 'manual' ? 'todas' : 'manual');
-                else if (sLower.includes('usda') || sLower.includes('fooddata')) setSourceFilter(sourceFilter === 'usda' ? 'todas' : 'usda');
-                else setSourceFilter(sourceFilter === source ? 'todas' : source);
-              };
-
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" aria-label="Resumo do catálogo">
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h2 className="text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">Por tipo</h2>
+            <span className="text-xs font-semibold text-slate-500">
+              <strong className="text-base font-black text-slate-900">{metrics.total}</strong> itens no catálogo
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {CATEGORY_OPTIONS.filter((opt) => opt.id !== 'todos').map((opt) => {
+              const isSelected = category === opt.id;
               return (
                 <button
-                  key={source}
+                  key={opt.id}
                   type="button"
-                  onClick={handleClick}
-                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
+                  onClick={() => selectCategory(isSelected ? 'todos' : opt.id)}
+                  className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-emerald-600 text-white shadow-2xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 shadow-2xs'
+                      : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:border-slate-300 hover:bg-white'
                   }`}
-                  title={`Filtrar por ${source}`}
+                  title={`Filtrar por ${opt.label.toLowerCase()}`}
+                  aria-pressed={isSelected}
                 >
-                  {source}: {count}
+                  <span className="text-xl leading-none" aria-hidden="true">{opt.icon}</span>
+                  <span className="text-lg font-black leading-none text-slate-900">{metrics.byType[opt.id] || 0}</span>
+                  <span className="truncate text-[11px] font-semibold">{opt.label}</span>
                 </button>
               );
-            }) : <span className="text-xs text-slate-400">Nenhuma fonte</span>}
+            })}
           </div>
-        </Metric>
-        <Metric label="Disponíveis nas dietas" value={metrics.dietItems} icon={<UtensilsCrossed className="size-5" />} />
-        <Metric label="Verificados / revisar" icon={<CheckCircle2 className="size-5" />}>
-          <div className="mt-1 flex items-center gap-2 text-xs font-semibold">
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h2 className="text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">Verificação</h2>
+            <span className="text-xs font-semibold text-slate-500">{verifiedPct}% verificado</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-amber-100" aria-hidden="true">
+            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${verifiedPct}%` }} />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setStatusFilter(statusFilter === 'verified' ? 'todos' : 'verified')}
-              className={`rounded-md px-1.5 py-0.5 transition-colors cursor-pointer ${
+              className={`flex flex-col items-start rounded-2xl border px-3 py-2.5 transition-colors cursor-pointer ${
                 statusFilter === 'verified'
-                  ? 'bg-emerald-600 text-white font-bold shadow-2xs'
-                  : 'text-emerald-600 hover:bg-emerald-50'
+                  ? 'border-emerald-300 bg-emerald-50 shadow-2xs'
+                  : 'border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-white'
               }`}
               title="Filtrar apenas itens verificados"
             >
-              {metrics.verified} verificados
+              <span className="text-xl font-black leading-none text-emerald-700">{metrics.verified}</span>
+              <span className="mt-1 text-[11px] font-semibold text-slate-600">Verificados</span>
             </button>
             <button
               type="button"
               onClick={() => setStatusFilter(statusFilter === 'draft' ? 'todos' : 'draft')}
-              className={`rounded-md px-1.5 py-0.5 transition-colors cursor-pointer ${
+              className={`flex flex-col items-start rounded-2xl border px-3 py-2.5 transition-colors cursor-pointer ${
                 statusFilter === 'draft'
-                  ? 'bg-amber-600 text-white font-bold shadow-2xs'
-                  : 'text-amber-600 hover:bg-amber-50'
+                  ? 'border-amber-300 bg-amber-50 shadow-2xs'
+                  : 'border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-white'
               }`}
               title="Filtrar itens que faltam verificar"
             >
-              {metrics.draft} revisar
+              <span className="text-xl font-black leading-none text-amber-700">{metrics.draft}</span>
+              <span className="mt-1 text-[11px] font-semibold text-slate-600">Revisar</span>
             </button>
           </div>
-        </Metric>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="product-list-title">
@@ -354,7 +372,7 @@ export default function ProdutosPage() {
                     <button
                       key={opt.id}
                       type="button"
-                      onClick={() => { setCategory(opt.id); setOpenDropdown(null); }}
+                      onClick={() => { selectCategory(opt.id); setOpenDropdown(null); }}
                       className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
                         category === opt.id 
                           ? 'bg-emerald-50 text-emerald-900 font-bold' 
@@ -435,7 +453,7 @@ export default function ProdutosPage() {
             </div>
 
             {/* Menu Dropdown de Fonte Nutricional */}
-            <div className="relative product-dropdown-container">
+            <div className={`relative product-dropdown-container ${showSourceFilter ? '' : 'hidden'}`}>
               <button
                 type="button"
                 onClick={() => setOpenDropdown(openDropdown === 'source' ? null : 'source')}
@@ -561,13 +579,6 @@ export default function ProdutosPage() {
       <ProductFormDialog open={dialogOpen} product={editingProduct} onClose={() => setDialogOpen(false)} onSave={saveProduct} onBarcodeLookup={lookupBarcode} onResearch={researchProduct} />
     </div>
   );
-}
-
-function Metric({ label, value, icon, children }) {
-  return <article className="flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-    <span className="flex size-10 items-center justify-center rounded-xl text-emerald-700">{icon}</span>
-    <div className="min-w-0"><strong className="block text-xl font-black text-slate-900">{value}</strong><span className="text-xs font-semibold text-slate-500">{label}</span>{children}</div>
-  </article>;
 }
 
 function ProductCard({ product, onEdit, onArchive }) {

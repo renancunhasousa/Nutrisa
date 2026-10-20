@@ -133,7 +133,7 @@ const PATIENT_SHORTCUTS = [
 
 const TASK_QUICK_TYPES = [
   { id: 'dieta', label: 'Dieta', desc: 'Elaborar / ajustar plano alimentar', icon: UtensilsCrossed, iconColor: 'text-orange-500' },
-  { id: 'followup', label: 'Follow-Up', desc: 'Acompanhamento pós-consulta', icon: Sparkles, iconColor: 'text-purple-500' },
+  { id: 'followup', label: 'Follow-up', desc: 'Acompanhamento pós-consulta', icon: Sparkles, iconColor: 'text-purple-500' },
   { id: 'exames', label: 'Exames / Laudo', desc: 'Analisar exames laboratoriais', icon: Activity, iconColor: 'text-teal-600' },
   { id: 'whatsapp', label: 'Dúvidas WhatsApp', desc: 'Retorno de dúvidas clínicas', icon: MessageSquare, iconColor: 'text-emerald-600' },
   { id: 'retorno', label: 'Agendar Retorno', desc: 'Consulta de acompanhamento', icon: Calendar, iconColor: 'text-amber-500' },
@@ -1369,7 +1369,7 @@ function EventDetailForm({
               </div>
             )}
             <p className="text-[10px] text-slate-400">
-              * Este mesmo link é reutilizado em todas as consultas online de {getOwnerLabel()}.
+              * Este mesmo link é reutilizado em todas as consultas online de {getOwnerLabel(organizationId)}.
             </p>
           </div>
 
@@ -1418,7 +1418,7 @@ function EventDetailForm({
               <button
                 type="button"
                 onClick={() => {
-                  const greeting = `Olá, tudo bem? Confirmando seu atendimento com ${getOwnerLabel()} dia ${startObj.toLocaleDateString('pt-BR')} às ${startTimeStr}.`;
+                  const greeting = `Olá, tudo bem? Confirmando seu atendimento com ${getOwnerLabel(organizationId)} dia ${startObj.toLocaleDateString('pt-BR')} às ${startTimeStr}.`;
                   const meetText = activeCategory.label.toLowerCase().includes('online')
                     ? `\nLink da Reunião (Google Meet): ${customMeetLink}`
                     : '';

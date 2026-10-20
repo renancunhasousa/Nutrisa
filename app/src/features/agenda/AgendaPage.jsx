@@ -1,5 +1,5 @@
 import { fetchCalendarPage, mergeLocalEvents, updateCalendarEvent, createCalendarEvent } from './services/calendar.js';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useGoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { Calendar as CalendarIcon, RefreshCw, LogIn } from 'lucide-react';
 import WebDietSidebar from './components/WebDietSidebar.jsx';
@@ -10,10 +10,13 @@ import PageHeader from '../../shared/ui/PageHeader.jsx';
 import { KEY_GOOGLE_TOKEN, KEY_GOOGLE_MEET } from '../../config/storageKeys.js';
 import { GOOGLE_CALENDAR_ID } from '../../config/env.js';
 import { getOwnerLabel } from '../configuracoes/services/clinicProfileService.js';
+import { AuthStateContext } from '../auth/useAuth.js';
 
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
 function AgendaViewContent() {
+  const auth = useContext(AuthStateContext);
+  const ownerLabel = getOwnerLabel(auth?.organizationId);
   const [events, setEvents] = useState([]);
   const calendarId = GOOGLE_CALENDAR_ID;
   const editsKey = 'nutrisa_agenda_edits:' + calendarId;
@@ -309,7 +312,6 @@ function AgendaViewContent() {
 
 export default function AgendaView() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  const ownerLabel = getOwnerLabel();
 
   if (!clientId || clientId.includes('COLOQUE_SEU_CLIENT_ID')) {
     return (

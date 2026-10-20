@@ -17,13 +17,18 @@ import {
   TrendingUp,
   User,
   Phone,
-  Calendar,
   MessageCircle,
 } from 'lucide-react';
 import { exportPackagesToCSV, savePackage } from '../services/financeStorage.js';
 import { usePatient } from '../../pacientes/usePatient.js';
 import { useAuth } from '../../auth/useAuth.js';
 import { normalizePatientPhone } from '../../pacientes/domain/phone.js';
+
+const MISSING_SORT_OPTIONS = [
+  { id: 'padrao', label: 'Ordem padrão' },
+  { id: 'faltantes_desc', label: 'Mais consultas faltantes' },
+  { id: 'faltantes_asc', label: 'Menos consultas faltantes' },
+];
 
 const STATUS_OPTIONS = [
   { id: 'todos', label: 'Todos os Status' },
@@ -76,13 +81,17 @@ export default function PackagesTab({
   onDeletePackage,
   onQuickAddSession,
   onOpenSessionModal,
+  patientFilter = null,
+  onClearPatientFilter,
 }) {
   const { organizationId } = useAuth();
   const { patients, selectPatient } = usePatient();
   const [searchTerm, setSearchTerm] = useState('');
   const [partnerFilter, setPartnerFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [openDropdown, setOpenDropdown] = useState(null); // 'partner' | 'status' | null
+  const [missingSort, setMissingSort] = useState('padrao');
+  const [expandedPackageId, setExpandedPackageId] = useState(null);
+  const [openDropdown, setOpenDropdown] = useState(null); // 'partner' | 'status' | 'missing' | null
 
   // Fechar dropdowns ao clicar fora ou pressionar Escape
   useEffect(() => {
@@ -185,7 +194,7 @@ export default function PackagesTab({
   // Filtragem
   const filteredPackages = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
-    return packages.filter((pkg) => {
+    const result = packages.filter((pkg) => {
       const matchSearch =
         !term ||
         (pkg.patientName && pkg.patientName.toLowerCase().includes(term)) ||
@@ -207,7 +216,13 @@ export default function PackagesTab({
 
       return matchSearch && matchPartner && matchStatus;
     });
-  }, [packages, searchTerm, partnerFilter, statusFilter]);
+
+    if (missingSort === 'padrao') return result;
+    // Consultas faltantes = total contratadas - já realizadas (nunca negativo)
+    const missingOf = (pkg) => Math.max(0, (pkg.totalConsultations || 0) - (pkg.completedConsultations || 0));
+    const direction = missingSort === 'faltantes_asc' ? 1 : -1;
+    return [...result].sort((a, b) => direction * (missingOf(a) - missingOf(b)));
+  }, [packages, searchTerm, partnerFilter, statusFilter, missingSort]);
 
   const handleExport = () => {
     exportPackagesToCSV(filteredPackages);
@@ -216,26 +231,39 @@ export default function PackagesTab({
   return (
     <div className="space-y-4">
       {/* Barra de Filtros e Busca */}
-      <div className="relative z-30 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white/70 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-slate-200/60 shadow-xs">
+      <div className="relative z-30 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
         <div className="flex flex-1 flex-wrap items-center gap-2 sm:gap-2.5">
           {/* Input de busca */}
-          <div className="relative min-w-[220px] flex-1">
+          <div className="relative w-full sm:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar por paciente, plano ou nutrólogo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="min-h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-3 text-xs font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all"
             />
           </div>
+
+          {/* Filtro de paciente vindo da tela de pacientes (mesmo padrão de Tarefas) */}
+          {patientFilter ? (
+            <button
+              type="button"
+              onClick={onClearPatientFilter}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:bg-emerald-700 cursor-pointer active:scale-95"
+              title="Limpar filtro e exibir todos os pacotes"
+            >
+              <span>Paciente: {patientFilter.name}</span>
+              <span className="text-[10px] opacity-85">✕ Limpar</span>
+            </button>
+          ) : null}
 
           {/* Menu Dropdown de Parceiro */}
           <div className="relative finance-dropdown-container">
             <button
               type="button"
               onClick={() => setOpenDropdown(openDropdown === 'partner' ? null : 'partner')}
-              className={`inline-flex min-h-10 items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+              className={`inline-flex w-56 shrink-0 items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
                 partnerFilter !== 'todos'
                   ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -243,7 +271,7 @@ export default function PackagesTab({
               title="Filtrar pacotes por profissional parceiro"
               aria-expanded={openDropdown === 'partner'}
             >
-              <span className="flex items-center gap-1.5 truncate max-w-[150px]">
+              <span className="flex min-w-0 items-center gap-1.5 truncate">
                 <Stethoscope className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">
                   {partnerFilter === 'todos' ? 'Parceiro' : partnerFilter}
@@ -291,12 +319,61 @@ export default function PackagesTab({
             )}
           </div>
 
+          {/* Menu Dropdown de Ordenação por Consultas Faltantes */}
+          <div className="relative finance-dropdown-container">
+            <button
+              type="button"
+              onClick={() => setOpenDropdown(openDropdown === 'missing' ? null : 'missing')}
+              className={`inline-flex w-56 shrink-0 items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                missingSort !== 'padrao'
+                  ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+              }`}
+              title="Ordenar pacotes por consultas faltantes"
+              aria-expanded={openDropdown === 'missing'}
+            >
+              <span className="flex min-w-0 items-center gap-1.5 truncate">
+                <Filter className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">
+                  {MISSING_SORT_OPTIONS.find((opt) => opt.id === missingSort)?.label}
+                </span>
+              </span>
+              <ChevronDown className={`w-3 h-3 shrink-0 opacity-70 transition-transform duration-200 ${openDropdown === 'missing' ? 'rotate-180' : ''}`} />
+            </button>
+
+            {openDropdown === 'missing' && (
+              <div
+                className="absolute left-0 mt-2 w-56 app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-scale-up space-y-1"
+                style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+              >
+                <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Ordenar por consultas faltantes
+                </div>
+                {MISSING_SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => { setMissingSort(opt.id); setOpenDropdown(null); }}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                      missingSort === opt.id
+                        ? 'bg-emerald-50 text-emerald-900 font-bold'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {missingSort === opt.id && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Menu Dropdown de Status */}
           <div className="relative finance-dropdown-container">
             <button
               type="button"
               onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')}
-              className={`inline-flex min-h-10 items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+              className={`inline-flex w-56 shrink-0 items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
                 statusFilter !== 'todos'
                   ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -304,7 +381,7 @@ export default function PackagesTab({
               title="Filtrar pacotes por status"
               aria-expanded={openDropdown === 'status'}
             >
-              <span className="flex items-center gap-1.5 truncate">
+              <span className="flex min-w-0 items-center gap-1.5 truncate">
                 <Filter className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">
                   {STATUS_OPTIONS.find((opt) => opt.id === statusFilter)?.label || 'Status'}
@@ -378,15 +455,12 @@ export default function PackagesTab({
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="max-h-[440px] overflow-auto overscroll-contain custom-scrollbar">
             <table className="w-full text-left text-xs sm:text-sm border-collapse">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-slate-50">
                 <tr className="border-b border-slate-200/70 bg-slate-50/75 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
                   <th className="py-3 px-4">Paciente</th>
-                  <th className="py-3 px-4">Parceria & Plano</th>
-                  <th className="py-3 px-4">Frequência</th>
-                  <th className="py-3 px-4">Consultas (Feitas / Total)</th>
-                  <th className="py-3 px-2.5 sm:px-3">Pendências</th>
+                  <th className="py-3 px-4">Progresso</th>
                   <th className="py-3 px-4 text-center">Financeiro</th>
                   <th className="py-3 px-2 sm:px-3 text-right">Status</th>
                   <th className="py-3 px-4 text-right">Ações</th>
@@ -401,9 +475,9 @@ export default function PackagesTab({
                   const isDone = completed >= total;
 
                   return (
+                    <React.Fragment key={pkg.id}>
                     <tr
-                      key={pkg.id}
-                      className="group hover:bg-emerald-50/30 transition-colors"
+                      className={`group hover:bg-emerald-50/30 transition-colors ${expandedPackageId === pkg.id ? 'bg-emerald-50/20' : ''}`}
                     >
                       {/* Paciente com Avatar / Foto e quebra de linha permitida */}
                       <td className="py-3 px-4">
@@ -426,45 +500,33 @@ export default function PackagesTab({
                                 >
                                   {pkg.patientName}
                                 </button>
+                                <p className="mt-0.5 max-w-[220px] truncate text-[11px] text-slate-500" title={`${pkg.planName || ''} · ${pkg.frequency || 'Mensal'}`}>
+                                  {pkg.planName || 'Sem plano'} · {pkg.frequency || 'Mensal'}
+                                </p>
                               </div>
                             </div>
                           );
                         })()}
                       </td>
 
-                      {/* Parceria e Plano (Sem quebrar linha) */}
-                      <td className="py-3 px-3.5 sm:px-4 whitespace-nowrap min-w-[140px]">
-                        <div>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200/70 text-teal-800 text-[11px] font-bold whitespace-nowrap shadow-2xs">
-                            <Stethoscope className="size-3" />
-                            {pkg.partnerName || 'Parceria'}
-                          </span>
-                          <p className="font-semibold text-slate-800 mt-1 text-xs truncate max-w-[150px]" title={pkg.planName}>
-                            {pkg.planName}
-                          </p>
-                        </div>
-                      </td>
-
-                      {/* Frequência */}
-                      <td className="py-3 px-3.5 sm:px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 text-slate-600 font-medium text-xs">
-                          <Calendar className="size-3 text-slate-400" />
-                          {pkg.frequency || 'Mensal'}
-                        </span>
-                      </td>
-
-                      {/* Consultas (Feitas / Total) & Incremento Rápido */}
-                      <td className="py-3 px-3.5 sm:px-4 min-w-[180px]">
+                      {/* Progresso: consultas feitas, faltantes e incremento rápido +1 */}
+                      <td className="py-3 px-3.5 sm:px-4 min-w-[200px]">
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-extrabold text-slate-900">
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="font-extrabold text-slate-900 whitespace-nowrap">
                               {completed} <span className="font-normal text-slate-400">/ {total} feitas</span>
                             </span>
-                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                              isDone ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {percent}%
-                            </span>
+                            {isDone ? (
+                              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-emerald-700 whitespace-nowrap">
+                                <CheckCircle2 className="size-3 shrink-0" />
+                                Concluído
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-amber-700 whitespace-nowrap">
+                                <Clock className="size-3 shrink-0" />
+                                faltam {pending}
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -489,32 +551,6 @@ export default function PackagesTab({
                               </button>
                             )}
                           </div>
-                        </div>
-                      </td>
-
-                      {/* Pendências (Estreitada) */}
-                      <td className="py-3 px-2.5 sm:px-3 min-w-[100px] max-w-[130px]">
-                        <div className="space-y-1">
-                          {pending > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/70 text-[10.5px] font-bold whitespace-nowrap">
-                              <Clock className="size-3 shrink-0" />
-                              Faltam {pending} consulta(s)
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-[10.5px] font-bold whitespace-nowrap">
-                              <CheckCircle2 className="size-3 shrink-0" />
-                              Concluído
-                            </span>
-                          )}
-
-                          {pkg.notes && (
-                            <p
-                              className="text-[10.5px] text-slate-500 truncate max-w-[120px]"
-                              title={pkg.notes}
-                            >
-                              💬 {pkg.notes}
-                            </p>
-                          )}
                         </div>
                       </td>
 
@@ -584,6 +620,15 @@ export default function PackagesTab({
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
+                            onClick={() => setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id)}
+                            title={expandedPackageId === pkg.id ? 'Ocultar detalhes' : 'Ver detalhes e comentário'}
+                            aria-expanded={expandedPackageId === pkg.id}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                          >
+                            <ChevronDown className={`size-4 transition-transform duration-200 ${expandedPackageId === pkg.id ? 'rotate-180' : ''}`} />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleGoToPatient(pkg)}
                             title={`Ir para o prontuário de ${pkg.patientName} em Pacientes`}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
@@ -621,6 +666,37 @@ export default function PackagesTab({
                         </div>
                       </td>
                     </tr>
+                    {expandedPackageId === pkg.id && (
+                      <tr className="bg-slate-50/70">
+                        <td colSpan={5} className="px-4 py-3">
+                          <div className="grid gap-3 text-xs sm:grid-cols-3">
+                            <div>
+                              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Parceria</p>
+                              <p className="mt-0.5 font-semibold text-slate-800">{pkg.partnerName || 'Parceria não informada'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Início</p>
+                              <p className="mt-0.5 font-semibold text-slate-800">
+                                {pkg.startDate ? pkg.startDate.split('-').reverse().join('/') : 'Não informado'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Repasse</p>
+                              <p className="mt-0.5 font-semibold text-slate-800">
+                                {pkg.partnerShare ? `R$ ${pkg.partnerShare.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Sem repasse'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                            <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Comentário</p>
+                            <p className="whitespace-pre-wrap text-xs text-slate-700">
+                              {pkg.notes || 'Nenhum comentário registrado para este pacote.'}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

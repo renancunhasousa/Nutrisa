@@ -339,17 +339,17 @@ export default function TarefasPage() {
         </div>
 
         {/* Chips de Categoria */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-slate-100 no-scrollbar">
+        <div className="grid grid-cols-3 gap-1.5 border-t border-slate-100 pt-3 sm:grid-cols-5 xl:grid-cols-9">
           <button
             type="button"
             onClick={() => setCategoryFilter('all')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+            className={`min-w-0 truncate rounded-lg px-2.5 py-1.5 text-center text-xs font-bold transition-all cursor-pointer ${
               categoryFilter === 'all'
                 ? 'bg-slate-900 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Todas as Categorias
+            Todas
           </button>
           {Object.values(TASK_CATEGORIES).map((cat) => {
             const isSelected = categoryFilter === cat.id;
@@ -358,7 +358,7 @@ export default function TarefasPage() {
                 key={cat.id}
                 type="button"
                 onClick={() => setCategoryFilter(cat.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap border transition-all cursor-pointer flex items-center gap-1 ${
+                className={`flex min-w-0 items-center justify-center gap-1.5 truncate rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                   isSelected
                     ? `${cat.badgeBg} ring-1 ring-emerald-500 shadow-2xs`
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'

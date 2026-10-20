@@ -320,7 +320,7 @@ export default function ContratosPage({ activeModel, nutritionist }) {
               />
             </div>
             
-            <div className="relative z-10 contratos-payment-dropdown">
+            <div className={`relative contratos-payment-dropdown ${isPaymentMenuOpen ? 'z-40' : 'z-10'}`}>
               <label className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900 mb-1.5 ml-1">
                 <CreditCard className="size-3.5 text-emerald-600" aria-hidden="true" />
                 <span>Forma de Pagamento</span>

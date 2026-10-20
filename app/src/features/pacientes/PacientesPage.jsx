@@ -24,6 +24,7 @@ import {
   UserRound,
   Users,
   UtensilsCrossed,
+  Wallet,
 } from 'lucide-react';
 import { useAuth } from '../auth/useAuth.js';
 import { usePatient } from './usePatient.js';
@@ -38,6 +39,8 @@ import PageHeader from '../../shared/ui/PageHeader.jsx';
 import { linkConversationsToPatient } from '../atendimento/services/conversations.js';
 import PatientAiSummary from './components/PatientAiSummary.jsx';
 import PatientClinicalHistory from './components/PatientClinicalHistory.jsx';
+import PatientFinanceShortcuts from './components/PatientFinanceShortcuts.jsx';
+import { writeFinancePatientFilter, writeFinanceQuickAction } from '../financas/services/financeQuickAction.js';
 
 const STAGE_LABELS = {
   lead: 'Lead',
@@ -92,6 +95,14 @@ const PATIENT_SHORTCUTS = [
     label: 'Agenda',
     icon: Calendar,
     tooltip: 'Ver agenda e consultas deste paciente',
+    colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
+    iconColor: 'text-sky-600',
+  },
+  {
+    id: 'financas',
+    label: 'Financeiro',
+    icon: Wallet,
+    tooltip: 'Ver pacotes e lançamentos financeiros deste paciente',
     colorClasses: 'hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800',
     iconColor: 'text-sky-600',
   },
@@ -244,6 +255,11 @@ export default function PacientesPage({ onNavigate, activeModel }) {
     }
   };
 
+  const handleOpenFinance = (action) => {
+    writeFinanceQuickAction(action);
+    handleNavigate('financas');
+  };
+
   const handleNavigate = async (mode) => {
     if (selectedPatient) {
       selectPatient(selectedPatient);
@@ -265,6 +281,7 @@ export default function PacientesPage({ onNavigate, activeModel }) {
           }));
         } catch {}
       }
+      if (mode === 'financas') writeFinancePatientFilter(selectedPatient);
     }
     if (typeof onNavigate === 'function') {
       onNavigate(mode);
@@ -739,6 +756,8 @@ export default function PacientesPage({ onNavigate, activeModel }) {
 
               <div className="my-6 border-t border-slate-200/90" />
               <PatientAiSummary patient={selectedPatient} activeModel={activeModel} />
+              <div className="my-6 border-t border-slate-200/90" />
+              <PatientFinanceShortcuts onOpen={handleOpenFinance} />
               <div className="my-6 border-t border-slate-200/90" />
               <PatientClinicalHistory patient={selectedPatient} onNavigate={handleNavigate} />
             </article>

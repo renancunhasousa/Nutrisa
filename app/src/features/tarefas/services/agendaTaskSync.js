@@ -18,7 +18,7 @@ export const AGENDA_SYNC_MODES = {
       border: 'border-orange-200 hover:border-orange-400',
       activeBorder: 'border-orange-500 ring-2 ring-orange-500/20 bg-orange-50/50',
       badge: 'bg-orange-100 text-orange-800 border-orange-200',
-      iconBg: 'bg-orange-100 text-orange-600',
+      iconText: 'text-orange-600',
     },
   },
   exames: {
@@ -36,7 +36,7 @@ export const AGENDA_SYNC_MODES = {
       border: 'border-teal-200 hover:border-teal-400',
       activeBorder: 'border-teal-500 ring-2 ring-teal-500/20 bg-teal-50/50',
       badge: 'bg-teal-100 text-teal-800 border-teal-200',
-      iconBg: 'bg-teal-100 text-teal-600',
+      iconText: 'text-teal-600',
     },
   },
   anamnese: {
@@ -54,7 +54,7 @@ export const AGENDA_SYNC_MODES = {
       border: 'border-sky-200 hover:border-sky-400',
       activeBorder: 'border-sky-500 ring-2 ring-sky-500/20 bg-sky-50/50',
       badge: 'bg-sky-100 text-sky-800 border-sky-200',
-      iconBg: 'bg-sky-100 text-sky-600',
+      iconText: 'text-sky-600',
     },
   },
   retorno: {
@@ -72,7 +72,7 @@ export const AGENDA_SYNC_MODES = {
       border: 'border-amber-200 hover:border-amber-400',
       activeBorder: 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/50',
       badge: 'bg-amber-100 text-amber-800 border-amber-200',
-      iconBg: 'bg-amber-100 text-amber-600',
+      iconText: 'text-amber-600',
     },
   },
   geral: {
@@ -90,7 +90,7 @@ export const AGENDA_SYNC_MODES = {
       border: 'border-slate-200 hover:border-slate-400',
       activeBorder: 'border-slate-600 ring-2 ring-slate-600/20 bg-slate-100/60',
       badge: 'bg-slate-100 text-slate-800 border-slate-200',
-      iconBg: 'bg-slate-100 text-slate-600',
+      iconText: 'text-slate-600',
     },
   },
 };

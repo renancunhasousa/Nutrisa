@@ -40,7 +40,7 @@ export const TASK_CATEGORIES = {
   },
   followup: {
     id: 'followup',
-    label: 'Follow-Up',
+    label: 'Follow-up',
     iconName: 'Sparkles',
     color: 'purple',
     badgeBg: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -59,9 +59,9 @@ export const TASK_CATEGORIES = {
     id: 'relacionamento',
     label: 'Relacionamento',
     iconName: 'Sparkles',
-    color: 'emerald',
-    badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    dotBg: 'bg-emerald-500',
+    color: 'pink',
+    badgeBg: 'bg-pink-50 text-pink-700 border-pink-200',
+    dotBg: 'bg-pink-500',
     defaultModule: 'crm',
   },
   geral: {

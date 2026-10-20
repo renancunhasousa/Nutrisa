@@ -4,9 +4,6 @@ import {
   Filter,
   Check,
   ChevronDown,
-  ArrowDownLeft,
-  ArrowUpRight,
-  DollarSign,
   Calendar,
   Pencil,
   Trash2,
@@ -16,6 +13,11 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { exportTransactionsToCSV } from '../services/financeStorage.js';
+
+const DATE_SORT_OPTIONS = [
+  { id: 'date_desc', label: 'Mais recentes primeiro' },
+  { id: 'date_asc', label: 'Mais antigas primeiro' },
+];
 
 const TYPE_OPTIONS = [
   { id: 'todos', label: 'Todos os Tipos' },
@@ -28,11 +30,14 @@ export default function TransactionsTab({
   onOpenNewTransaction,
   onEditTransaction,
   onDeleteTransaction,
+  patientFilter = null,
+  onClearPatientFilter,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('todos');
   const [categoryFilter, setCategoryFilter] = useState('todos');
-  const [openDropdown, setOpenDropdown] = useState(null); // 'type' | 'category' | null
+  const [dateSort, setDateSort] = useState('date_desc');
+  const [openDropdown, setOpenDropdown] = useState(null); // 'type' | 'category' | 'sort' | null
 
   // Fechar dropdowns ao clicar fora ou com Escape
   useEffect(() => {
@@ -65,7 +70,7 @@ export default function TransactionsTab({
   // Filtragem
   const filtered = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
-    return transactions.filter((t) => {
+    const result = transactions.filter((t) => {
       const matchSearch =
         !term ||
         (t.description && t.description.toLowerCase().includes(term)) ||
@@ -77,18 +82,11 @@ export default function TransactionsTab({
 
       return matchSearch && matchType && matchCategory;
     });
-  }, [transactions, searchTerm, typeFilter, categoryFilter]);
 
-  // Métricas do Caixa
-  const { totalIncome, totalExpense, balance } = useMemo(() => {
-    let inc = 0;
-    let exp = 0;
-    transactions.forEach((t) => {
-      if (t.type === 'receita') inc += Number(t.amount || 0);
-      else if (t.type === 'despesa') exp += Number(t.amount || 0);
-    });
-    return { totalIncome: inc, totalExpense: exp, balance: inc - exp };
-  }, [transactions]);
+    // Ordenação por data do lançamento (datas no formato AAAA-MM-DD ordenam corretamente como texto)
+    const direction = dateSort === 'date_asc' ? 1 : -1;
+    return result.sort((a, b) => direction * (a.date || '').localeCompare(b.date || ''));
+  }, [transactions, searchTerm, typeFilter, categoryFilter, dateSort]);
 
   const handleExport = () => {
     exportTransactionsToCSV(filtered);
@@ -96,84 +94,40 @@ export default function TransactionsTab({
 
   return (
     <div className="space-y-4">
-      {/* Cards de Resumo Rápido do Caixa (Ícones sem fundo conforme solicitado) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        {/* Card 1: Total Receitas */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-xs relative overflow-hidden group hover:border-emerald-200 transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-              Total Receitas
-            </span>
-            <ArrowDownLeft className="size-5 text-emerald-600 shrink-0" />
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-emerald-600">
-              R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <p className="text-[11px] text-emerald-700 font-semibold mt-1">
-            Entradas e consultas recebidas
-          </p>
-        </div>
-
-        {/* Card 2: Total Despesas */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-xs relative overflow-hidden group hover:border-rose-200 transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-              Total Despesas
-            </span>
-            <ArrowUpRight className="size-5 text-rose-600 shrink-0" />
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-rose-600">
-              R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <p className="text-[11px] text-rose-700 font-semibold mt-1">
-            Repasses e custos operacionais
-          </p>
-        </div>
-
-        {/* Card 3: Saldo Geral */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-xs relative overflow-hidden group hover:border-slate-300 transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-              Saldo Geral
-            </span>
-            <DollarSign className={`size-5 shrink-0 ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className={`text-2xl sm:text-3xl font-black ${balance >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>
-              R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <p className={`text-[11px] font-semibold mt-1 ${balance >= 0 ? 'text-slate-500' : 'text-rose-600'}`}>
-            Resultado líquido do período
-          </p>
-        </div>
-      </div>
-
       {/* Barra de Busca e Filtros (Layout idêntico à seção de Pacotes) */}
-      <div className="relative z-30 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white/70 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-slate-200/60 shadow-xs">
+      <div className="relative z-30 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
         <div className="flex flex-1 flex-wrap items-center gap-2 sm:gap-2.5">
           {/* Input de busca */}
-          <div className="relative min-w-[220px] flex-1">
+          <div className="relative w-full sm:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar lançamento, categoria ou observação..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="min-h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-3 text-xs font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all"
             />
           </div>
+
+          {/* Filtro de paciente vindo da tela de pacientes (mesmo padrão de Tarefas) */}
+          {patientFilter ? (
+            <button
+              type="button"
+              onClick={onClearPatientFilter}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:bg-emerald-700 cursor-pointer active:scale-95"
+              title="Limpar filtro e exibir todos os lançamentos"
+            >
+              <span>Paciente: {patientFilter.name}</span>
+              <span className="text-[10px] opacity-85">✕ Limpar</span>
+            </button>
+          ) : null}
 
           {/* Menu Dropdown de Tipo */}
           <div className="relative finance-dropdown-container">
             <button
               type="button"
               onClick={() => setOpenDropdown(openDropdown === 'type' ? null : 'type')}
-              className={`inline-flex min-h-10 items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+              className={`inline-flex w-56 shrink-0 items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
                 typeFilter !== 'todos'
                   ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -181,7 +135,7 @@ export default function TransactionsTab({
               title="Filtrar por tipo de lançamento"
               aria-expanded={openDropdown === 'type'}
             >
-              <span className="flex items-center gap-1.5 truncate max-w-[150px]">
+              <span className="flex min-w-0 items-center gap-1.5 truncate">
                 <Filter className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">
                   {typeFilter === 'todos'
@@ -233,7 +187,7 @@ export default function TransactionsTab({
               <button
                 type="button"
                 onClick={() => setOpenDropdown(openDropdown === 'category' ? null : 'category')}
-                className={`inline-flex min-h-10 items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                className={`inline-flex w-56 shrink-0 items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
                   categoryFilter !== 'todos'
                     ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -241,7 +195,7 @@ export default function TransactionsTab({
                 title="Filtrar por categoria"
                 aria-expanded={openDropdown === 'category'}
               >
-                <span className="flex items-center gap-1.5 truncate max-w-[150px]">
+                <span className="flex min-w-0 items-center gap-1.5 truncate">
                   <Tag className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">
                     {categoryFilter === 'todos' ? 'Categoria' : categoryFilter}
@@ -302,6 +256,55 @@ export default function TransactionsTab({
             </div>
           )}
 
+          {/* Menu Dropdown de Ordenação por Data */}
+          <div className="relative finance-dropdown-container">
+            <button
+              type="button"
+              onClick={() => setOpenDropdown(openDropdown === 'sort' ? null : 'sort')}
+              className={`inline-flex w-56 shrink-0 items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                dateSort !== 'date_desc'
+                  ? 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-200'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+              }`}
+              title="Ordenar lançamentos por data"
+              aria-expanded={openDropdown === 'sort'}
+            >
+              <span className="flex min-w-0 items-center gap-1.5 truncate">
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">
+                  {DATE_SORT_OPTIONS.find((opt) => opt.id === dateSort)?.label}
+                </span>
+              </span>
+              <ChevronDown className={`w-3 h-3 shrink-0 opacity-70 transition-transform duration-200 ${openDropdown === 'sort' ? 'rotate-180' : ''}`} />
+            </button>
+
+            {openDropdown === 'sort' && (
+              <div
+                className="absolute left-0 mt-2 w-56 app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-scale-up space-y-1"
+                style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+              >
+                <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Ordenar por data
+                </div>
+                {DATE_SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => { setDateSort(opt.id); setOpenDropdown(null); }}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                      dateSort === opt.id
+                        ? 'bg-emerald-50 text-emerald-900 font-bold'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {dateSort === opt.id && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Botão de Limpar Filtros se houver filtro ativo */}
           {(searchTerm || typeFilter !== 'todos' || categoryFilter !== 'todos') && (
             <button
@@ -337,9 +340,9 @@ export default function TransactionsTab({
             Nenhum lançamento financeiro encontrado com os filtros atuais.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="max-h-[440px] overflow-auto overscroll-contain custom-scrollbar">
             <table className="w-full text-left text-xs sm:text-sm border-collapse">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-slate-50">
                 <tr className="border-b border-slate-200/70 bg-slate-50/75 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
                   <th className="py-3 px-4">Data</th>
                   <th className="py-3 px-4">Descrição</th>

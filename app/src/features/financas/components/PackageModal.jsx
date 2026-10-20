@@ -50,7 +50,7 @@ const PARTNER_SUGGESTIONS = [
 const SECTION_CLASS = 'rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:p-5';
 const FIELD_CLASS = 'mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-normal shadow-2xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 sm:text-sm';
 
-export default function PackageModal({ open, onClose, onSave, initialData }) {
+export default function PackageModal({ open, onClose, onSave, initialData, defaultPatient }) {
   const dialogRef = useRef(null);
   const { patients } = usePatient();
 
@@ -136,9 +136,10 @@ export default function PackageModal({ open, onClose, onSave, initialData }) {
       setNotes(initialData.notes || '');
       setPatientQuery(initialData.patientName || '');
     } else {
-      setPatientName('');
-      setPatientPhone('');
-      setPatientId('');
+      const seedName = defaultPatient?.full_name || defaultPatient?.name || '';
+      setPatientName(seedName);
+      setPatientPhone(defaultPatient?.whatsapp_phone || defaultPatient?.phone || '');
+      setPatientId(defaultPatient?.id || '');
       setPartnerName('Dr. Nutrólogo');
       setPlanName('Protocolo Integrado (Nutro + Nutri)');
       setFrequency('Mensal');
@@ -151,13 +152,13 @@ export default function PackageModal({ open, onClose, onSave, initialData }) {
       setStatus('ativo');
       setStartDate(new Date().toISOString().split('T')[0]);
       setNotes('');
-      setPatientQuery('');
+      setPatientQuery(seedName);
     }
     setIsPatientDropdownOpen(false);
     setActiveDropdown(null);
     setIsLinkingOpen(false);
     setPatientSearch('');
-  }, [initialData, open]);
+  }, [initialData, open, defaultPatient]);
 
   const handleAddPaymentMethod = () => {
     const baseVal = Number(packageValue) || 0;

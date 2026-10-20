@@ -19,6 +19,7 @@ import {
   KEY_GOOGLE_TOKEN,
 } from '../../config/storageKeys.js';
 import { GOOGLE_CALENDAR_ID } from '../../config/env.js';
+import { supabase } from '../../shared/services/supabase.js';
 
 export function useAppSettings() {
   const auth = useContext(AuthStateContext);
@@ -327,13 +328,39 @@ export function useAppSettings() {
         }
       }
 
+      // C. Avisos gravados pelo sistema (ex.: WhatsApp desconectado) para esta organização
+      if (organizationId && supabase) {
+        try {
+          const { data: platformRows, error: platformError } = await supabase
+            .from('platform_notifications')
+            .select('id, category, type, title, description, created_at')
+            .eq('organization_id', organizationId)
+            .order('created_at', { ascending: false })
+            .limit(20);
+          if (platformError) throw platformError;
+
+          for (const row of platformRows || []) {
+            items.push({
+              id: `platform_${row.id}`,
+              category: row.category,
+              type: row.type,
+              title: row.title,
+              description: row.description,
+              timeAgo: new Date(row.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            });
+          }
+        } catch (platformErr) {
+          console.warn('Não foi possível carregar avisos da plataforma:', platformErr);
+        }
+      }
+
       setNotificationsList(items);
     }
 
     checkSystemNotifications();
     const interval = setInterval(checkSystemNotifications, 60000); // Recheca a cada 1 minuto
     return () => clearInterval(interval);
-  }, [liveNotificationsEnabled]);
+  }, [liveNotificationsEnabled, organizationId]);
 
   return {
     availableModels,

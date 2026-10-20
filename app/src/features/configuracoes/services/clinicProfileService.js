@@ -36,6 +36,10 @@ export function getActiveNutritionist(organizationId = null) {
     const raw = localStorage.getItem('nutrisa_nutritionist_profile') || localStorage.getItem(KEY_NUTRITIONIST);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // Cache de outra organização não pode vazar para a organização logada
+      if (organizationId && parsed.organization_id && parsed.organization_id !== organizationId) {
+        return getClinicProfileFallback(organizationId);
+      }
       return normalizeClinicProfile(parsed, organizationId || parsed.organization_id);
     }
   } catch {}
@@ -119,7 +123,7 @@ export async function fetchClinicProfile(organizationId) {
   if (data) {
     const profile = normalizeClinicProfile(data, organizationId);
     try {
-      const serialized = JSON.stringify(profile);
+      const serialized = JSON.stringify({ ...profile, organization_id: organizationId });
       localStorage.setItem(KEY_NUTRITIONIST, serialized);
       localStorage.setItem('nutrisa_nutritionist_profile', serialized);
     } catch {
@@ -166,7 +170,7 @@ export async function saveClinicProfile(organizationId, profile, userId = null) 
 
   // Mantém cópia local imediata
   try {
-    const serialized = JSON.stringify(normalized);
+    const serialized = JSON.stringify({ ...normalized, organization_id: organizationId });
     localStorage.setItem(KEY_NUTRITIONIST, serialized);
     localStorage.setItem('nutrisa_nutritionist_profile', serialized);
   } catch {
