@@ -221,15 +221,19 @@ export default function PatientAiSummary({ patient, activeModel }) {
 
       const age = calculateAge(patient.birth_date);
 
-      // 4. Montagem do prompt para o Gemini
-      const systemInstruction = `Você é a IA clínica assistente do consultório de nutrição da Dra. Isabela (NutrIsa).
+      const activeNutri = getActiveNutritionist();
+      const nutriName = activeNutri?.name || 'Nutricionista Responsável';
+      const clinicName = activeNutri?.clinic || 'Consultório de Nutrição';
+
+      // 4. Montagem do prompt para a IA Clínica
+      const systemInstruction = `Você é a IA clínica assistente do consultório "${clinicName}", atuando em apoio técnico ao acompanhamento nutricional liderado por ${nutriName}.
 Seu objetivo é gerar uma síntese clínica inteligente 360° estruturada, direta e de alto valor prático sobre o paciente informado, cruzando todos os dados disponíveis (cadastro, WhatsApp, tarefas e plano alimentar).
 
 Organize o texto com títulos e tópicos claros em Markdown:
 1. 👤 **Identidade & Momento Clínico**: Perfil, idade, objetivo aparente, estágio no consultório e observações.
 2. 💬 **Histórico no WhatsApp & Principais Dúvidas**: Data e hora da última conversa, frequência de mensagens, principais dúvidas ou pedidos feitos no chat.
 3. 📋 **Demandas & Acompanhamento**: Status das tarefas clínicas pendentes ou concluídas e status do plano alimentar.
-4. 💡 **Recomendações e Próximos Passos**: O que a Dra. Isabela ou a secretária devem priorizar no próximo contato ou consulta.
+4. 💡 **Recomendações e Próximos Passos**: O que ${nutriName} ou a equipe de atendimento devem priorizar no próximo contato ou consulta.
 
 Seja objetivo, profissional e foque em pontos clínicos acionáveis. Não invente dados ausentes; apenas indique com clareza o que consta ou não no histórico.`;
 

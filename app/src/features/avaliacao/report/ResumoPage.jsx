@@ -15,7 +15,7 @@ return (<>            {/* LAUDO FINAL DE NUTRIÇÃO - ESTILO A4 IMPRESSÃO (PÁG
               <div className="border-b-2 border-emerald-800 pb-5 print:pb-3">
                 <div className="flex flex-col md:flex-row justify-between items-start print:flex-row">
                   <div className="flex items-center space-x-3.5">
-                    <img src={logoPdf} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+                    <img src={nutritionist?.logoUrl || logoPdf} alt={nutritionist?.clinic || 'Logo'} className="w-12 h-12 object-contain flex-shrink-0" />
                     <div>
                       <h1 className="text-2xl print:text-lg font-black tracking-tight text-emerald-950 uppercase whitespace-nowrap truncate">{nutritionist.name}</h1>
                       <p className="text-xs print:text-[10px] font-semibold text-emerald-700 uppercase tracking-wider whitespace-nowrap truncate">{nutritionist.title}</p>
@@ -261,11 +261,21 @@ return (<>            {/* LAUDO FINAL DE NUTRIÇÃO - ESTILO A4 IMPRESSÃO (PÁG
                   </div>
                   <div className="flex flex-col items-center md:items-end print:items-end space-y-1">
                     <div className="flex flex-col items-center md:items-end print:items-end">
-                      <img 
-                        src={signatureImg} 
-                        alt="Assinatura da Nutricionista" 
-                        className="h-18 md:h-20 w-auto object-contain drop-shadow-xs" 
-                      />
+                      {nutritionist?.signatureUrl ? (
+                        <img 
+                          src={nutritionist.signatureUrl} 
+                          alt="Assinatura da Nutricionista" 
+                          className="h-18 md:h-20 w-auto object-contain drop-shadow-xs" 
+                        />
+                      ) : String(nutritionist?.name || '').toLowerCase().includes('isabela') ? (
+                        <img 
+                          src={signatureImg} 
+                          alt="Assinatura da Nutricionista" 
+                          className="h-18 md:h-20 w-auto object-contain drop-shadow-xs" 
+                        />
+                      ) : (
+                        <div className="h-14 w-40 border-b border-slate-400 mb-1" />
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold text-emerald-800">Página 1 de 4</p>

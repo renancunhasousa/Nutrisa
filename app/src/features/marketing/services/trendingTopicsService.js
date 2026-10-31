@@ -44,7 +44,7 @@ export const DEFAULT_TRENDING_TOPICS = [
   {
     title: 'Água com limão e vinagre em jejum queima gordura? A verdade clínica',
     format: 'autoridade',
-    formatLabel: '1. Dra. Isabela Explica',
+    formatLabel: '1. Autoridade Explica',
     tag: 'Tendência Web • Mitos Virais',
     insight: 'Mito clássico que volta a viralizar ciclicamente nas redes sociais de bem-estar.'
   },
@@ -60,12 +60,17 @@ export const DEFAULT_TRENDING_TOPICS = [
 /**
  * Busca tendências da internet e redes com a IA (Gemini)
  */
-export async function fetchTrendingWebTopics({ callAiFn, model } = {}) {
+export async function fetchTrendingWebTopics({ callAiFn, model, authorInfo = {} } = {}) {
   if (typeof callAiFn !== 'function') {
     return DEFAULT_TRENDING_TOPICS;
   }
 
-  const prompt = `Você é o estrategista de marketing digital e tendências da Dra. Isabela Muñoz (Nutricionista Clínica e Esportiva, certificada ACSM).
+  const isIsabela = /isabela/i.test(authorInfo.name || '') || (authorInfo.organization_id === 'd116690a-ae43-4e33-88d0-cd1d45a49991');
+  const authorName = (authorInfo.name || '').trim() || (isIsabela ? 'Dra. Isabela Muñoz' : 'Nutricionista Responsável');
+  const authorTitle = authorInfo.title || (isIsabela ? 'Nutricionista Clínica e Esportiva, certificada ACSM' : 'Nutricionista Clínica e Esportiva');
+  const format1Label = isIsabela ? '1. Dra. Isabela Explica' : `1. ${(authorInfo.name || 'Nutri').split(' ')[0]} Explica`;
+
+  const prompt = `Você é o estrategista de marketing digital e tendências de ${authorName} (${authorTitle}).
 
 Sua tarefa é identificar 6 TEMAS EM ALTA e tendências quentes da internet e das redes sociais (Instagram, TikTok, Google Trends, PubMed recente) sobre:
 - Nutrição esportiva e hipertrofia
@@ -77,7 +82,7 @@ Sua tarefa é identificar 6 TEMAS EM ALTA e tendências quentes da internet e da
 Para cada tema identificado:
 1. Crie um título magnético com gancho forte de retenção.
 2. Recomende OBRIGATORIAMENTE o melhor formato entre os 7 do estúdio:
-   - "autoridade": 1. Dra. Isabela Explica (posicionamento, desmistificação médica)
+   - "autoridade": ${format1Label} (posicionamento, desmistificação médica)
    - "prato": 2. Prato & Performance (refeições reais, macros, glicemia)
    - "ciencia": 3. Ciência vs Senso Comum (mitos da internet vs evidências ACSM)
    - "dicas": 4. Dicas 01 / 02 / 03 (listas práticas de 3 passos)

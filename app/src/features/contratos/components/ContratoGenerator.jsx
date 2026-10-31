@@ -3,17 +3,18 @@ import { defaultClauses } from '../domain/defaultClauses';
 import { SignaturePad } from './SignaturePad';
 import { ContratoPrintLayout } from './ContratoPrintLayout';
 import { KEY_CONTRACTS_CONFIG, KEY_CONTRACTS_PLAN_HISTORY } from '../../../config/storageKeys';
-import { FileSignature, Link as LinkIcon, X, Plus, Trash2, Printer } from 'lucide-react';
+import { FileSignature, Link as LinkIcon, X, Plus, Trash2, Printer, Check, ChevronDown } from 'lucide-react';
 
 const PLAN_OPTIONS = [
-  { id: 'essence', label: 'Essence' },
-  { id: 'premium', label: 'Premium' },
-  { id: 'legacy', label: 'Legacy' },
-  { id: 'custom', label: 'Personalizado' },
+  { id: 'essence', label: 'Essence', icon: '🌿' },
+  { id: 'premium', label: 'Premium', icon: '⭐' },
+  { id: 'legacy', label: 'Legacy', icon: '👑' },
+  { id: 'custom', label: 'Personalizado', icon: '🏷️' },
 ];
 
 export function ContratoGenerator({ paciente, onClose, onGenerated }) {
   const [selectedPlan, setSelectedPlan] = useState('essence');
+  const [isPlanMenuOpen, setIsPlanMenuOpen] = useState(false);
   const [valor, setValor] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('Pix');
   const [consultas, setConsultas] = useState([{ data: '', horario: '' }]);
@@ -39,6 +40,24 @@ export function ContratoGenerator({ paciente, onClose, onGenerated }) {
       console.error('Erro ao carregar histórico de contratos:', e);
     }
   }, [selectedPlan]);
+
+  useEffect(() => {
+    if (!isPlanMenuOpen) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.contratos-modal-plan-dropdown')) {
+        setIsPlanMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsPlanMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPlanMenuOpen]);
 
   const handleSalvarPreco = () => {
     try {
@@ -114,17 +133,69 @@ export function ContratoGenerator({ paciente, onClose, onGenerated }) {
           <h3 className="text-sm font-bold text-slate-700 border-b border-slate-100 pb-2">Detalhes do Plano</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="relative contratos-modal-plan-dropdown">
               <label className="block text-xs font-medium text-slate-500 mb-1">Plano Escolhido</label>
-              <select 
-                value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value)}
-                className="w-full text-sm border-slate-200 rounded-lg shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+              <button
+                type="button"
+                onClick={() => setIsPlanMenuOpen(!isPlanMenuOpen)}
+                className={`w-full min-h-10 px-3 py-2 rounded-xl border text-sm font-medium transition-all cursor-pointer flex items-center justify-between shadow-2xs active:scale-[0.99] ${
+                  isPlanMenuOpen
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-white text-slate-900'
+                    : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
+                }`}
+                aria-expanded={isPlanMenuOpen}
+                aria-haspopup="true"
               >
-                {PLAN_OPTIONS.map(opt => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-base leading-none">
+                    {PLAN_OPTIONS.find((opt) => opt.id === selectedPlan)?.icon || '📋'}
+                  </span>
+                  <span className="truncate font-semibold text-slate-800">
+                    {PLAN_OPTIONS.find((opt) => opt.id === selectedPlan)?.label || 'Selecione um plano'}
+                  </span>
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 ml-2 opacity-70 shrink-0 transition-transform duration-200 ${
+                    isPlanMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {isPlanMenuOpen && (
+                <div
+                  className="absolute left-0 right-0 mt-2 app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-xl border border-slate-200/80 p-2 z-30 animate-scale-up space-y-1"
+                  style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+                >
+                  <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Selecionar plano
+                  </div>
+
+                  {PLAN_OPTIONS.map((opt) => {
+                    const isSelected = selectedPlan === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlan(opt.id);
+                          setIsPlanMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-50 text-emerald-900 font-bold'
+                            : 'text-slate-700 hover:bg-slate-50 font-medium'
+                        }`}
+                      >
+                        <span className="flex items-center truncate">
+                          <span className="mr-2 text-base leading-none">{opt.icon}</span>
+                          <span className="truncate text-xs sm:text-sm">{opt.label}</span>
+                        </span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             
             <div>
@@ -158,9 +229,10 @@ export function ContratoGenerator({ paciente, onClose, onGenerated }) {
             <button 
               type="button"
               onClick={handleAddConsulta}
-              className="text-xs text-emerald-600 hover:text-emerald-700 font-medium flex items-center bg-emerald-50 px-2 py-1 rounded"
+              className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer"
             >
-              <Plus className="w-3 h-3 mr-1" /> Adicionar
+              <Plus className="size-3.5 text-emerald-600" />
+              <span>Adicionar Consulta</span>
             </button>
           </div>
           
@@ -213,6 +285,12 @@ export function ContratoGenerator({ paciente, onClose, onGenerated }) {
 
         {/* Seção 4: Assinatura */}
         <section className="space-y-3 pt-2">
+          <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2">
+            <FileSignature className="size-3.5 text-emerald-600" aria-hidden="true" />
+            <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+              <span>Assinatura Digital</span>
+            </h3>
+          </div>
           {assinaturaBase64 ? (
             <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 text-center relative">
               <p className="text-xs font-bold text-emerald-800 mb-2">Assinatura Coletada com Sucesso!</p>

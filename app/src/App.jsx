@@ -4,6 +4,7 @@ import { useAppSettings } from './features/configuracoes/useAppSettings.js';
 import { AuthProvider } from './features/auth/AuthContext.jsx';
 import { useAuth } from './features/auth/useAuth.js';
 import LoginPage from './features/auth/LoginPage.jsx';
+import CreateClinicOnboarding from './features/auth/components/CreateClinicOnboarding.jsx';
 import { PatientProvider } from './features/pacientes/PatientContext.jsx';
 import { readAppMode, writeAppMode } from './routing.js';
 
@@ -12,6 +13,7 @@ const AnamnesePage = lazy(() => import('./features/anamnese/AnamnesePage.jsx'));
 const AtendimentoPage = lazy(() => import('./features/atendimento/AtendimentoPage.jsx'));
 const AgendaPage = lazy(() => import('./features/agenda/AgendaPage.jsx'));
 const ContratosPage = lazy(() => import('./features/contratos/ContratosPage.jsx'));
+const FinancasPage = lazy(() => import('./features/financas/FinancasPage.jsx'));
 const TarefasPage = lazy(() => import('./features/tarefas/TarefasPage.jsx'));
 const MarketingPage = lazy(() => import('./features/marketing/MarketingPage.jsx'));
 const DietasPage = lazy(() => import('./features/dietas/DietasPage.jsx'));
@@ -45,7 +47,7 @@ function AppRouter() {
 
   if (loading) return <main className="flex min-h-screen items-center justify-center text-sm font-semibold text-slate-500">Preparando seu consultório…</main>;
   if (!user) return <LoginPage />;
-  if (!organizationId) return <main className="flex min-h-screen items-center justify-center p-6"><p role="alert" className="max-w-lg rounded-2xl bg-rose-50 p-5 text-sm font-semibold text-rose-800">Não foi possível liberar a clínica para este acesso. {error}</p></main>;
+  if (!organizationId) return <CreateClinicOnboarding />;
 
   return <ClinicalApp appMode={appMode} setMode={setMode} />;
 }
@@ -66,10 +68,11 @@ function ClinicalApp({ appMode, setMode }) {
     anamnese: <AnamnesePage activeModel={settings.selectedModel} />,
     dietas: <DietasPage settings={settings} />,
     produtos: <ProdutosPage />,
-    dashboard: <AtendimentoPage activeModel={settings.selectedModel} onNavigate={setAppMode} />,
+    dashboard: <AtendimentoPage activeModel={settings.selectedModel} onNavigate={setAppMode} nutritionist={settings.nutritionist} />,
     agenda: <AgendaPage />,
     tarefas: <TarefasPage />,
-    contratos: <ContratosPage activeModel={settings.selectedModel} />,
+    contratos: <ContratosPage activeModel={settings.selectedModel} nutritionist={settings.nutritionist} />,
+    financas: <FinancasPage />,
     marketing: <MarketingPage activeModel={settings.selectedModel} />,
   };
 

@@ -10,6 +10,7 @@ import {
   Sparkles,
   UtensilsCrossed,
   Users,
+  Wallet,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -23,6 +24,7 @@ export const NAV_ITEMS = [
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
   { id: 'contratos', label: 'Contratos', icon: FileSignature },
+  { id: 'financas', label: 'Finanças', icon: Wallet },
   { id: 'marketing', label: 'Marketing', icon: Sparkles },
 ];
 

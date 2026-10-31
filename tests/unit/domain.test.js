@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { emptyAssessment, validateAssessment, selectedValue } from '../../app/src/features/avaliacao/domain/assessment.js';
 import { buildComparativeData } from '../../app/src/features/avaliacao/domain/comparative.js';
 import { normalizeConversation, conversationsCsv } from '../../app/src/features/atendimento/domain/conversations.js';
-import { isClosingOrGreetingMessage } from '../../app/src/features/atendimento/domain/classification.js';
+import { isClosingOrGreetingMessage, getResponderType, getAttendantType } from '../../app/src/features/atendimento/domain/classification.js';
 import { colorMapper } from '../../app/src/features/agenda/domain/calendarMapper.js';
 import { mergeLocalEvents } from '../../app/src/features/agenda/services/calendar.js';
 
@@ -97,3 +97,9 @@ test('isConsultationEvent distinguishes patient appointments from personal event
 });
 
 
+
+test('proprietária de qualquer clínica é contada como atendimento clínico, não como secretária', () => {
+  const ownerReply = getResponderType({ role: 'owner', name: 'Dra. Maria Silva', email: 'maria@clinica.com' });
+  assert.equal(getAttendantType({ responded_by_type: ownerReply }), 'isabela');
+  assert.equal(getAttendantType({ responded_by_type: getResponderType({ role: 'receptionist', name: 'Ana' }) }), 'secretaria');
+});

@@ -5,7 +5,7 @@
  * Converte payload no formato Gemini para OpenAI Chat Completions.
  *
  * @param {object} payload - Payload com `contents`, `systemInstruction`, `generationConfig`
- * @param {string} model - Nome do modelo (ex: 'gpt-4o-mini', 'deepseek-flash')
+ * @param {string} model - Nome do modelo (ex: 'gpt-6-luna', 'deepseek-flash')
  * @returns {object} Payload no padrão OpenAI
  */
 export function convertGeminiPayloadToOpenAi(payload, model) {

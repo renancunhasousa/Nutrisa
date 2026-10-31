@@ -21,62 +21,61 @@ export function CaptionBox({
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+    <div className="bg-slate-50 rounded-3xl border border-slate-200/90 p-5 space-y-4 shadow-xs transition-all flex flex-col flex-1 min-h-0">
+      {/* CABEÇALHO: TÍTULO E SUBTÍTULO */}
+      <div className="space-y-1 pb-3 border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-teal-50 border border-teal-200/60 text-teal-700">
-            <MessageCircle className="w-4 h-4" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-              Legenda do Instagram
-            </h4>
-            <p className="text-[11px] text-slate-500">
-              Copy persuasivo com gancho, fundamentação clínica e chamada para agendamento.
-            </p>
-          </div>
+          {/* ÍCONE SEM FUNDO */}
+          <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+          <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+            Legenda do Instagram
+          </h4>
         </div>
-
-        <div className="flex items-center gap-2">
-          {onGenerateCaption && (
-            <button
-              type="button"
-              onClick={onGenerateCaption}
-              disabled={isGeneratingCaption}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
-              title="Gerar legenda com IA com base no conteúdo e contexto de todos os posts/slides atuais"
-            >
-              <Sparkles className={`w-3.5 h-3.5 ${isGeneratingCaption ? 'animate-spin' : ''}`} />
-              <span>{isGeneratingCaption ? 'Escrevendo...' : 'Gerar com IA'}</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={handleCopy}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-              copied
-                ? 'bg-emerald-600 text-white border border-emerald-700'
-                : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-            {copied ? 'Copiado!' : 'Copiar Legenda'}
-          </button>
-        </div>
+        <p className="text-[11px] text-slate-500 leading-snug">
+          Copy persuasivo com gancho de retenção, embasamento clínico e CTA para consulta.
+        </p>
       </div>
 
+      {/* BOTÕES DE AÇÃO: LINHA DEDICADA PARA NÃO ENCAVALAR */}
+      <div className="flex items-center gap-2 pt-0.5 flex-wrap shrink-0">
+        {onGenerateCaption && (
+          <button
+            type="button"
+            onClick={onGenerateCaption}
+            disabled={isGeneratingCaption}
+            className="flex-1 min-w-[130px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+            title="Gerar legenda com IA baseada nas lâminas do post"
+          >
+            <Sparkles className={`w-3.5 h-3.5 ${isGeneratingCaption ? 'animate-spin' : ''}`} />
+            <span>{isGeneratingCaption ? 'Escrevendo...' : 'Gerar com IA'}</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={handleCopy}
+          className={`flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+            copied
+              ? 'bg-emerald-600 text-white border border-emerald-700'
+              : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+          <span>{copied ? 'Copiado!' : 'Copiar Legenda'}</span>
+        </button>
+      </div>
+
+      {/* ÁREA DE TEXTO DA LEGENDA EXPANDIDA ATÉ A BASE */}
       <textarea
         value={caption}
         onChange={(e) => onChangeCaption?.(e.target.value)}
-        rows={6}
-        className="w-full text-xs font-normal text-slate-700 bg-slate-50/70 rounded-xl p-3 border border-slate-200/80 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all resize-y leading-relaxed font-sans"
-        placeholder="A legenda sugerida pela IA aparecerá aqui..."
+        className="w-full flex-1 min-h-[380px] text-xs font-normal text-slate-700 bg-white rounded-xl p-3.5 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y leading-relaxed font-sans shadow-2xs"
+        placeholder="A legenda estruturada pela IA aparecerá aqui..."
       />
 
-      <div className="flex items-center justify-between mt-2 text-[11px] text-slate-400">
+      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5 shrink-0">
         <span>{(caption || '').length} caracteres</span>
-        <span>Inclui hashtags estratégicas & CTA de consulta</span>
+        <span>Hashtags estratégicas &amp; CTA inclusos</span>
       </div>
     </div>
   );

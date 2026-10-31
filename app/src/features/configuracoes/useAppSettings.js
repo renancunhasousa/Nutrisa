@@ -1,6 +1,8 @@
 import { getAiStatus, pingAiProviders, getAiAccessToken, setAiAccessToken } from '../../shared/services/aiClient.js';
-import { useState, useEffect, useCallback } from 'react';
-import { DEFAULT_NUTRITIONIST } from './defaultProfile.js';
+import { useState, useEffect, useCallback, useContext } from 'react';
+import { getClinicProfileFallback } from './defaultProfile.js';
+import { fetchClinicProfile, saveClinicProfile, normalizeClinicProfile } from './services/clinicProfileService.js';
+import { AuthStateContext } from '../auth/useAuth.js';
 import { fetchConversations } from '../atendimento/services/conversations.js';
 import { fetchCalendarPage } from '../agenda/services/calendar.js';
 import { 
@@ -17,16 +19,65 @@ import {
   KEY_GOOGLE_TOKEN,
 } from '../../config/storageKeys.js';
 import { GOOGLE_CALENDAR_ID } from '../../config/env.js';
+import { supabase } from '../../shared/services/supabase.js';
 
 export function useAppSettings() {
+  const auth = useContext(AuthStateContext);
+  const organizationId = auth?.organizationId;
+  const userId = auth?.user?.id;
+
   const [appNotification, setAppNotification] = useState(null);
   const [nutritionist, setNutritionist] = useState(() => {
     try {
       const saved = localStorage.getItem(KEY_NUTRITIONIST);
-      return saved ? JSON.parse(saved) : DEFAULT_NUTRITIONIST;
-    } catch { return DEFAULT_NUTRITIONIST;
+      return saved ? normalizeClinicProfile(JSON.parse(saved), organizationId) : getClinicProfileFallback(organizationId);
+    } catch {
+      return getClinicProfileFallback(organizationId);
     }
   });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [profileError, setProfileError] = useState(null);
+
+  // Sincroniza dados do banco de dados quando a organização é carregada
+  useEffect(() => {
+    if (!organizationId) return undefined;
+    let active = true;
+
+    fetchClinicProfile(organizationId)
+      .then((profile) => {
+        if (active && profile) {
+          setNutritionist(profile);
+        }
+      })
+      .catch((err) => {
+        console.warn('Não foi possível sincronizar o perfil da clínica com o Supabase:', err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [organizationId]);
+
+  const saveProfile = useCallback(async (customNutritionist) => {
+    const target = customNutritionist || nutritionist;
+    setProfileSaving(true);
+    setProfileError(null);
+    try {
+      const saved = await saveClinicProfile(organizationId, target, userId);
+      setNutritionist(saved);
+      setProfileSaveSuccess(true);
+      setTimeout(() => setProfileSaveSuccess(false), 3000);
+      return saved;
+    } catch (err) {
+      console.error('Erro ao persistir perfil no banco:', err);
+      setProfileError(err?.message || 'Erro ao salvar perfil no banco.');
+      throw err;
+    } finally {
+      setProfileSaving(false);
+    }
+  }, [organizationId, nutritionist, userId]);
+
   const [activeModal, setActiveModal] = useState(null); // null | 'profile' | 'ai'
   const [selectedModel, setSelectedModel] = useState(() => {
     try { return localStorage.getItem(KEY_SELECTED_MODEL) || ''; } catch { return ''; }
@@ -35,7 +86,7 @@ export function useAppSettings() {
   const [aiAccessToken, setAccess] = useState(getAiAccessToken);
   const updateAiAccessToken = value => { setAccess(value); setAiAccessToken(value); };
 
-  // Save profile and model changes to localStorage
+  // Save profile and model changes to localStorage as fallback
   useEffect(() => {
     try {
       localStorage.setItem(KEY_NUTRITIONIST, JSON.stringify(nutritionist));
@@ -277,13 +328,39 @@ export function useAppSettings() {
         }
       }
 
+      // C. Avisos gravados pelo sistema (ex.: WhatsApp desconectado) para esta organização
+      if (organizationId && supabase) {
+        try {
+          const { data: platformRows, error: platformError } = await supabase
+            .from('platform_notifications')
+            .select('id, category, type, title, description, created_at')
+            .eq('organization_id', organizationId)
+            .order('created_at', { ascending: false })
+            .limit(20);
+          if (platformError) throw platformError;
+
+          for (const row of platformRows || []) {
+            items.push({
+              id: `platform_${row.id}`,
+              category: row.category,
+              type: row.type,
+              title: row.title,
+              description: row.description,
+              timeAgo: new Date(row.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            });
+          }
+        } catch (platformErr) {
+          console.warn('Não foi possível carregar avisos da plataforma:', platformErr);
+        }
+      }
+
       setNotificationsList(items);
     }
 
     checkSystemNotifications();
     const interval = setInterval(checkSystemNotifications, 60000); // Recheca a cada 1 minuto
     return () => clearInterval(interval);
-  }, [liveNotificationsEnabled]);
+  }, [liveNotificationsEnabled, organizationId]);
 
   return {
     availableModels,
@@ -307,7 +384,10 @@ export function useAppSettings() {
     toggleLiveNotifications,
     appNotification,
     setAppNotification,
-    showAppNotification,
+    saveProfile,
+    profileSaving,
+    profileSaveSuccess,
+    profileError,
     handleConfirmAppointment,
     handleCancelAppointment
   };

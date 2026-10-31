@@ -1,3 +1,5 @@
+import { getOwnerShortLabel, formatDoctorShortName } from '../../configuracoes/services/clinicProfileService.js';
+
 // Categorias clínicas atribuídas diretamente à Dra. Isabela
 export const CLINICAL_CATEGORIES = [
   'Dúvida Plano Alimentar',
@@ -8,25 +10,30 @@ export const CLINICAL_CATEGORIES = [
 ];
 
 export function getResponderType({ role, name, email } = {}) {
-  const identity = `${name || ''} ${email || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (identity.includes('isabela') || identity.includes('bela.munoz')) return 'isabela';
+  // Proprietária e profissionais respondem pelo lado clínico, independente do nome cadastrado
+  if (role === 'owner' || role === 'professional') return 'isabela';
   if (role === 'receptionist') return 'secretaria';
   if (role === 'assistant') return 'administrativo';
-  if (role === 'professional') return 'profissional';
   if (role === 'custom') return 'personalizado';
-  return role === 'owner' ? 'administrativo' : 'personalizado';
+  return 'personalizado';
 }
 
 export function getResponderLabel(item = {}) {
-  if (item.responded_by_name) return item.responded_by_name;
+  const isabelaLabel = getOwnerShortLabel();
+  if (item.responded_by_name) {
+    if (item.responded_by_type === 'isabela' || item.responded_by_role === 'owner' || /isabela/i.test(item.responded_by_name)) {
+      return formatDoctorShortName(item.responded_by_name);
+    }
+    return item.responded_by_name;
+  }
   const labels = {
-    isabela: 'Dra. Isabela',
+    isabela: isabelaLabel,
     secretaria: 'Secretária',
     administrativo: 'Administrativo',
-    profissional: 'Profissional',
+    profissional: isabelaLabel,
     personalizado: 'Equipe',
   };
-  return labels[item.responded_by_type] || (getAttendantType(item) === 'isabela' ? 'Dra. Isabela' : 'Secretária');
+  return labels[item.responded_by_type] || (getAttendantType(item) === 'isabela' ? isabelaLabel : 'Secretária');
 }
 
 // Helper para identificar o atendente responsável / que efetivamente respondeu

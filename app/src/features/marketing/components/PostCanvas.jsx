@@ -1,6 +1,8 @@
 import React, { forwardRef } from 'react';
 import defaultDraPhoto from '../../../assets/dra_isabela.png';
 import { POST_THEMES } from '../services/postGeneratorService.js';
+import { getActiveNutritionist } from '../../configuracoes/services/clinicProfileService.js';
+import { isDraIsabelaProfile } from '../../configuracoes/defaultProfile.js';
 
 export const PostCanvas = forwardRef(function PostCanvas(
   {
@@ -13,6 +15,8 @@ export const PostCanvas = forwardRef(function PostCanvas(
   },
   ref
 ) {
+  const activeNutri = getActiveNutritionist();
+  const isDra = isDraIsabelaProfile(activeNutri);
   const slides = rawPostData.slides && rawPostData.slides.length > 0 ? rawPostData.slides : [];
   const isCarousel = rawPostData.format === 'carrossel';
   const currentSlide = isCarousel ? (slides[currentSlideIndex] || slides[0] || {}) : {};
@@ -33,7 +37,9 @@ export const PostCanvas = forwardRef(function PostCanvas(
   const resolvedPhotoUrl = currentSlide.slidePhotoUrl !== undefined ? currentSlide.slidePhotoUrl : customPhotoUrl;
 
   const activeTheme = POST_THEMES.find(t => t.id === resolvedTheme) || POST_THEMES[0];
-  const photoSrc = resolvedPhotoUrl || defaultDraPhoto;
+  const defaultPhoto = isDra ? defaultDraPhoto : null;
+  const photoSrc = resolvedPhotoUrl || activeNutri.marketingPhotoUrl || defaultPhoto;
+  const authorInstagram = postData.authorInstagram || activeNutri.instagram || (isDra ? '@nutri.isabelamunoz' : '');
   const effectiveDishPhoto = (isCarousel && currentSlide.slidePhotoUrl)
     ? currentSlide.slidePhotoUrl
     : (customPhotoUrl || postData.dishPhotoUrl || dishPhotoUrl);
@@ -181,35 +187,37 @@ export const PostCanvas = forwardRef(function PostCanvas(
               )}
             </div>
 
-            {/* Foto Oficial da Dra. Isabela com Enquadramento e Máscara */}
-            <div
-              style={{
-                position: 'absolute',
-                right: '0px',
-                bottom: '0',
-                width: '740px',
-                height: '1160px',
-                zIndex: 5,
-                pointerEvents: 'none',
-                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.3) 12%, rgba(0,0,0,0.85) 28%, black 42%, black 100%)',
-                maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.3) 12%, rgba(0,0,0,0.85) 28%, black 42%, black 100%)'
-              }}
-            >
-              <img
-                src={photoSrc}
-                alt="Dra. Isabela Muñoz"
+            {/* Foto Oficial com Enquadramento e Máscara (só renderiza se houver foto) */}
+            {photoSrc && (
+              <div
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: 'top center',
-                  WebkitMaskImage: 'linear-gradient(to top, black 82%, rgba(0,0,0,0.4) 93%, transparent 100%)',
-                  maskImage: 'linear-gradient(to top, black 82%, rgba(0,0,0,0.4) 93%, transparent 100%)'
+                  position: 'absolute',
+                  right: '0px',
+                  bottom: '0',
+                  width: '740px',
+                  height: '1160px',
+                  zIndex: 5,
+                  pointerEvents: 'none',
+                  WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.3) 12%, rgba(0,0,0,0.85) 28%, black 42%, black 100%)',
+                  maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.3) 12%, rgba(0,0,0,0.85) 28%, black 42%, black 100%)'
                 }}
-              />
-            </div>
+              >
+                <img
+                  src={photoSrc}
+                  alt={postData.authorName || (isDra ? 'Dra. Isabela Muñoz' : 'Nutricionista Responsável')}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'top center',
+                    WebkitMaskImage: 'linear-gradient(to top, black 82%, rgba(0,0,0,0.4) 93%, transparent 100%)',
+                    maskImage: 'linear-gradient(to top, black 82%, rgba(0,0,0,0.4) 93%, transparent 100%)'
+                  }}
+                />
+              </div>
+            )}
 
-            {/* Card de Rodapé da Dra. */}
+            {/* Card de Rodapé da Nutricionista */}
             <div
               style={{
                 zIndex: 10,
@@ -234,7 +242,7 @@ export const PostCanvas = forwardRef(function PostCanvas(
                     color: activeTheme.headerColor
                   }}
                 >
-                  {postData.authorName || 'Isabela Muñoz'}
+                  {postData.authorName || (isDra ? 'Isabela Muñoz' : (activeNutri.name || 'Nutricionista Responsável'))}
                 </div>
                 <div
                   style={{
@@ -245,7 +253,7 @@ export const PostCanvas = forwardRef(function PostCanvas(
                     marginTop: '4px'
                   }}
                 >
-                  {postData.authorTitle || 'Nutrição Clínica, Esportiva & Performance'}
+                  {postData.authorTitle || (isDra ? 'Nutrição Clínica, Esportiva & Performance' : (activeNutri.title || 'Nutricionista'))}
                 </div>
               </div>
               <div
@@ -404,7 +412,7 @@ export const PostCanvas = forwardRef(function PostCanvas(
               </div>
 
               <div className="flex justify-between items-center text-lg" style={{ color: activeTheme.accentColor }}>
-                <span style={{ fontWeight: 700 }}>@nutri.isabelamunoz</span>
+                <span style={{ fontWeight: 700 }}>{authorInstagram}</span>
                 <span>Salve para sua rotina esportiva ↗</span>
               </div>
             </div>
@@ -558,7 +566,7 @@ export const PostCanvas = forwardRef(function PostCanvas(
             >
               <div>
                 <div style={{ fontFamily: "'Amiri', serif", fontSize: '24px', color: activeTheme.headerColor, fontWeight: 700 }}>
-                  Isabela Muñoz
+                  {activeNutri.name || 'Profissional responsável'}
                 </div>
                 <div style={{ color: activeTheme.accentColor, fontSize: '16px' }}>
                   Certificação Internacional ACSM
@@ -704,7 +712,7 @@ export const PostCanvas = forwardRef(function PostCanvas(
               }}
             >
               <div style={{ fontSize: '19px', fontWeight: 700, color: activeTheme.accentColor }}>
-                @nutri.isabelamunoz
+                {authorInstagram}
               </div>
               <div
                 style={{
@@ -893,13 +901,13 @@ export const PostCanvas = forwardRef(function PostCanvas(
                 >
                   <img
                     src={photoSrc}
-                    alt="Dra. Isabela Muñoz"
+                    alt={activeNutri.name || 'Profissional responsável'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
                   />
                 </div>
                 <div>
                   <div style={{ fontFamily: "'Amiri', serif", fontSize: '22px', fontWeight: 700, color: activeTheme.headerColor }}>
-                    Isabela Muñoz
+                    {activeNutri.name || 'Profissional responsável'}
                   </div>
                   <div style={{ fontSize: '14px', color: activeTheme.accentColor, fontWeight: 500 }}>
                     Nutrição Clínica, Esportiva & Performance • ACSM
@@ -1074,13 +1082,13 @@ export const PostCanvas = forwardRef(function PostCanvas(
                 >
                   <img
                     src={photoSrc}
-                    alt="Dra. Isabela Muñoz"
+                    alt={activeNutri.name || 'Profissional responsável'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
                   />
                 </div>
                 <div>
                   <div style={{ fontFamily: "'Amiri', serif", fontSize: '24px', fontWeight: 700, color: activeTheme.headerColor }}>
-                    {postData.manifestoAutor || 'Dra. Isabela Muñoz'}
+                    {postData.manifestoAutor || activeNutri.name || 'Profissional responsável'}
                   </div>
                   <div style={{ fontSize: '14px', color: activeTheme.accentColor, fontWeight: 500, marginTop: '2px' }}>
                     {postData.manifestoTitulo || 'Nutricionista Clínica & Esportiva'}
@@ -1204,7 +1212,7 @@ export const PostCanvas = forwardRef(function PostCanvas(
                 >
                   <img
                     src={photoSrc}
-                    alt="Dra. Isabela Muñoz"
+                    alt={activeNutri.name || 'Profissional responsável'}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -1238,7 +1246,7 @@ export const PostCanvas = forwardRef(function PostCanvas(
                 >
                   <div>
                     <div style={{ fontFamily: "'Amiri', serif", fontSize: '24px', fontWeight: 700, color: activeTheme.headerColor }}>
-                      Isabela Muñoz
+                      {activeNutri.name || 'Profissional responsável'}
                     </div>
                     <div style={{ fontSize: '15px', color: activeTheme.accentColor, fontWeight: 500, marginTop: '2px' }}>
                       Nutrição Clínica, Esportiva & Performance
@@ -1382,7 +1390,7 @@ export const PostCanvas = forwardRef(function PostCanvas(
                   }}
                 >
                   <div style={{ fontSize: '18px', fontWeight: 600, color: activeTheme.accentColor }}>
-                    Dra. Isabela Muñoz • Nutrição Esportiva
+                    {activeNutri.name || 'Profissional responsável'} • Nutrição Esportiva
                   </div>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: activeTheme.headerColor }}>
                     Deslize ➔
@@ -1505,13 +1513,13 @@ export const PostCanvas = forwardRef(function PostCanvas(
                     >
                       <img
                         src={photoSrc}
-                        alt="Dra. Isabela Muñoz"
+                        alt={activeNutri.name || 'Profissional responsável'}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
                       />
                     </div>
                     <div>
                       <div style={{ fontFamily: "'Amiri', serif", fontSize: '24px', fontWeight: 700, color: activeTheme.headerColor }}>
-                        {currentSlide.authorName || 'Isabela Muñoz'}
+                        {currentSlide.authorName || activeNutri.name || 'Profissional responsável'}
                       </div>
                       <div style={{ fontSize: '15px', color: activeTheme.accentColor, fontWeight: 500 }}>
                         {currentSlide.authorTitle || 'Nutrição Clínica, Esportiva & Performance • ACSM'}

@@ -125,7 +125,7 @@ export function evaluateIsabelaGoals(comparisonStats = {}) {
       {
         meta: 'Tempo',
         atingido: isSlaOk,
-        detalhe: `Média de ${isaAvg} min (Meta Ouro <= 15 min)`
+        detalhe: `Média de ${isaAvg} min (Meta: até 30 min • Ouro: até 15 min)`
       },
       {
         meta: 'Volume',
@@ -180,12 +180,12 @@ export function evaluateSecretaryGoals(comparisonStats = {}) {
       {
         meta: "Tempo",
         atingido: isSlaOk,
-        detalhe: `Média de ${secAvg} min (Meta Ouro <= 15 min)`
+        detalhe: `Média de ${secAvg} min (Meta: até 30 min • Ouro: até 15 min)`
       },
       {
         meta: "Volume",
         atingido: isVolOk,
-        detalhe: `Secretária: ${secTotal} msgs vs Dra: ${isaTotal} msgs`
+        detalhe: `Secretária: ${secTotal} msgs vs Profissional: ${isaTotal} msgs`
       },
       {
         meta: "Intervenção",

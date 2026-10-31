@@ -59,15 +59,65 @@ export async function getCurrentMembership() {
     if (!userId) return null;
     const fallback = await supabase
       .from('organization_members')
-      .select('organization_id,user_id,display_name,email,role,permissions')
+      .select('organization_id,user_id,display_name,email,role,permissions,avatar_url')
       .eq('user_id', userId)
       .order('created_at')
       .limit(1)
       .maybeSingle();
     const row = unwrap(fallback);
-    return row ? { ...row, permissions: row.permissions || [], isOwner: row.role === 'owner' } : null;
+    return row ? {
+      ...row,
+      permissions: row.permissions || [],
+      isOwner: row.role === 'owner',
+      avatarUrl: row.avatar_url || null,
+    } : null;
   }
   const rows = unwrap(rpcResult) || [];
   const row = rows[0];
-  return row ? { ...row, permissions: row.permissions || [], isOwner: row.is_owner } : null;
+  return row ? {
+    ...row,
+    permissions: row.permissions || [],
+    isOwner: row.is_owner,
+    avatarUrl: row.avatar_url || null,
+  } : null;
 }
+
+export async function updateMyClinicProfile({ displayName, avatarUrl }) {
+  const client = requireClient();
+  const rows = unwrap(await client.rpc('update_my_clinic_profile', {
+    p_display_name: displayName,
+    p_avatar_url: avatarUrl ?? null,
+  })) || [];
+  const row = rows[0];
+  return row ? {
+    ...row,
+    permissions: row.permissions || [],
+    isOwner: row.is_owner,
+    avatarUrl: row.avatar_url || null,
+  } : null;
+}
+
+export async function uploadUserAvatar(userId, file) {
+  const client = requireClient();
+  const extension = file.name.split('.').pop() || 'png';
+  const path = `${userId}/${Date.now()}.${extension}`;
+  const { error } = await client.storage.from('avatars').upload(path, file, {
+    cacheControl: '3600',
+    upsert: true,
+  });
+  if (error) throw new Error(error.message || 'Falha ao enviar foto de perfil.');
+  const { data } = client.storage.from('avatars').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function createClinicOrganization({ clinicName, professionalName = '', crn = '' }) {
+  const client = requireClient();
+  const orgId = unwrap(await client.rpc('create_clinic_organization', {
+    p_clinic_name: clinicName,
+    p_professional_name: professionalName,
+    p_crn: crn,
+  }));
+  return orgId;
+}
+
+

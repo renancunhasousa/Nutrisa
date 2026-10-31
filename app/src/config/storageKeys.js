@@ -16,8 +16,11 @@ export const KEY_SELECTED_MODEL = 'nutrisa_selected_model';
 /** Templates de anamnese salvos pelo usuário */
 export const KEY_ANAMNESE_TEMPLATES = 'nutrisa_anamnese_templates';
 
-/** Rascunho do template de anamnese em edição */
+/** Rascunho do template de anamnese em edição (legado) */
 export const KEY_ANAMNESE_DRAFT = 'nutrisa_anamnese_draft';
+
+/** ID do último modelo de anamnese selecionado */
+export const KEY_LAST_ANAMNESE_TEMPLATE_ID = 'nutrisa_last_anamnese_template_id';
 
 /** Preferência de notificações ao vivo */
 export const KEY_LIVE_NOTIFS = 'nutrisa_live_notifs';
@@ -34,6 +37,9 @@ export const KEY_CONTRACTS_CONFIG = 'nutrisa_contracts_config';
 /** Modelos legados de contrato; usados uma vez para migração ao Supabase. */
 export const KEY_CONTRACT_TEMPLATES = 'nutrisa_contratos_templates';
 
+/** ID do último modelo de contrato selecionado */
+export const KEY_LAST_CONTRACT_TEMPLATE_ID = 'nutrisa_last_contratos_template_id';
+
 /** Histórico e preços dos últimos planos selecionados em contratos */
 export const KEY_CONTRACTS_PLAN_HISTORY = 'nutrisa_contracts_plan_history';
 
@@ -42,3 +48,9 @@ export const KEY_TASKS = 'nutrisa_tasks';
 
 /** Token de acesso à API de IA (persistência local no dispositivo) */
 export const KEY_AI_ACCESS = 'nutrisa_ai_access';
+
+/** Pacotes de parcerias e planos da clínica (gestão de sessões e consultas) */
+export const KEY_FINANCE_PACKAGES = 'nutrisa_finance_packages';
+
+/** Lançamentos financeiros (receitas e despesas) */
+export const KEY_FINANCE_TRANSACTIONS = 'nutrisa_finance_transactions';

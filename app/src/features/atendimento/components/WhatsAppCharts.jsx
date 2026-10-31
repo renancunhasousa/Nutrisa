@@ -3,7 +3,9 @@ import {
   TrendingUp, 
   Clock, 
   Award, 
-  MessageSquare 
+  MessageSquare,
+  Stethoscope,
+  Headset,
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -16,6 +18,7 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts';
+import { getOwnerShortLabel } from '../../configuracoes/services/clinicProfileService.js';
 
 export default function WhatsAppCharts({
   topCategoriesComparisonData,
@@ -25,6 +28,8 @@ export default function WhatsAppCharts({
   slaResolutionDraData,
   comparisonStats
 }) {
+  const ownerLabel = getOwnerShortLabel();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -32,9 +37,9 @@ export default function WhatsAppCharts({
       <div className="bg-white p-6 md:p-7 rounded-3xl border border-slate-200 shadow-xs lg:col-span-2">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-extrabold text-sm text-slate-900 flex items-center">
-              <TrendingUp className="w-4 h-4 mr-2 text-teal-600" />
-              Evolução Diária de Atendimentos: Dra. Isabela vs Secretária
+            <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+              <TrendingUp className="size-3.5 text-teal-600" />
+              Evolução Diária de Atendimentos: {ownerLabel} vs Secretária
             </h3>
             <p className="text-xs text-slate-500">Quantidade de intervenções realizadas por dia</p>
           </div>
@@ -77,7 +82,7 @@ export default function WhatsAppCharts({
                   iconType="circle"
                   formatter={(val) => <span className="text-xs text-slate-600 font-bold">{val}</span>}
                 />
-                <Area type="monotone" dataKey="isabela" name="Dra. Isabela" stroke="#14B8A6" strokeWidth={2.5} fillOpacity={1} fill="url(#isabelaColor)" />
+                <Area type="monotone" dataKey="isabela" name={ownerLabel}stroke="#14B8A6" strokeWidth={2.5} fillOpacity={1} fill="url(#isabelaColor)" />
                 <Area type="monotone" dataKey="secretaria" name="Secretária" stroke="#8B5CF6" strokeWidth={2.5} fillOpacity={1} fill="url(#secretariaColor)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -89,8 +94,8 @@ export default function WhatsAppCharts({
       <div className="bg-white p-6 md:p-7 rounded-3xl border border-slate-200 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-extrabold text-sm text-slate-900 flex items-center">
-              <Clock className="w-4 h-4 mr-2 text-emerald-600" />
+            <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+              <Clock className="size-3.5 text-emerald-600" />
               Horários de Maior Fluxo de Mensagens
             </h3>
             <p className="text-xs text-slate-500">Distribuição do volume de mensagens por hora do dia (7h às 21h)</p>
@@ -125,9 +130,9 @@ export default function WhatsAppCharts({
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-extrabold text-sm text-slate-900 flex items-center">
-                <Award className="w-4 h-4 mr-2 text-purple-600" />
-                Faixas de Resolução de SLA (Secretária vs Dra)
+              <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+                <Award className="size-3.5 text-emerald-600" />
+                Faixas de Resolução de SLA (Secretária vs {ownerLabel})
               </h3>
               <p className="text-xs text-slate-500">Tempo de resposta em faixas estratégicas (Meta: &lt; 15 min)</p>
             </div>
@@ -138,8 +143,9 @@ export default function WhatsAppCharts({
             {/* Painel Secretária */}
             <div className="bg-purple-50/50 p-4 rounded-2xl border border-purple-100 space-y-2.5">
               <div className="flex justify-between items-center border-b border-purple-200 pb-1.5">
-                <span className="text-xs font-black text-purple-950 flex items-center">
-                  💼 Secretária
+                <span className="flex items-center gap-1.5 text-xs font-black text-purple-950">
+                  <Headset className="size-3.5 text-purple-600" aria-hidden="true" />
+                  Secretária
                 </span>
                 <span className="text-[10px] font-extrabold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full">
                   {comparisonStats.secretaria.total} respostas
@@ -168,8 +174,9 @@ export default function WhatsAppCharts({
             {/* Painel Dra. Isabela */}
             <div className="bg-teal-50/50 p-4 rounded-2xl border border-teal-100 space-y-2.5">
               <div className="flex justify-between items-center border-b border-teal-200 pb-1.5">
-                <span className="text-xs font-black text-teal-950 flex items-center">
-                  👩‍⚕️ Dra. Isabela
+                <span className="flex items-center gap-1.5 text-xs font-black text-teal-950">
+                  <Stethoscope className="size-3.5 text-teal-600" aria-hidden="true" />
+                  {ownerLabel}
                 </span>
                 <span className="text-[10px] font-extrabold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">
                   {comparisonStats.isabela.total} respostas
@@ -203,8 +210,8 @@ export default function WhatsAppCharts({
       <div className="bg-white p-6 md:p-7 rounded-3xl border border-slate-200 shadow-xs lg:col-span-2">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-extrabold text-sm text-slate-900 flex items-center">
-              <MessageSquare className="w-4 h-4 mr-2 text-emerald-600" />
+            <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+              <MessageSquare className="size-3.5 text-emerald-600" />
               Volume Geral por Assuntos & Demandas dos Pacientes
             </h3>
             <p className="text-xs text-slate-500">Total de mensagens registradas em cada tema da clínica no período</p>
@@ -229,7 +236,7 @@ export default function WhatsAppCharts({
               <span className="mt-2 text-2xl font-black text-slate-900">{cat.total}</span>
               <div className="mt-3 flex flex-wrap gap-1">
                 <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-800">
-                  Dra. {isabelaPct}%
+                  {ownerLabel} {isabelaPct}%
                 </span>
                 <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-800">
                   Secretária {secretariaPct}%

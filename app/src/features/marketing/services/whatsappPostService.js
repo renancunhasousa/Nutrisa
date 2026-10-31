@@ -66,7 +66,7 @@ export const DEFAULT_WHATSAPP_IDEAS = [
   {
     title: 'Déficit calórico sem passar fome: como calcular com precisão',
     format: 'autoridade',
-    formatLabel: '1. Dra. Isabela Explica',
+    formatLabel: '1. Autoridade Explica',
     whatsappInsight: 'Dúvida de pacientes que cortam calorias excessivamente e sofrem com compulsão noturna.',
     tag: 'Metabolismo'
   },
@@ -86,8 +86,14 @@ export const DEFAULT_WHATSAPP_IDEAS = [
 export async function extractMarketingIdeasFromWhatsApp({
   fetchConversationsFn = fetchConversations,
   callAiFn,
-  model
+  model,
+  authorInfo = {}
 } = {}) {
+  const isIsabela = /isabela/i.test(authorInfo.name || '') || (authorInfo.organization_id === 'd116690a-ae43-4e33-88d0-cd1d45a49991');
+  const authorName = (authorInfo.name || '').trim() || (isIsabela ? 'Dra. Isabela Muñoz' : 'Nutricionista Responsável');
+  const authorTitle = authorInfo.title || (isIsabela ? 'Nutricionista Clínica e Esportiva, certificada ACSM' : 'Nutricionista Clínica e Esportiva');
+  const format1Label = isIsabela ? '1. Dra. Isabela Explica' : `1. ${(authorInfo.name || 'Nutri').split(' ')[0]} Explica`;
+
   let relevantMessages = [];
 
   try {
@@ -108,7 +114,7 @@ export async function extractMarketingIdeasFromWhatsApp({
     .map((m, idx) => `[Mensagem ${idx + 1}]: "${(m.mensagem_texto || '').slice(0, 180)}"`)
     .join('\n');
 
-  const prompt = `Você é o estrategista de marketing médico e de conteúdo da Dra. Isabela Muñoz (Nutricionista Clínica e Esportiva, certificada ACSM).
+  const prompt = `Você é o estrategista de marketing médico e de conteúdo de ${authorName} (${authorTitle}).
 
 Analise as mensagens REAIS que os pacientes enviaram no WhatsApp da clínica abaixo:
 ---
@@ -117,8 +123,8 @@ ${anonymizedSnippets}
 
 Sua missão:
 1. Identifique as 4 a 6 principais dúvidas, queixas, dores, dificuldades na dieta ou mitos que os pacientes estão trazendo nas conversas.
-2. Para cada dúvida identificada, crie uma pauta magnética para o Instagram e OBRIGATORIAMENTE recomende o melhor formato entre os 7 formatos do estúdio da Dra. Isabela:
-   - "autoridade": 1. Dra. Isabela Explica (para autoridade médica, desmistificação de conceitos e posicionamento)
+2. Para cada dúvida identificada, crie uma pauta magnética para o Instagram e OBRIGATORIAMENTE recomende o melhor formato entre os 7 formatos do estúdio:
+   - "autoridade": ${format1Label} (para autoridade médica, desmistificação de conceitos e posicionamento)
    - "prato": 2. Prato & Performance (para dúvidas sobre refeições reais, pré/pós treino e cálculos de macronutrientes)
    - "ciencia": 3. Ciência vs Senso Comum (para mitos populares confrontados com evidências científicas/ACSM)
    - "dicas": 4. Dicas 01 / 02 / 03 (para listas práticas de 3 passos ou estratégias para aplicar na rotina)

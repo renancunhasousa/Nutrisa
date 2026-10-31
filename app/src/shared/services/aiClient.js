@@ -1,4 +1,4 @@
-import { sanitizeJsonString } from '../utils/formatters.js';
+import { sanitizeJsonString, parseAiJson } from '../utils/formatters.js';
 import { KEY_AI_ACCESS } from '../../config/storageKeys.js';
 const ACCESS_KEY = KEY_AI_ACCESS;
 export function getAiAccessToken() {
@@ -44,12 +44,26 @@ export async function executeGemini(payload, selectedModel) {
   const model = models.includes(selectedModel) ? selectedModel : models[0];
   return request({ method: 'POST', body: JSON.stringify({ model, payload }) });
 }
-export async function callGeminiWithFallback({ prompt, systemInstruction = '', jsonMode = false, model }) {
+export async function callGeminiWithFallback({ prompt, systemInstruction = '', jsonMode = false, model, maxOutputTokens = 8192 }) {
   const { result, usedModel } = await executeGemini({
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-    generationConfig: { temperature: 0.2, maxOutputTokens: 4000, ...(jsonMode ? { responseMimeType: 'application/json' } : {}) },
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: Number(maxOutputTokens) || 8192,
+      ...(jsonMode ? { responseMimeType: 'application/json' } : {})
+    },
   }, model);
-  const text = result.candidates[0].content.parts.filter(part => part.text).map(part => part.text).join('\n');
-  return { modelUsed: usedModel, text, json: jsonMode ? JSON.parse(sanitizeJsonString(text)) : null };
+  const text = result?.candidates?.[0]?.content?.parts?.filter(part => part.text).map(part => part.text).join('\n') || '';
+  let json = null;
+  if (jsonMode && text) {
+    try {
+      json = parseAiJson(text);
+    } catch (parseErr) {
+      console.warn('Aviso: falha ao interpretar JSON da IA, retornando texto bruto:', parseErr);
+      json = null;
+    }
+  }
+  return { modelUsed: usedModel, text, json };
 }
+

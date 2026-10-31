@@ -7,10 +7,11 @@ import logoImg from '../../assets/logo_new.png';
  * @param {{ nutritionist: object, subtitle?: string }} props
  */
 export default function ReportHeader({ nutritionist, subtitle = 'Laudo de Avaliação Física e Composição Corporal' }) {
+  const logoSrc = nutritionist?.logoUrl || logoImg;
   return (
     <div className="flex items-center justify-between pb-3 mb-4 border-b-2 border-teal-600 print:border-teal-700">
       <div className="flex items-center gap-3">
-        <img src={logoImg} alt="NutrIsa" className="h-12 w-auto object-contain" />
+        <img src={logoSrc} alt={nutritionist?.clinic || "NutrIsa"} className="h-12 w-auto object-contain" />
         <div>
           <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest">{subtitle}</p>
           <p className="text-[9px] text-slate-500 mt-0.5">{nutritionist?.clinic || ''}</p>

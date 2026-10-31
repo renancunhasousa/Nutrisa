@@ -29,9 +29,25 @@ test('frontend migra modelos locais e passa a ler e gravar no Supabase', () => {
   const contratos = readFileSync(join(root, 'app', 'src', 'features', 'contratos', 'hooks', 'useContratos.js'), 'utf8');
 
   assert.match(service, /from\('document_templates'\)/);
+  assert.match(service, /export async function deleteDocumentTemplate/);
+  assert.match(service, /\.delete\(\)[\s\S]*\.eq\('organization_id', organizationId\)[\s\S]*\.eq\('template_type', templateType\)/);
   assert.match(service, /upsert\(rows, \{ onConflict: 'organization_id,template_type,source_key' \}\)/);
   assert.match(anamnese, /importLocalDocumentTemplates/);
   assert.match(contratos, /importLocalDocumentTemplates/);
   assert.doesNotMatch(anamnese, /localStorage\.setItem\(KEY_ANAMNESE_TEMPLATES/);
   assert.doesNotMatch(contratos, /localStorage\.setItem\(KEY_CONTRACT_TEMPLATES/);
+});
+
+test('anamneses e contratos confirmam a exclusão e atualizam a interface', () => {
+  const anamneseHook = readFileSync(join(root, 'app', 'src', 'features', 'anamnese', 'hooks', 'useAnamnese.js'), 'utf8');
+  const contratoHook = readFileSync(join(root, 'app', 'src', 'features', 'contratos', 'hooks', 'useContratos.js'), 'utf8');
+  const anamnesePage = readFileSync(join(root, 'app', 'src', 'features', 'anamnese', 'AnamnesePage.jsx'), 'utf8');
+  const contratoPage = readFileSync(join(root, 'app', 'src', 'features', 'contratos', 'ContratosPage.jsx'), 'utf8');
+
+  for (const source of [anamneseHook, contratoHook]) {
+    assert.match(source, /window\.confirm/);
+    assert.match(source, /setSavedTemplates\(prev => prev\.filter/);
+  }
+  assert.match(anamnesePage, /aria-label="Excluir modelo de anamnese selecionado"/);
+  assert.match(contratoPage, /aria-label="Excluir modelo de contrato selecionado"/);
 });

@@ -45,6 +45,21 @@ export async function saveDocumentTemplate({ id, organizationId, templateType, n
   return mapTemplate(data);
 }
 
+export async function deleteDocumentTemplate({ id, organizationId, templateType }) {
+  assertScope(organizationId, templateType);
+  if (!id) throw new Error('Modelo não identificado.');
+  const { data, error } = await requireSupabase()
+    .from('document_templates')
+    .delete()
+    .eq('id', id)
+    .eq('organization_id', organizationId)
+    .eq('template_type', templateType)
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message || 'Erro ao excluir modelo.');
+  return data.id;
+}
+
 export async function importLocalDocumentTemplates({ organizationId, templateType, templates }) {
   assertScope(organizationId, templateType);
   if (!templates?.length) return [];

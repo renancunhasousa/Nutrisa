@@ -2,6 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { getPublicContract, signRemoteContract } from './services/contracts';
 import { SignaturePad } from './components/SignaturePad';
 import logoPdf from '../../assets/logo.png';
+import { isDraIsabelaProfile } from '../configuracoes/defaultProfile.js';
+
+function getActiveNutritionist() {
+  try {
+    const raw = localStorage.getItem('nutrisa_nutritionist_profile');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
 
 export default function PublicSignaturePage({ contractId }) {
   const [contract, setContract] = useState(null);
@@ -43,14 +52,19 @@ export default function PublicSignaturePage({ contractId }) {
     return <div className="flex h-screen items-center justify-center bg-slate-50"><p className="text-rose-500 font-bold">{error}</p></div>;
   }
 
+  const activeNutri = getActiveNutritionist();
+  const isDra = isDraIsabelaProfile(activeNutri);
+  const headerTitle = activeNutri?.name || (isDra ? 'Dra. Isabela Muñoz Mendonça' : 'Consultório de Nutrição');
+  const headerSubtitle = activeNutri?.title || (isDra ? 'Nutricionista Clínica e Esportiva' : 'Termo de Adesão e Acordo');
+
   if (signed) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
         <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center border border-emerald-100 space-y-4">
           <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">✓</div>
           <h2 className="text-2xl font-black text-slate-800">Contrato Assinado!</h2>
-          <p className="text-slate-500 text-sm">Obrigado, {contract?.patient_name}. Sua assinatura foi salva com sucesso e a Dra. Isabela já foi notificada.</p>
-          <img src={logoPdf} alt="Logo" className="h-12 mx-auto opacity-50 mt-8" />
+          <p className="text-slate-500 text-sm">Obrigado, {contract?.patient_name}. Sua assinatura foi salva com sucesso e o consultório já foi notificado.</p>
+          <img src={activeNutri?.logoUrl || logoPdf} alt="Logo" className="h-12 mx-auto opacity-70 mt-8 object-contain" />
         </div>
       </div>
     );
@@ -61,10 +75,10 @@ export default function PublicSignaturePage({ contractId }) {
       <div className="max-w-3xl mx-auto bg-white md:rounded-3xl shadow-xl overflow-hidden flex flex-col md:border border-slate-200">
         <div className="bg-slate-900 text-white p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-10 shadow-md">
           <div className="flex items-center gap-4 mb-4 md:mb-0">
-            <img src={logoPdf} alt="Logo" className="w-14 h-14 bg-white p-1.5 rounded-xl object-contain flex-shrink-0" />
+            <img src={activeNutri?.logoUrl || logoPdf} alt="Logo" className="w-14 h-14 bg-white p-1.5 rounded-xl object-contain flex-shrink-0" />
             <div>
-              <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase whitespace-nowrap truncate">Dra. Isabela Muñoz Mendonça</h1>
-              <p className="text-[10px] md:text-xs font-semibold text-emerald-400 uppercase tracking-wider whitespace-nowrap truncate">Nutricionista Clínica e Esportiva</p>
+              <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase whitespace-nowrap truncate">{headerTitle}</h1>
+              <p className="text-[10px] md:text-xs font-semibold text-emerald-400 uppercase tracking-wider whitespace-nowrap truncate">{headerSubtitle}</p>
             </div>
           </div>
           <div className="text-left md:text-right flex-shrink-0">
@@ -87,9 +101,16 @@ export default function PublicSignaturePage({ contractId }) {
             </div>
           </div>
 
-          <div className="whitespace-pre-wrap text-justify text-[13px]">
-            {contract?.final_content}
-          </div>
+          {/<\/?(?:div|p|br|strong|b|em|i|u|s|ul|ol|li|h[1-3]|blockquote)\b/i.test(contract?.final_content || '') ? (
+            <div 
+              className="text-justify text-[13px] text-slate-800 leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-600 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-extrabold [&_h3]:text-slate-900 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_li]:mb-1 [&_strong]:font-bold [&_b]:font-bold [&_em]:italic [&_i]:italic [&_u]:underline"
+              dangerouslySetInnerHTML={{ __html: contract?.final_content }}
+            />
+          ) : (
+            <div className="whitespace-pre-wrap text-justify text-[13px]">
+              {contract?.final_content}
+            </div>
+          )}
         </div>
 
         <div className="bg-slate-100 p-6 md:p-8 border-t border-slate-200 mt-auto">

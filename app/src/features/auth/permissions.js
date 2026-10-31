@@ -12,6 +12,7 @@ import {
   Sparkles,
   Users,
   UtensilsCrossed,
+  Wallet,
 } from 'lucide-react';
 
 export const CLINICAL_MODULES = [
@@ -25,6 +26,7 @@ export const CLINICAL_MODULES = [
   { id: 'agenda', label: 'Agenda', icon: Calendar, description: 'Marcação e visualização de consultas' },
   { id: 'tarefas', label: 'Tarefas', icon: CheckSquare, description: 'Demandas do dia e follow-up' },
   { id: 'contratos', label: 'Contratos', icon: FileSignature, description: 'Termos de adesão e assinaturas digitais' },
+  { id: 'financas', label: 'Finanças', icon: Wallet, description: 'Gestão de pacotes, parcerias com nutrólogo e fluxo financeiro' },
   { id: 'marketing', label: 'Marketing', icon: Sparkles, description: 'Estúdio de posts para Instagram' },
   { id: 'ai', label: 'Configurar IA', icon: Bot, description: 'Ajustes de inteligência artificial' },
   { id: 'configuracoes', label: 'Configurações', icon: Settings, description: 'Perfil da clínica e parâmetros gerais' },
@@ -43,8 +45,8 @@ export const ROLE_PRESETS = {
   },
   assistant: {
     label: 'Administrativo / Financeiro',
-    description: 'Acesso a Pacientes, Contratos e Tarefas administrativas.',
-    modules: ['pacientes', 'contratos', 'tarefas'],
+    description: 'Acesso a Pacientes, Contratos, Finanças e Tarefas administrativas.',
+    modules: ['pacientes', 'contratos', 'financas', 'tarefas'],
   },
   custom: {
     label: 'Personalizado',

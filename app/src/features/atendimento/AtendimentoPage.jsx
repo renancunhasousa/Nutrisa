@@ -18,13 +18,15 @@ import { consumePatientHandoff } from '../pacientes/services/patientHandoff.js';
 
 import { callGeminiWithFallback } from '../../shared/services/aiClient.js';
 import { formatWaitTime } from '../../shared/utils/formatters.js';
+import { getOwnerShortLabel } from '../configuracoes/services/clinicProfileService.js';
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export default function AtendimentoPage({ activeModel, onNavigate }) {
+export default function AtendimentoPage({ activeModel, onNavigate, nutritionist }) {
+  const ownerLabel = getOwnerShortLabel();
   const [patientConversation, setPatientConversation] = useState(() => consumePatientHandoff('dashboard'));
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +38,8 @@ export default function AtendimentoPage({ activeModel, onNavigate }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [attendantFilter, setAttendantFilter] = useState('all');
-  const [ignoreCourtesy, setIgnoreCourtesy] = useState(true);
-  const [ignoreOthers, setIgnoreOthers] = useState(true);
+  const ignoreCourtesy = true;
+  const ignoreOthers = true;
   const [searchTerm, setSearchTerm] = useState('');
   const [showPdfModal, setShowPdfModal] = useState(false);
 
@@ -139,7 +141,7 @@ export default function AtendimentoPage({ activeModel, onNavigate }) {
 
       return true;
     });
-  }, [conversations, period, attendantFilter, selectedCategory, statusFilter, ignoreCourtesy, ignoreOthers, searchTerm]);
+  }, [conversations, period, attendantFilter, selectedCategory, statusFilter, searchTerm]);
 
   // ESTATÍSTICAS GERAIS
   const globalStats = useMemo(() => {
@@ -318,7 +320,7 @@ export default function AtendimentoPage({ activeModel, onNavigate }) {
       const secAgendamentoCount = comparisonStats.secretariaAgendamentoCount ?? 0;
 
       const prompt = `
-Você é o Consultor Executivo e Estratégico de Operações da clínica de nutrição "NutrIsa", liderada pela Dra. Isabela Muñoz.
+Você é o Consultor Executivo e Estratégico de Operações da clínica de nutrição "NutrIsa", liderada por ${ownerLabel}.
 Gere um Parecer de Desempenho e Alinhamento de Atendimento WhatsApp para a secretária.
 
 DADOS CONSOLIDADOS DO PERÍODO:
@@ -327,13 +329,13 @@ DADOS CONSOLIDADOS DO PERÍODO:
 - Taxa de Resposta: ${globalStats.responseRate}%
 - Tempo Médio Geral: ${globalStats.avgWaitMinutes} min
 - Secretária: ${comparisonStats.secretaria.total} respostas | Média: ${comparisonStats.secretaria.avg} min | Rápidas (<=15m): ${comparisonStats.secretaria.fastRate}% | Agendamento e Horários: ${secAgendamentoCount} msgs (${secAgendamentoPct}% do total da secretária)
-- Dra. Isabela: ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions} (${intervPct}% do total de mensagens)
+- ${ownerLabel}: ${comparisonStats.isabela.total} respostas | Intervenções de Recepção: ${comparisonStats.isabelaInterventions} (${intervPct}% do total de mensagens)
 - Temas Mais Frequentes: ${topPatientThemes}
 
 METAS E DIRETRIZES:
 1. Tempo: SLA < 30 min (Meta Ouro <= 15 min).
 2. Volume: Secretária liderar o volume de mensagens (absorver a maior parte das conversas).
-3. Intervenção: Intervenções da Dra. Isabela em agendamentos/recepção no máximo 25% do total de mensagens (atualmente em ${intervPct}%).
+3. Intervenção: Intervenções de ${ownerLabel} em agendamentos/recepção no máximo 25% do total de mensagens (atualmente em ${intervPct}%).
 4. Categorização: Espera-se que a principal categoria de mensagens enviada pela secretária seja em relação a "Agendamento e Horários" (atualmente em ${secAgendamentoPct}%).
 5. Bônus Individual da Secretária atrelado ao cumprimento destas 4 metas (Tempo, Volume, Intervenção <= 25% e Categorização em Agendamentos).
 
@@ -417,7 +419,7 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
       },
       planoDeAcao: [
         "Priorizar retorno aos pacientes entre 08h e 10h (horário de pico).",
-        "Encaminhar apenas dúvidas clínicas para o celular da Dra. Isabela.",
+        `Encaminhar apenas dúvidas clínicas para o celular de ${ownerLabel}.`,
         "Manter o foco da recepção na conversão e confirmação de agendamentos e horários."
       ]
     });
@@ -450,6 +452,7 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
         timelineChartData={timelineChartData}
         peakHoursChartData={peakHoursChartData}
         slaResolutionBreakdownData={slaResolutionBreakdownData}
+        nutritionist={nutritionist}
       />
     );
   }
@@ -521,12 +524,8 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
         uniqueCategories={uniqueCategories}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
-        ignoreOthers={ignoreOthers}
-        setIgnoreOthers={setIgnoreOthers}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
-        ignoreCourtesy={ignoreCourtesy}
-        setIgnoreCourtesy={setIgnoreCourtesy}
       />
 
       {error && (
@@ -603,7 +602,7 @@ Responda OBRIGATORIAMENTE em JSON puro no seguinte formato exato:
         conversations={conversations}
         loading={loading}
         getAttendantType={getAttendantType}
-        getAttendantLabel={(item) => getAttendantType(item) === 'isabela' ? 'Dra. Isabela' : 'Secretária'}
+        getAttendantLabel={(item) => getAttendantType(item) === 'isabela' ? ownerLabel : 'Secretária'}
         getWaitStatusBadge={getWaitStatusBadge}
         onNavigate={onNavigate}
       />

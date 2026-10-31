@@ -29,7 +29,9 @@ import {
   Check,
   ChevronDown,
   RotateCcw,
-  Search
+  Search,
+  Stethoscope,
+  Headset,
 } from 'lucide-react';
 import { formatWaitTime, cleanPhoneNumber } from '../../../shared/utils/formatters.js';
 import { fetchCalendarPage } from '../../agenda/services/calendar.js';
@@ -43,6 +45,7 @@ import {
 import { KEY_GOOGLE_TOKEN } from '../../../config/storageKeys.js';
 import { GOOGLE_CALENDAR_ID } from '../../../config/env.js';
 import ConversationPatientAction from './ConversationPatientAction.jsx';
+import { getOwnerShortLabel } from '../../configuracoes/services/clinicProfileService.js';
 
 const CATEGORY_STYLES = {
   'Agendamento e Horários': 'bg-blue-50 text-blue-700 border-blue-200',
@@ -65,6 +68,7 @@ export default function WhatsAppFeedTable({
 }) {
   const [selectedChat, setSelectedChat] = useState(null);
   const dialogRef = useRef(null);
+  const ownerLabel = getOwnerShortLabel();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -251,8 +255,8 @@ export default function WhatsAppFeedTable({
         {/* CABEÇALHO DO FEED */}
         <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white">
           <div>
-            <h3 className="font-black text-base text-slate-900 flex items-center">
-              <MessageSquare className="w-4 h-4 mr-2 text-emerald-600" />
+            <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-slate-900">
+              <MessageSquare className="size-3.5 text-emerald-600" />
               Feed de Conversas & Detalhes do Atendimento
             </h3>
             <p className="text-xs text-slate-400 mt-0.5 font-medium flex items-center gap-1.5">
@@ -305,7 +309,7 @@ export default function WhatsAppFeedTable({
                   {feedFilter === 'all' ? 'Filtrar' : 
                    feedFilter === 'pending' ? 'Aguardando' :
                    feedFilter === 'responded' ? 'Respondidas' :
-                   feedFilter === 'isabela' ? 'Dra. Isabela' :
+                   feedFilter === 'isabela' ? ownerLabel :
                    feedFilter === 'secretaria' ? 'Secretária' :
                    feedFilter === 'agendamento' ? 'Agendamento' :
                    feedFilter === 'confirmations' ? 'Confirmações' :
@@ -324,8 +328,8 @@ export default function WhatsAppFeedTable({
                     { id: 'all', label: 'Todas as Conversas', icon: '🌐' },
                     { id: 'pending', label: 'Apenas Aguardando Resposta', icon: '⏳' },
                     { id: 'responded', label: 'Apenas Respondidas', icon: '✅' },
-                    { id: 'isabela', label: 'Apenas Dra. Isabela', icon: '👩‍⚕️' },
-                    { id: 'secretaria', label: 'Apenas Secretária', icon: '💼' },
+                    { id: 'isabela', label: `Apenas ${ownerLabel}`,icon: <Stethoscope className="size-3.5 text-teal-600" aria-hidden="true" /> },
+                    { id: 'secretaria', label: 'Apenas Secretária', icon: <Headset className="size-3.5 text-purple-600" aria-hidden="true" /> },
                     { id: 'agendamento', label: 'Agendamento & Horários', icon: '📅' },
                     { id: 'confirmations', label: 'Confirmações Detectadas', icon: '💬' },
                     { id: 'cancellations', label: 'Desmarcações / Remarcações', icon: '❌' }
@@ -530,12 +534,14 @@ export default function WhatsAppFeedTable({
                       {/* 3. ATENDENTE */}
                       <td className="py-3 px-2">
                         {isIsabela ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-teal-50/80 text-teal-800 border border-teal-300 shadow-2xs truncate">
-                            👩‍⚕️ Dra. Isabela
+                          <span className="inline-flex max-w-full items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-teal-50/80 text-teal-800 border border-teal-300 shadow-2xs truncate" title={ownerLabel}>
+                            <Stethoscope className="size-3.5 shrink-0 text-teal-600" aria-hidden="true" />
+                            <span className="truncate">{ownerLabel}</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-purple-50 text-purple-900 border border-purple-200 shadow-2xs truncate">
-                            💼 Secretária
+                          <span className="inline-flex max-w-full items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-purple-50 text-purple-900 border border-purple-200 shadow-2xs truncate" title="Secretária">
+                            <Headset className="size-3.5 shrink-0 text-purple-600" aria-hidden="true" />
+                            <span className="truncate">Secretária</span>
                           </span>
                         )}
                       </td>
@@ -699,8 +705,8 @@ export default function WhatsAppFeedTable({
 
                   <span className="px-3.5 py-1 bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-full border border-emerald-200/80 flex items-center shadow-2xs">
                     {respostaSecretaria 
-                      ? `Respondido por ${isIsabela ? 'Dra. Isabela' : 'Secretária'}` 
-                      : `Atribuído para ${isIsabela ? 'Dra. Isabela' : 'Secretária'}`}
+                      ? `Respondido por ${isIsabela ? ownerLabel : 'Secretária'}`
+                      : `Atribuído para ${isIsabela ? ownerLabel : 'Secretária'}`}
                   </span>
 
                   {tempoEspera !== null && tempoEspera !== undefined && (

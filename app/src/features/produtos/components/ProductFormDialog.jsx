@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Barcode, Camera, ClipboardPaste, ExternalLink, ImagePlus, Plus, Search, Sparkles, Trash2, X, Apple, CookingPot, Package, Pill, CupSoda, Tag, ClipboardList, SlidersHorizontal, Flame, Wheat, BadgeCheck, Beef, Drumstick, Bean, Milk, Salad, Nut } from 'lucide-react';
+import { Barcode, Camera, Check, ChevronDown, ClipboardPaste, ExternalLink, ImagePlus, Plus, Search, Sparkles, Trash2, X, Apple, CookingPot, Package, Pill, CupSoda, Tag, ClipboardList, SlidersHorizontal, Flame, Wheat, BadgeCheck, Beef, Drumstick, Bean, Milk, Salad, Nut } from 'lucide-react';
 import { prepareNutritionLabelImage } from '../services/productResearchInput.js';
 import { normalizeBarcodeInput } from '../services/productLookup.js';
 
@@ -36,6 +36,38 @@ const FOOD_GROUPS = [
   'Frutas', 'Verduras e Legumes', 'Gorduras e Oleaginosas', 'Bebidas', 'Outros',
 ];
 
+const REFERENCE_UNIT_OPTIONS = [
+  { value: 'g', label: 'g (gramas)', icon: '⚖️' },
+  { value: 'ml', label: 'ml (mililitros)', icon: '🧪' },
+  { value: 'unidade', label: 'unidade (un.)', icon: '🍎' },
+  { value: 'porção', label: 'porção', icon: '🍽️' },
+  { value: 'fatia', label: 'fatia', icon: '🍞' },
+  { value: 'colher', label: 'colher de sopa', icon: '🥄' },
+  { value: 'xícara', label: 'xícara', icon: '☕' },
+];
+
+const SERVING_UNIT_OPTIONS = [
+  { value: 'g', label: 'g (gramas)', icon: '⚖️' },
+  { value: 'ml', label: 'ml (mililitros)', icon: '🧪' },
+  { value: 'unidade', label: 'unidade (un.)', icon: '🍎' },
+  { value: 'fatia', label: 'fatia', icon: '🍞' },
+  { value: 'colher de sopa', label: 'colher de sopa', icon: '🥄' },
+  { value: 'colher de chá', label: 'colher de chá', icon: '🥄' },
+  { value: 'xícara', label: 'xícara', icon: '☕' },
+  { value: 'copo', label: 'copo', icon: '🥛' },
+  { value: 'scoop', label: 'scoop (dosador)', icon: '🥣' },
+  { value: 'porção', label: 'porção', icon: '🍽️' },
+];
+
+const NUTRIENT_UNIT_OPTIONS = [
+  { value: 'mg', label: 'mg (miligramas)', icon: '💊' },
+  { value: 'g', label: 'g (gramas)', icon: '⚖️' },
+  { value: 'mcg', label: 'mcg (microgramas)', icon: '🔬' },
+  { value: 'kcal', label: 'kcal (calorias)', icon: '🔥' },
+  { value: 'UI', label: 'UI (unid. internac.)', icon: '🏷️' },
+  { value: 'kJ', label: 'kJ (quilojoules)', icon: '⚡' },
+];
+
 const normalizeNutrientName = (value = '') => String(value)
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
@@ -67,12 +99,34 @@ export default function ProductFormDialog({ open, product, onClose, onSave, onBa
   const [researchStatus, setResearchStatus] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [activeDropdown, setActiveDropdown] = useState(null);
+
+  useEffect(() => {
+    if (!activeDropdown) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.dropdown-select-container')) {
+        setActiveDropdown(null);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setActiveDropdown(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeDropdown]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    if (!open && dialog.open) {
+      dialog.close();
+      setActiveDropdown(null);
+    }
   }, [open]);
 
   useEffect(() => {
@@ -83,6 +137,7 @@ export default function ProductFormDialog({ open, product, onClose, onSave, onBa
     setError('');
     setResearchError('');
     setResearchStatus('');
+    setActiveDropdown(null);
   }, [product, open]);
 
   useEffect(() => {
@@ -418,20 +473,42 @@ export default function ProductFormDialog({ open, product, onClose, onSave, onBa
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <fieldset className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
                 <legend className="px-1 text-xs font-black text-emerald-900">Valores nutricionais referentes a</legend>
-                <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_8.5rem] gap-2 items-end">
                   <Field label="Quantidade" name="reference-quantity" type="number" min="0.01" step="0.01" value={form.reference_quantity} onChange={(value) => setField('reference_quantity', value)} />
-                  <label className="text-sm font-bold text-slate-700">Unidade
-                    <select name="reference-unit" value={form.reference_unit || 'g'} onChange={(event) => setField('reference_unit', event.target.value)} className={FIELD_CLASS}>
-                      <option value="g">g</option><option value="ml">ml</option><option value="unidade">unidade</option>
-                    </select>
-                  </label>
+                  <div className="min-w-0">
+                    <label htmlFor="product-reference-unit" className="block text-sm font-bold text-slate-700 mb-1">Unidade</label>
+                    <DropdownSelect
+                      id="product-reference-unit"
+                      value={form.reference_unit || 'g'}
+                      onChange={(val) => setField('reference_unit', val)}
+                      options={REFERENCE_UNIT_OPTIONS}
+                      header="Unidade de referência"
+                      align="right"
+                      isOpen={activeDropdown === 'reference-unit'}
+                      onToggle={() => setActiveDropdown(activeDropdown === 'reference-unit' ? null : 'reference-unit')}
+                    />
+                  </div>
                 </div>
               </fieldset>
               <fieldset className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
                 <legend className="px-1 text-xs font-black text-slate-700">Porção sugerida <span className="font-normal text-slate-400">(opcional)</span></legend>
-                <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_8.5rem] gap-2 items-end">
                   <Field label="Quantidade" name="serving-size" type="number" min="0" step="0.01" value={form.serving_size} onChange={(value) => setField('serving_size', value)} />
-                  <Field label="Unidade" name="serving-unit" placeholder="g, ml ou un." value={form.serving_unit} onChange={(value) => setField('serving_unit', value)} />
+                  <div className="min-w-0">
+                    <label htmlFor="product-serving-unit" className="block text-sm font-bold text-slate-700 mb-1">Unidade</label>
+                    <DropdownSelect
+                      id="product-serving-unit"
+                      value={form.serving_unit || 'g'}
+                      onChange={(val) => setField('serving_unit', val)}
+                      options={SERVING_UNIT_OPTIONS}
+                      header="Unidade da porção"
+                      placeholder="g, ml..."
+                      align="right"
+                      allowCustom={true}
+                      isOpen={activeDropdown === 'serving-unit'}
+                      onToggle={() => setActiveDropdown(activeDropdown === 'serving-unit' ? null : 'serving-unit')}
+                    />
+                  </div>
                 </div>
               </fieldset>
             </div>
@@ -446,29 +523,45 @@ export default function ProductFormDialog({ open, product, onClose, onSave, onBa
             {isFoodLike ? <div className="mt-5 space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <h4 className="text-sm font-bold text-slate-700">Medidas caseiras</h4>
-                <button type="button" onClick={addMeasure} className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50"><Plus className="size-4" /> Adicionar medida</button>
+                <button type="button" onClick={addMeasure} className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50 cursor-pointer"><Plus className="size-4" /> Adicionar medida</button>
               </div>
-              {form.household_measures.map((measure, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_7rem_2.75rem] gap-2">
-                <input aria-label={`Nome da medida ${index + 1}`} value={measure.name} onChange={(event) => updateMeasure(index, 'name', event.target.value)} placeholder="Ex.: Colher de sopa" className="min-h-11 rounded-xl border border-slate-200 px-3 text-base sm:text-sm" />
-                <input aria-label={`Gramas da medida ${index + 1}`} type="number" min="0.01" step="0.01" value={measure.grams} onChange={(event) => updateMeasure(index, 'grams', event.target.value)} placeholder="gramas" className="min-h-11 rounded-xl border border-slate-200 px-3 text-base sm:text-sm" />
-                <button type="button" onClick={() => removeMeasure(index)} className="flex min-h-11 items-center justify-center rounded-xl text-rose-600 hover:bg-rose-50" aria-label={`Remover medida ${index + 1}`}><Trash2 className="size-4" /></button>
+              {form.household_measures.map((measure, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_7rem_2.75rem] gap-2 items-center">
+                <input aria-label={`Nome da medida ${index + 1}`} value={measure.name} onChange={(event) => updateMeasure(index, 'name', event.target.value)} placeholder="Ex.: Colher de sopa" className="min-h-11 rounded-xl border border-slate-200 px-3 text-base sm:text-sm font-medium text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15" />
+                <input aria-label={`Gramas da medida ${index + 1}`} type="number" min="0.01" step="0.01" value={measure.grams} onChange={(event) => updateMeasure(index, 'grams', event.target.value)} placeholder="gramas" className="min-h-11 rounded-xl border border-slate-200 px-3 text-base sm:text-sm font-medium text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15" />
+                <button type="button" onClick={() => removeMeasure(index)} className="flex min-h-11 items-center justify-center rounded-xl text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors" aria-label={`Remover medida ${index + 1}`}><Trash2 className="size-4" /></button>
               </div>)}
             </div> : null}
 
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <h4 className="text-sm font-bold text-slate-700">Outros nutrientes</h4>
-                <button type="button" onClick={addNutrient} className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50"><Plus className="size-4" /> Adicionar nutriente</button>
+                <button type="button" onClick={addNutrient} className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50 cursor-pointer"><Plus className="size-4" /> Adicionar nutriente</button>
               </div>
               {form.nutrition_facts.map((nutrient, index) => (
-                <div key={index} className="grid grid-cols-[minmax(0,1fr)_6rem_5rem_2.75rem] gap-2">
-                  <label className="sr-only" htmlFor={`nutrient-name-${index}`}>Nutriente</label>
-                  <input id={`nutrient-name-${index}`} value={nutrient.name} onChange={(event) => updateNutrient(index, 'name', event.target.value)} placeholder="Ex.: Cálcio" className="min-h-11 min-w-0 rounded-xl border border-slate-200 px-3 text-base sm:text-sm" />
-                  <label className="sr-only" htmlFor={`nutrient-amount-${index}`}>Quantidade</label>
-                  <input id={`nutrient-amount-${index}`} type="number" min="0" step="0.01" value={nutrient.amount ?? ''} onChange={(event) => updateNutrient(index, 'amount', event.target.value)} placeholder="0" className="min-h-11 min-w-0 rounded-xl border border-slate-200 px-3 text-base sm:text-sm" />
-                  <label className="sr-only" htmlFor={`nutrient-unit-${index}`}>Unidade</label>
-                  <input id={`nutrient-unit-${index}`} value={nutrient.unit} onChange={(event) => updateNutrient(index, 'unit', event.target.value)} placeholder="mg" className="min-h-11 min-w-0 rounded-xl border border-slate-200 px-3 text-base sm:text-sm" />
-                  <button type="button" onClick={() => removeNutrient(index)} className="flex min-h-11 items-center justify-center rounded-xl text-rose-600 hover:bg-rose-50" aria-label={`Remover ${nutrient.name || 'nutriente'}`}><Trash2 className="size-4" /></button>
+                <div key={index} className="grid grid-cols-[minmax(0,1fr)_5.5rem_7.5rem_2.75rem] gap-2 items-center">
+                  <div>
+                    <label className="sr-only" htmlFor={`nutrient-name-${index}`}>Nutriente</label>
+                    <input id={`nutrient-name-${index}`} value={nutrient.name} onChange={(event) => updateNutrient(index, 'name', event.target.value)} placeholder="Ex.: Cálcio" className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base sm:text-sm font-normal text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15" />
+                  </div>
+                  <div>
+                    <label className="sr-only" htmlFor={`nutrient-amount-${index}`}>Quantidade</label>
+                    <input id={`nutrient-amount-${index}`} type="number" min="0" step="0.01" value={nutrient.amount ?? ''} onChange={(event) => updateNutrient(index, 'amount', event.target.value)} placeholder="0" className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base sm:text-sm font-normal text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15" />
+                  </div>
+                  <div className="relative">
+                    <label className="sr-only" htmlFor={`nutrient-unit-${index}`}>Unidade</label>
+                    <DropdownSelect
+                      id={`nutrient-unit-${index}`}
+                      value={nutrient.unit || 'mg'}
+                      onChange={(val) => updateNutrient(index, 'unit', val)}
+                      options={NUTRIENT_UNIT_OPTIONS}
+                      header="Unidade do nutriente"
+                      align="right"
+                      allowCustom={true}
+                      isOpen={activeDropdown === `nutrient-unit-${index}`}
+                      onToggle={() => setActiveDropdown(activeDropdown === `nutrient-unit-${index}` ? null : `nutrient-unit-${index}`)}
+                    />
+                  </div>
+                  <button type="button" onClick={() => removeNutrient(index)} className="flex min-h-11 items-center justify-center rounded-xl text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors" aria-label={`Remover ${nutrient.name || 'nutriente'}`}><Trash2 className="size-4" /></button>
                 </div>
               ))}
             </div>
@@ -535,4 +628,148 @@ function AvocadoIcon({ className = '', ...props }) {
     <path d="M12 2.8c-2.8 0-3.5 3.2-5.2 6.2C5.2 11.7 4 14 4 16a8 8 0 0 0 16 0c0-2-1.2-4.3-2.8-7C15.5 6 14.8 2.8 12 2.8Z" />
     <circle cx="12" cy="15.5" r="3.2" />
   </svg>;
+}
+
+function DropdownSelect({
+  id,
+  value,
+  onChange,
+  options = [],
+  placeholder = 'Selecione',
+  header = 'Selecionar opção',
+  align = 'left',
+  isOpen = false,
+  onToggle,
+  allowCustom = false,
+}) {
+  const [isCustomMode, setIsCustomMode] = useState(false);
+  const [customInput, setCustomInput] = useState('');
+
+  const selectedOption = options.find((opt) => opt.value === value);
+  const displayLabel = selectedOption ? selectedOption.label : (value || placeholder);
+  const displayIcon = selectedOption ? selectedOption.icon : null;
+
+  return (
+    <div className="relative dropdown-select-container">
+      <button
+        type="button"
+        id={id}
+        onClick={onToggle}
+        className="flex min-h-11 w-full items-center justify-between gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-xs font-bold text-slate-800 shadow-2xs transition-all hover:border-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/15 cursor-pointer active:scale-[0.99]"
+        aria-expanded={isOpen}
+      >
+        <span className="flex items-center gap-1.5 truncate">
+          {displayIcon && <span className="text-sm shrink-0">{displayIcon}</span>}
+          <span className="truncate">{displayLabel}</span>
+        </span>
+        <ChevronDown
+          className={`size-3.5 shrink-0 opacity-70 transition-transform duration-200 ${isOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className={`absolute mt-2 min-w-[12rem] w-full app-solid-dropdown !bg-white bg-[#ffffff] rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-scale-up space-y-1 ${
+            align === 'right' ? 'right-0' : 'left-0'
+          }`}
+          style={{ backgroundColor: '#ffffff', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+        >
+          {header && (
+            <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              {header}
+            </div>
+          )}
+
+          <div className="max-h-52 overflow-y-auto space-y-0.5 custom-scrollbar">
+            {options.map((opt) => {
+              const isSelected = value === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    onToggle();
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-700 hover:bg-slate-50 font-medium'
+                  }`}
+                >
+                  <span className="flex items-center truncate">
+                    {opt.icon && <span className="mr-2 text-sm">{opt.icon}</span>}
+                    <span className="truncate">{opt.label}</span>
+                  </span>
+                  {isSelected && <Check className="size-3.5 text-emerald-600 shrink-0 ml-1" />}
+                </button>
+              );
+            })}
+
+            {allowCustom && (
+              <div className="border-t border-slate-100 pt-1.5 mt-1">
+                {!isCustomMode ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCustomMode(true);
+                      setCustomInput(value || '');
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded-xl text-xs text-emerald-700 font-bold hover:bg-emerald-50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Outra unidade...</span>
+                  </button>
+                ) : (
+                  <div className="p-1 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="Ex: fatia, dose..."
+                      value={customInput}
+                      onChange={(e) => setCustomInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (customInput.trim()) {
+                            onChange(customInput.trim());
+                            setIsCustomMode(false);
+                            onToggle();
+                          }
+                        }
+                      }}
+                      className="w-full rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-emerald-200"
+                    />
+                    <div className="flex justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomMode(false)}
+                        className="px-2 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-700 cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (customInput.trim()) {
+                            onChange(customInput.trim());
+                            setIsCustomMode(false);
+                            onToggle();
+                          }
+                        }}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 shadow-2xs cursor-pointer"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
